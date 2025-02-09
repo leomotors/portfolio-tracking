@@ -1,0 +1,22 @@
+{
+  "name": "@repo/database",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "lint": "eslint src",
+    "format": "eslint src --fix",
+    "db:generate": "dotenv -- drizzle-kit generate",
+    "db:migrate": "dotenv -- drizzle-kit migrate",
+    "db:export": "dotenv -- drizzle-kit export"
+  },
+  "dependencies": {
+    "drizzle-orm": "^0.39.2",
+    "postgres": "^3.4.5",
+    "zod": "^3.24.1"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "drizzle-kit": "^0.30.4"
+  }
+}
