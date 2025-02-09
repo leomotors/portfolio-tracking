@@ -20,11 +20,12 @@ export const creditCardAccountTable = pgTable("credit_card_account", {
   name: text().notNull(),
   issuedBy: text("issued_by").notNull(),
   cardType: creditCardType("card_type").notNull(),
-  cardNo: text("card_no").notNull(),
-  creditLimit: numeric("credit_limit", { precision: 3, scale: 2 }).notNull(),
-  creditLine: numeric("credit_line", { precision: 3, scale: 2 }).notNull(),
+  cardNo: text("card_no").notNull().unique(),
+  creditLimit: numeric("credit_limit").notNull(),
+  creditLine: numeric("credit_line").notNull(),
   statementDate: integer("statement_date").notNull(),
   interestFreePeriod: integer("interest_free_period").notNull(),
+  interestRate: numeric("interest_rate").notNull(),
   openedAt: date("opened_at").notNull(),
 });
 
@@ -32,6 +33,6 @@ export const personalLoanAccountTable = pgTable("personal_loan_account", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: text().notNull(),
   issuedBy: text("issued_by").notNull(),
-  creditLimit: numeric("credit_limit", { precision: 3, scale: 2 }).notNull(),
+  creditLimit: numeric("credit_limit").notNull(),
   openedAt: date("opened_at").notNull(),
 });

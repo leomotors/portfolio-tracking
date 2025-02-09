@@ -1,5 +1,5 @@
 {
-  "id": "f45ee72a-18c3-480c-8861-76a74dcff44f",
+  "id": "863519dd-20c9-412b-8f5d-ce4c2c1f9e74",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -51,14 +51,14 @@
         },
         "current_balance": {
           "name": "current_balance",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
         },
         "interest_rate": {
           "name": "interest_rate",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
@@ -93,7 +93,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "bank_account_account_no_unique": {
+          "name": "bank_account_account_no_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "account_no"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -127,7 +135,7 @@
         },
         "balance": {
           "name": "balance",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
@@ -195,14 +203,14 @@
         },
         "current_cost": {
           "name": "current_cost",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
         },
         "current_value": {
           "name": "current_value",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true,
           "default": "'0'"
@@ -224,7 +232,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "investment_account_account_no_unique": {
+          "name": "investment_account_account_no_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "account_no"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -258,13 +274,13 @@
         },
         "cost": {
           "name": "cost",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
         "value": {
           "name": "value",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
@@ -345,13 +361,13 @@
         },
         "credit_limit": {
           "name": "credit_limit",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
         "credit_line": {
           "name": "credit_line",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },
@@ -367,6 +383,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "interest_rate": {
+          "name": "interest_rate",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
         "opened_at": {
           "name": "opened_at",
           "type": "date",
@@ -377,7 +399,15 @@
       "indexes": {},
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "credit_card_account_card_no_unique": {
+          "name": "credit_card_account_card_no_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "card_no"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -417,7 +447,7 @@
         },
         "credit_limit": {
           "name": "credit_limit",
-          "type": "numeric(3, 2)",
+          "type": "numeric",
           "primaryKey": false,
           "notNull": true
         },

@@ -23,13 +23,9 @@ export const assetType = pgEnum("asset_type", [
 export const investmentAccountTable = pgTable("investment_account", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: text().notNull(),
-  accountNo: text("account_no").notNull(),
-  currentCost: numeric("current_cost", { precision: 3, scale: 2 })
-    .notNull()
-    .default("0"),
-  currentValue: numeric("current_value", { precision: 3, scale: 2 })
-    .notNull()
-    .default("0"),
+  accountNo: text("account_no").notNull().unique(),
+  currentCost: numeric("current_cost").notNull().default("0"),
+  currentValue: numeric("current_value").notNull().default("0"),
   openedAt: date("opened_at"),
   assetTypes: assetType("asset_types")
     .array()
@@ -41,7 +37,7 @@ export const investmentDailyBalanceTable = pgTable("investment_daily_balance", {
   investmentAccountId: integer("investment_account_id")
     .references(() => investmentAccountTable.id, { onDelete: "cascade" })
     .notNull(),
-  cost: numeric({ precision: 3, scale: 2 }).notNull(),
-  value: numeric({ precision: 3, scale: 2 }).notNull(),
+  cost: numeric().notNull(),
+  value: numeric().notNull(),
   date: date().notNull(),
 });

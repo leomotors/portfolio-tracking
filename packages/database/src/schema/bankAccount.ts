@@ -20,13 +20,9 @@ export const bankAccountTable = pgTable("bank_account", {
   name: text().notNull(),
   bank: text().notNull(),
   branch: text(),
-  accountNo: text("account_no").notNull(),
-  currentBalance: numeric("current_balance", { precision: 3, scale: 2 })
-    .notNull()
-    .default("0"),
-  interestRate: numeric("interest_rate", { precision: 3, scale: 2 })
-    .notNull()
-    .default("0"),
+  accountNo: text("account_no").notNull().unique(),
+  currentBalance: numeric("current_balance").notNull().default("0"),
+  interestRate: numeric("interest_rate").notNull().default("0"),
   accountType: bankAccountType("account_type"),
   openedAt: date("opened_at"),
   closedAt: date("closed_at"),
@@ -41,6 +37,6 @@ export const bankDailyBalanceTable = pgTable("bank_daily_balance", {
   bankAccountId: integer("bank_account_id")
     .references(() => bankAccountTable.id, { onDelete: "cascade" })
     .notNull(),
-  balance: numeric({ precision: 3, scale: 2 }).notNull(),
+  balance: numeric().notNull(),
   date: date().notNull(),
 });
