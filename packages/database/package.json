@@ -1,6 +1,5 @@
 {
   "name": "@repo/database",
-  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,6 +8,10 @@
     "db:generate": "dotenv -- drizzle-kit generate",
     "db:migrate": "dotenv -- drizzle-kit migrate",
     "db:export": "dotenv -- drizzle-kit export"
+  },
+  "exports": {
+    "./client": "./src/client.ts",
+    "./schema": "./src/schema/index.ts"
   },
   "dependencies": {
     "drizzle-orm": "^0.39.2",
