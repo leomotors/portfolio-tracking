@@ -1,0 +1,2 @@
+ALTER TABLE "personal_loan_account" ADD COLUMN "account_no" text;--> statement-breakpoint
+ALTER TABLE "personal_loan_account" ADD CONSTRAINT "personal_loan_account_account_no_unique" UNIQUE("account_no");
