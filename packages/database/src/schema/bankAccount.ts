@@ -12,7 +12,6 @@ export const bankAccountType = pgEnum("bank_account_type", [
   "savings",
   "e_savings",
   "fixed",
-  "fcd",
 ]);
 
 export const bankAccountTable = pgTable("bank_account", {
@@ -24,6 +23,22 @@ export const bankAccountTable = pgTable("bank_account", {
   currentBalance: numeric("current_balance").notNull().default("0"),
   interestRate: numeric("interest_rate").notNull().default("0"),
   accountType: bankAccountType("account_type"),
+  openedAt: date("opened_at"),
+  closedAt: date("closed_at"),
+  remarks: text()
+    .array()
+    .notNull()
+    .default(sql`ARRAY[]::text[]`),
+});
+
+export const fcdAccountTable = pgTable("fcd_account", {
+  id: integer().primaryKey().generatedAlwaysAsIdentity(),
+  name: text().notNull(),
+  bank: text().notNull(),
+  branch: text(),
+  accountNo: text("account_no").notNull().unique(),
+  currency: text().notNull(),
+  interestRate: numeric("interest_rate").notNull().default("0"),
   openedAt: date("opened_at"),
   closedAt: date("closed_at"),
   remarks: text()

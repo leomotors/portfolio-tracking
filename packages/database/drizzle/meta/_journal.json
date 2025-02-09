@@ -15,6 +15,13 @@
       "when": 1739092967268,
       "tag": "0001_personal-loan-account-no",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1739097151701,
+      "tag": "0002_fcd-account",
+      "breakpoints": true
     }
   ]
 }
