@@ -5,6 +5,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const creditCardType = pgEnum("credit_card_type", [
@@ -29,11 +30,15 @@ export const creditCardAccountTable = pgTable("credit_card_account", {
   openedAt: date("opened_at").notNull(),
 });
 
-export const personalLoanAccountTable = pgTable("personal_loan_account", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  name: text().notNull(),
-  issuedBy: text("issued_by").notNull(),
-  accountNo: text("account_no").unique(),
-  creditLimit: numeric("credit_limit").notNull(),
-  openedAt: date("opened_at").notNull(),
-});
+export const personalLoanAccountTable = pgTable(
+  "personal_loan_account",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    name: text().notNull(),
+    issuedBy: text("issued_by").notNull(),
+    accountNo: text("account_no"),
+    creditLimit: numeric("credit_limit").notNull(),
+    openedAt: date("opened_at").notNull(),
+  },
+  (t) => [unique().on(t.issuedBy, t.accountNo)],
+);

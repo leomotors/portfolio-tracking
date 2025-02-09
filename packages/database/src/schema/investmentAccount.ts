@@ -6,6 +6,7 @@ import {
   pgEnum,
   pgTable,
   text,
+  unique,
 } from "drizzle-orm/pg-core";
 
 export const assetType = pgEnum("asset_type", [
@@ -32,12 +33,16 @@ export const investmentAccountTable = pgTable("investment_account", {
     .default(sql`ARRAY[]::asset_type[]`),
 });
 
-export const investmentDailyBalanceTable = pgTable("investment_daily_balance", {
-  id: integer().primaryKey().generatedAlwaysAsIdentity(),
-  investmentAccountId: integer("investment_account_id")
-    .references(() => investmentAccountTable.id, { onDelete: "cascade" })
-    .notNull(),
-  cost: numeric().notNull(),
-  value: numeric().notNull(),
-  date: date().notNull(),
-});
+export const investmentDailyBalanceTable = pgTable(
+  "investment_daily_balance",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    investmentAccountId: integer("investment_account_id")
+      .references(() => investmentAccountTable.id, { onDelete: "cascade" })
+      .notNull(),
+    cost: numeric().notNull(),
+    value: numeric().notNull(),
+    date: date().notNull(),
+  },
+  (t) => [unique().on(t.investmentAccountId, t.date)],
+);
