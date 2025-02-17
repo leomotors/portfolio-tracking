@@ -1,3 +1,4 @@
+import { gte, isNull, or } from "drizzle-orm";
 import { type PgInsertValue } from "drizzle-orm/pg-core";
 
 import { db } from "@repo/database/client";
@@ -28,7 +29,17 @@ export async function dailyBalance() {
 }
 
 async function dailyBalanceBank(dateStr: string) {
-  const bankResult = await db.select().from(bankAccountTable).execute();
+  const bankResult = await db
+    .select()
+    .from(bankAccountTable)
+    .where(
+      or(
+        isNull(bankAccountTable.closedAt),
+        gte(bankAccountTable.closedAt, dateStr),
+      ),
+    )
+    .orderBy(bankAccountTable.id)
+    .execute();
 
   if (bankResult.length === 0) {
     throw new Error(
@@ -63,6 +74,7 @@ async function dailyBalanceInvestment(dateStr: string) {
   const investmentResult = await db
     .select()
     .from(investmentAccountTable)
+    .orderBy(investmentAccountTable.id)
     .execute();
 
   const investmentInsertValues = investmentResult.map(
