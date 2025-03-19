@@ -33,7 +33,7 @@ export const assetType = pgEnum("asset_type", [
   "digital_asset",
 ]);
 
-export const assetClassType = pgEnum("asset_class", [
+export const assetClassType = pgEnum("asset_class_type", [
   "cash",
   "bond",
   "stock",

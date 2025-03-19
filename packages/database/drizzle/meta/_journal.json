@@ -64,6 +64,13 @@
       "when": 1742386801834,
       "tag": "0008_sour_rage",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1742391929114,
+      "tag": "0009_clammy_legion",
+      "breakpoints": true
     }
   ]
 }

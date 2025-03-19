@@ -1,0 +1,1 @@
+ALTER TYPE "public"."asset_class" RENAME TO "asset_class_type";
