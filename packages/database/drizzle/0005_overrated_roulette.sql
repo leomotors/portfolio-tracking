@@ -1,0 +1,1 @@
+ALTER TABLE "asset" ALTER COLUMN "symbol" DROP NOT NULL;

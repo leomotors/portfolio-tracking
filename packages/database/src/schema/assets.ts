@@ -11,7 +11,7 @@ import { assetType, riskLevelType } from "./types.ts";
 export const assetTable = pgTable("asset", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
   name: text().notNull(),
-  symbol: text().notNull(),
+  symbol: text(),
   assetType: assetType("asset_type").notNull(),
   riskLevel: riskLevelType("risk_level").notNull(),
   amount: decimal().notNull().default("0"),
