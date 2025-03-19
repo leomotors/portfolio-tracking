@@ -3,23 +3,12 @@ import {
   date,
   integer,
   numeric,
-  pgEnum,
   pgTable,
   text,
   unique,
 } from "drizzle-orm/pg-core";
 
-export const assetType = pgEnum("asset_type", [
-  "mutual_fund",
-  "thai_stock",
-  "offshore_stock_dr",
-  "us_stock",
-  "us_stock_drx",
-  "gold",
-  "government_bond",
-  "coperate_bond",
-  "digital_asset",
-]);
+import { assetType } from "./types.ts";
 
 export const investmentAccountTable = pgTable("investment_account", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),

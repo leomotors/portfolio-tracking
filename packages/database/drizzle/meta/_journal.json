@@ -29,6 +29,13 @@
       "when": 1739105639528,
       "tag": "0003_unique-constraint",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1742369031757,
+      "tag": "0004_neat_tenebrous",
+      "breakpoints": true
     }
   ]
 }
