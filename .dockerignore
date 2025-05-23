@@ -1,6 +1,6 @@
 # Ignore dependencies (will be installed inside Docker)
 node_modules/
-pnpm-lock.yaml
+# pnpm-lock.yaml
 
 # Ignore build outputs
 dist/

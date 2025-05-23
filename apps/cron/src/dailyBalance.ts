@@ -10,6 +10,7 @@ import {
 } from "@repo/database/schema";
 
 import { environment } from "./environment.js";
+import { logger } from "./logger.js";
 
 export async function dailyBalance() {
   const now = new Date();
@@ -22,7 +23,7 @@ export async function dailyBalance() {
 
   const dateStr = `${year}-${month}-${day}`;
 
-  console.log(`Adding daily balance for ${dateStr}`);
+  logger.log(`Adding daily balance for ${dateStr}`);
 
   await dailyBalanceBank(dateStr);
   await dailyBalanceInvestment(dateStr);
@@ -56,10 +57,10 @@ async function dailyBalanceBank(dateStr: string) {
       }) satisfies PgInsertValue<typeof bankDailyBalanceTable>,
   );
 
-  console.log(
+  logger.log(
     `Inserting with values (length of ${bankInsertValues.length}, on conflict do nothing):`,
   );
-  console.log(bankInsertValues);
+  logger.log(JSON.stringify(bankInsertValues, null, 2));
 
   if (!environment.DRY_RUN) {
     await db
@@ -87,10 +88,10 @@ async function dailyBalanceInvestment(dateStr: string) {
       }) satisfies PgInsertValue<typeof investmentDailyBalanceTable>,
   );
 
-  console.log(
+  logger.log(
     `Inserting with values (length of ${investmentInsertValues.length}, on conflict do nothing):`,
   );
-  console.log(investmentInsertValues);
+  logger.log(JSON.stringify(investmentInsertValues, null, 2));
 
   if (!environment.DRY_RUN) {
     await db

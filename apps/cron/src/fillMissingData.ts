@@ -7,6 +7,7 @@ import {
 } from "@repo/database/schema";
 
 import { formatDate } from "./lib/dateFormat.js";
+import { logger } from "./logger.js";
 
 export async function fillMissingData() {
   await fillMissingDataBank();
@@ -62,10 +63,10 @@ async function fillMissingDataBank() {
   }
 
   if (insertValues.length > 0) {
-    console.log(
+    logger.log(
       `Inserting missing data of bank daily balance with length ${insertValues.length}:`,
     );
-    console.log(insertValues);
+    logger.log(JSON.stringify(insertValues, null, 2));
 
     if (!process.env.DRY_RUN) {
       await db.insert(bankDailyBalanceTable).values(insertValues).execute();
@@ -128,10 +129,10 @@ async function fillMissingDataInvestment() {
   }
 
   if (insertValues.length > 0) {
-    console.log(
+    logger.log(
       `Inserting missing data of investment daily balance with length ${insertValues.length}:`,
     );
-    console.log(insertValues);
+    logger.log(JSON.stringify(insertValues, null, 2));
 
     if (!process.env.DRY_RUN) {
       await db

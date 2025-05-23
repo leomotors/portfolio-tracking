@@ -5,14 +5,15 @@ import {
   text,
   timestamp,
 } from "drizzle-orm/pg-core";
+
 import { currencyTable } from "./currency.ts";
+import { investmentAccountTable } from "./investmentAccount.ts";
 import {
   assetClassType,
   assetType,
   riskLevelType,
   symbolType,
 } from "./types.ts";
-import { investmentAccountTable } from "./investmentAccount.ts";
 
 export const assetTable = pgTable("asset", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
