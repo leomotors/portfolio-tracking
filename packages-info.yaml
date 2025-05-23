@@ -1,0 +1,4 @@
+packages:
+  - name: cron
+    fullName: Daily Cron
+    packagePath: apps/cron
