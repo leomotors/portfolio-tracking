@@ -13,8 +13,8 @@
     "format": {
       "cache": false
     },
-    "check-types": {
-      "dependsOn": ["^check-types"]
+    "check": {
+      "dependsOn": ["^check"]
     },
     "dev": {
       "cache": false,

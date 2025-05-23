@@ -7,16 +7,17 @@
     "preview": "dotenv -- node ./dist/index.js",
     "build": "tsup",
     "test": "vitest run",
-    "test:cov": "vitest run --coverage"
+    "test:cov": "vitest run --coverage",
+    "check": "tsc"
   },
   "devDependencies": {
     "@repo/database": "workspace:*",
-    "@vitest/coverage-v8": "^3.0.7",
+    "@vitest/coverage-v8": "^3.1.4",
     "dotenv-cli": "^8.0.0",
-    "drizzle-orm": "^0.40.0",
-    "tsup": "^8.4.0",
-    "typescript": "^5.8.2",
-    "vitest": "^3.0.7",
-    "zod": "^3.24.2"
+    "drizzle-orm": "^0.43.1",
+    "tsup": "^8.5.0",
+    "typescript": "^5.8.3",
+    "vitest": "^3.1.4",
+    "zod": "^3.25.23"
   }
 }
