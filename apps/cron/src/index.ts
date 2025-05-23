@@ -1,10 +1,10 @@
 import { db } from "@repo/database/client";
 
 import { dailyBalance } from "./dailyBalance.js";
+import { sendMessage } from "./discord.js";
 import { environment } from "./environment.js";
 import { fillMissingData } from "./fillMissingData.js";
 import { logger } from "./logger.js";
-import { sendMessage } from "./discord.js";
 import { getSummary } from "./summary.js";
 
 if (environment.DRY_RUN) {

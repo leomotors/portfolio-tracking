@@ -8,6 +8,8 @@
     "build": "tsup",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
+    "lint": "eslint src",
+    "format": "eslint src --fix",
     "check": "tsc"
   },
   "devDependencies": {

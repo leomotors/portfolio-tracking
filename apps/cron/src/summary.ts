@@ -1,9 +1,10 @@
+import { sum } from "drizzle-orm";
+
 import { db } from "@repo/database/client";
 import {
   bankAccountTable,
   investmentAccountTable,
 } from "@repo/database/schema";
-import { sum } from "drizzle-orm";
 
 export async function getSummary() {
   const { totalBalance: _totalBalance } = (
