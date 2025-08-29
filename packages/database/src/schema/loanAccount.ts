@@ -28,6 +28,7 @@ export const creditCardAccountTable = pgTable("credit_card_account", {
   interestFreePeriod: integer("interest_free_period").notNull(),
   interestRate: numeric("interest_rate").notNull(),
   openedAt: date("opened_at").notNull(),
+  closedAt: date("closed_at"),
 });
 
 export const personalLoanAccountTable = pgTable(
@@ -39,6 +40,7 @@ export const personalLoanAccountTable = pgTable(
     accountNo: text("account_no"),
     creditLimit: numeric("credit_limit").notNull(),
     openedAt: date("opened_at").notNull(),
+    closedAt: date("closed_at"),
   },
   (t) => [unique().on(t.issuedBy, t.accountNo)],
 );

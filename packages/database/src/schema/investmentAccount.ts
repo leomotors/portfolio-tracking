@@ -17,6 +17,7 @@ export const investmentAccountTable = pgTable("investment_account", {
   currentCost: numeric("current_cost").notNull().default("0"),
   currentValue: numeric("current_value").notNull().default("0"),
   openedAt: date("opened_at"),
+  closedAt: date("closed_at"),
   investmentTypes: investmentType("investment_types")
     .array()
     .default(sql`ARRAY[]::investment_type[]`),
