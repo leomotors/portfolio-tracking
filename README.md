@@ -9,3 +9,14 @@ System that helps you track your investment portfolio.
 `packages/database` - Database that stores data including daily balances, allowing visualization in your favourite dashboard.
 
 `apps/cron` - Daily cron that updates prices, calculates balances and generate summary of your daily net worth.
+
+## Work done
+
+### Price Updates
+
+- [X] Thai Stocks from SET
+- [ ] US Stocks
+- [ ] Crypto Currencies
+- [ ] Thai Mutual Funds
+- [ ] Gold
+- [ ] Currency
