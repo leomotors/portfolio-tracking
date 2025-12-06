@@ -29,4 +29,3 @@ export class Logger {
 }
 
 export const logger = Logger.getInstance();
-export const warnings = Logger.getInstance();

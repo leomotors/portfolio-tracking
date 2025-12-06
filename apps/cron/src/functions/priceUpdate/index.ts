@@ -3,8 +3,9 @@ import { eq, gt } from "drizzle-orm";
 import { db } from "@repo/database/client";
 import { assetTable } from "@repo/database/schema";
 
-import { logger } from "../../core/logger";
-import { scrapeSet } from "../../data/set";
+import { environment } from "@/core/environment";
+import { logger } from "@/core/logger";
+import { scrapeSet } from "@/data/set";
 
 export async function priceUpdateStep() {
   const symbols = await db
@@ -39,10 +40,12 @@ async function updateThaiStocks(symbols: string[]) {
 
   logger.log(`Thai Stock Prices Updated:\n${log}`);
 
-  for (const r of result) {
-    await db
-      .update(assetTable)
-      .set({ currentPrice: String(r.close) })
-      .where(eq(assetTable.symbol, r.symbol));
+  if (!environment.DRY_RUN) {
+    for (const r of result) {
+      await db
+        .update(assetTable)
+        .set({ currentPrice: String(r.close) })
+        .where(eq(assetTable.symbol, r.symbol));
+    }
   }
 }

@@ -9,8 +9,8 @@ import {
   investmentDailyBalanceTable,
 } from "@repo/database/schema";
 
-import { environment } from "../../core/environment.js";
-import { logger } from "../../core/logger.js";
+import { environment } from "@/core/environment.js";
+import { logger } from "@/core/logger.js";
 
 export async function dailyBalance() {
   const now = new Date();

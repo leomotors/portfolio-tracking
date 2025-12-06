@@ -1,6 +1,6 @@
 import { chromium, Page } from "playwright";
 
-import { logger } from "../core/logger";
+import { logger } from "@/core/logger";
 
 export async function fetchPath(
   page: Page,
