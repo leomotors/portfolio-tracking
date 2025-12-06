@@ -14,8 +14,8 @@ System that helps you track your investment portfolio.
 
 ### Price Updates
 
-- [X] Thai Stocks from SET
-- [ ] US Stocks
+- [x] Thai Stocks from SET
+- [x] US Stocks
 - [ ] Crypto Currencies
 - [ ] Thai Mutual Funds
 - [ ] Gold
