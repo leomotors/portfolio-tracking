@@ -14,4 +14,4 @@ Tracking my investments.
 
 ## Linting
 
-Linting is done by ESLint and formatting is done by prettier. No need to anything to format or import sort order, human will run script to fix them manually.
+Linting is done by ESLint and formatting is done by prettier. No need to do anything to fix format or import sort order, human will run script to fix them manually.
