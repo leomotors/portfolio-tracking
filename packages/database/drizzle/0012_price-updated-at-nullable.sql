@@ -1,0 +1,1 @@
+ALTER TABLE "asset" ALTER COLUMN "price_updated_at" DROP NOT NULL;

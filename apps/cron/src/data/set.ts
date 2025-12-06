@@ -2,6 +2,8 @@ import { chromium, Page } from "playwright";
 
 import { logger } from "@/core/logger";
 
+import { ScrapeResult } from "./types";
+
 export async function fetchPath(
   page: Page,
   path: string,
@@ -74,11 +76,16 @@ export async function scrapeSet(symbols: string[]) {
 
   await page.waitForLoadState("domcontentloaded");
 
-  const result = [] as Array<{ symbol: string; date: string; close: number }>;
+  const result = [] as ScrapeResult[];
 
   for (const symbol of symbols) {
     try {
-      result.push(await scrapeSymbol(page, symbol));
+      const latest = await scrapeSymbol(page, symbol);
+      result.push({
+        symbol: latest.symbol,
+        price: latest.close,
+        date: latest.date,
+      });
       await new Promise((resolve) => setTimeout(resolve, 1000)); // Add a delay between requests
     } catch (error) {
       logger.error(

@@ -85,6 +85,13 @@
       "when": 1765040207943,
       "tag": "0011_rename-asset-price-updated-at",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1765047307108,
+      "tag": "0012_price-updated-at-nullable",
+      "breakpoints": true
     }
   ]
 }

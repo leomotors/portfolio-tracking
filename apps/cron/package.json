@@ -23,6 +23,7 @@
     "zod": "^4.1.13"
   },
   "dependencies": {
-    "playwright": "^1.57.0"
+    "playwright": "^1.57.0",
+    "yahoo-finance2": "^3.10.2"
   }
 }

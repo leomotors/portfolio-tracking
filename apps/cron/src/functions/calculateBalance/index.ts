@@ -35,7 +35,7 @@ export async function calculateBalance() {
 
   for (const account of investmentAccounts) {
     logger.log(
-      `Processing account: ${account.name} (${account.accountNo.replaceAll("\n", " ")})`,
+      `-> Processing account: ${account.name} (${account.accountNo.replaceAll("\n", " ")})`,
     );
 
     // Get all assets for this investment account with their currency info
@@ -71,7 +71,7 @@ export async function calculateBalance() {
 
     for (const asset of assets) {
       // Check if price is outdated
-      if (asset.priceUpdatedAt < twentyFourHoursAgo) {
+      if (asset.priceUpdatedAt && asset.priceUpdatedAt < twentyFourHoursAgo) {
         staleAssets.add(
           `${asset.name} (updated: ${asset.priceUpdatedAt.toLocaleString()})`,
         );

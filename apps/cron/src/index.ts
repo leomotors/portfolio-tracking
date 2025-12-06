@@ -13,19 +13,19 @@ if (environment.DRY_RUN) {
   logger.log("Running in dry-run mode");
 }
 
-logger.log("--- Functions: Scraping Prices ---");
+logger.log("\n--- Functions: Scraping Prices ---");
 await priceUpdateStep();
 
-logger.log("--- Functions: Calculate Balance ---");
+logger.log("\n--- Functions: Calculate Balance ---");
 await calculateBalance();
 
-logger.log("--- Functions: Daily Balance ---");
+logger.log("\n--- Functions: Daily Balance ---");
 await dailyBalance();
 await fillMissingData();
 
 await sendMessage(
   `## Portfolio Daily Cron: Run Completed
-App Version: ${APP_VERSION}
+App Version: ${APP_VERSION} ${environment.DRY_RUN ? "(Dry Run)" : ""}
 ${await getSummary()}`,
   logger.getMessages().join("\n"),
 );

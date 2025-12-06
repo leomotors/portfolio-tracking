@@ -35,7 +35,6 @@ export const assetTable = pgTable("asset", {
     .notNull(),
 
   priceUpdatedAt: timestamp("price_updated_at")
-    .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),
 });

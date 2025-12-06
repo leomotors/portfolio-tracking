@@ -5,7 +5,8 @@
 ## [0.3.0] - 2025-12-xx
 
 - reduce sql values logging size by formatting as one item per line
-- (todo) filter some stale prices
+- filter some stale prices
+- feat: price updater for US stocks using `yahoo-finance2`
 
 ## [0.2.0] - 2025-12-06
 
