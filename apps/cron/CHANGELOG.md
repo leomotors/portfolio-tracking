@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [0.3.0] - 2025-12-xx
+## [0.3.0] - 2025-12-07
 
 - reduce sql values logging size by formatting as one item per line
 - filter some stale prices
