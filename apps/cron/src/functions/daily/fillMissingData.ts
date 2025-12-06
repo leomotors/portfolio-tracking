@@ -6,8 +6,8 @@ import {
   investmentDailyBalanceTable,
 } from "@repo/database/schema";
 
-import { formatDate } from "./lib/dateFormat.js";
-import { logger } from "./logger.js";
+import { logger } from "../../core/logger.js";
+import { formatDate } from "../../lib/dateFormat.js";
 
 export async function fillMissingData() {
   await fillMissingDataBank();

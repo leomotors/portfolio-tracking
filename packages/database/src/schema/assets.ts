@@ -33,7 +33,8 @@ export const assetTable = pgTable("asset", {
   currencyId: integer("currency_id")
     .references(() => currencyTable.id)
     .notNull(),
-  updatedAt: timestamp("updated_at")
+
+  priceUpdatedAt: timestamp("price_updated_at")
     .notNull()
     .defaultNow()
     .$onUpdate(() => new Date()),

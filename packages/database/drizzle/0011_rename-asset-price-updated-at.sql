@@ -1,0 +1,1 @@
+ALTER TABLE "asset" RENAME COLUMN "updated_at" TO "price_updated_at";

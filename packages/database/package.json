@@ -14,12 +14,12 @@
     "./schema": "./src/schema/index.ts"
   },
   "dependencies": {
-    "drizzle-orm": "^0.43.1",
+    "drizzle-orm": "^0.45.0",
     "postgres": "^3.4.7",
-    "zod": "^3.25.23"
+    "zod": "^4.1.13"
   },
   "devDependencies": {
-    "dotenv-cli": "^8.0.0",
-    "drizzle-kit": "^0.31.1"
+    "dotenv-cli": "^11.0.0",
+    "drizzle-kit": "^0.31.8"
   }
 }

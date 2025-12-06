@@ -78,6 +78,13 @@
       "when": 1756483609633,
       "tag": "0010_flaky_nemesis",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1765040207943,
+      "tag": "0011_rename-asset-price-updated-at",
+      "breakpoints": true
     }
   ]
 }
