@@ -1,11 +1,11 @@
 {
   "name": "@app/cron",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "type": "module",
   "scripts": {
-    "preview": "dotenv -- node ./dist/index.js",
-    "build": "tsup",
+    "preview": "dotenv -- node --enable-source-maps ./dist/index.mjs",
+    "build": "tsdown",
     "test": "vitest run",
     "test:cov": "vitest run --coverage",
     "lint": "eslint src",
@@ -17,7 +17,7 @@
     "@vitest/coverage-v8": "^4.0.15",
     "dotenv-cli": "^11.0.0",
     "drizzle-orm": "^0.45.0",
-    "tsup": "^8.5.1",
+    "tsdown": "^0.17.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.15",
     "zod": "^4.1.13"

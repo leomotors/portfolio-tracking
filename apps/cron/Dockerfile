@@ -1,6 +1,6 @@
-FROM node:22-alpine AS builder
+FROM node:24-bookworm AS base
 
-WORKDIR /factory
+WORKDIR /app
 
 RUN corepack enable
 
@@ -14,18 +14,21 @@ COPY packages/ ./packages/
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter=@app/cron build
 
-FROM node:22-alpine AS runner
+
+FROM node:24-bookworm AS runner
 
 WORKDIR /app
 
-RUN corepack enable
-# ? Note: No Runtime Dependencies
+RUN corepack enable && corepack prepare pnpm@latest --activate
 
-USER node
+COPY tools/ ./tools/
+COPY apps/cron/package.json ./
+RUN node tools/patch-pkg.js
+RUN pnpm install --production
+RUN pnpm playwright install --with-deps chromium
 
-COPY --from=builder --chown=node:node /factory/apps/cron/dist/ /app/
+COPY --from=base --chown=node:node /app/apps/cron/dist/ ./dist/
 
-LABEL name="portfolio-tracking/cron"
 ENV NODE_ENV=production
 
-CMD ["node", "index.js"]
+CMD ["node", "--enable-source-maps", "dist/index.mjs"]

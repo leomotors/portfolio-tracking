@@ -24,7 +24,9 @@ await dailyBalance();
 await fillMissingData();
 
 await sendMessage(
-  `## Portfolio Daily Cron: Run Completed\n${await getSummary()}`,
+  `## Portfolio Daily Cron: Run Completed
+App Version: ${APP_VERSION}
+${await getSummary()}`,
   logger.getMessages().join("\n"),
 );
 
