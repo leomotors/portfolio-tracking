@@ -1,4 +1,4 @@
-FROM node:24-bookworm AS base
+FROM node:24-trixie AS base
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter=@app/cron build
 
 
-FROM node:24-bookworm AS runner
+FROM node:24-trixie AS runner
 
 WORKDIR /app
 

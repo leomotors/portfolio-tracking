@@ -10,6 +10,7 @@ import {
 } from "@repo/database/schema";
 
 import { environment } from "@/core/environment.js";
+import { formatJson } from "@/core/jsonFormatter";
 import { logger } from "@/core/logger.js";
 
 export async function dailyBalance() {
@@ -60,7 +61,7 @@ async function dailyBalanceBank(dateStr: string) {
   logger.log(
     `Inserting with values (length of ${bankInsertValues.length}, on conflict do nothing):`,
   );
-  logger.log(JSON.stringify(bankInsertValues, null, 2));
+  logger.log(formatJson(bankInsertValues));
 
   if (!environment.DRY_RUN) {
     await db
@@ -91,7 +92,7 @@ async function dailyBalanceInvestment(dateStr: string) {
   logger.log(
     `Inserting with values (length of ${investmentInsertValues.length}, on conflict do nothing):`,
   );
-  logger.log(JSON.stringify(investmentInsertValues, null, 2));
+  logger.log(formatJson(investmentInsertValues));
 
   if (!environment.DRY_RUN) {
     await db
