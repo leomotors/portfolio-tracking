@@ -1,4 +1,4 @@
-FROM node:24-trixie AS base
+FROM node:24-alpine AS base
 
 WORKDIR /app
 
@@ -15,7 +15,7 @@ RUN pnpm install --frozen-lockfile
 RUN pnpm --filter=@app/cron build
 
 
-FROM node:24-trixie AS runner
+FROM node:24-alpine AS runner
 
 WORKDIR /app
 
@@ -25,9 +25,9 @@ COPY tools/ ./tools/
 COPY apps/cron/package.json ./
 RUN node tools/patch-pkg.js
 RUN pnpm install --production
-RUN pnpm playwright install --with-deps chromium
 
 COPY --from=base --chown=node:node /app/apps/cron/dist/ ./dist/
+COPY --chown=node:node apps/cron/data/ ./data/
 
 ENV NODE_ENV=production
 

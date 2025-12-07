@@ -1,0 +1,200 @@
+openapi: 3.0.1
+info:
+  title: Fund Daily Info
+  description: ข้อมูลเกี่ยวกับกองทุนรายวัน
+  version: '1.0'
+servers:
+  - url: https://api.sec.or.th/FundDailyInfo
+paths:
+  '/{proj_id}/dailynav/{nav_date}':
+    get:
+      summary: 01. NAV กองทุนรวมรายวัน
+      description: "<table style=\"width:100%\">\n  <tr>\n  <th>ชื่อ Field</th>\n  <th>รายละเอียด</th>\n  </tr>\n  <tr><td>last_upd_date</td><td>วันที่แก้ไขข้อมูลล่าสุด</td></tr>\n  <tr><td>nav_date</td><td>วันที่ NAV (YYYY-MM-DD)</td></tr>\n <tr><td>class_abbr_name</td><td>ชื่อกองทุน</td></tr>\n <tr><td>net_asset</td><td>มูลค่าทรัพย์สินสุทธิ (บาท)</td></tr>\n  <tr><td>last_val</td><td>มูลค่าหน่วยลงทุน (บาท/หน่วย)</td></tr>\n  <tr><td>previous_val</td><td>มูลค่าหน่วยลงทุนของวันก่อนหน้า (บาท/หน่วย)</td></tr>\n  <tr><td>amc_info</td><td></td></tr>\n  <tr><td>&emsp;&emsp;&emsp;unique_id</td><td>รหัสอ้างอิงบริษัทจัดการที่เป็นผู้ส่งข้อมูล</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;sell_price</td><td>ราคาขาย (บาท/หน่วย)</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;buy_price</td><td>ราคาซื้อคืน (บาท/หน่วย)</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;sell_swap_price</td><td>ราคาขายสับเปลี่ยน (บาท/หน่วย)</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;buy_swap_price</td><td>ราคาซื้อคืนสับเปลี่ยน (บาท/หน่วย)</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;remark_th</td><td>หมายเหตุภาษาไทย</td></tr>\n  <tr><td>&emsp;&emsp;&emsp;remark_en</td><td>หมายเหตุภาษาอังกฤษ</td></tr>\n  </table>\n  <br>\n  <p>ที่มา: สมาคมบริษัทจัดการลงทุน (AIMC)</p>"
+      operationId: 01-NAV-กองทุนรวมรายวัน
+      parameters:
+        - name: proj_id
+          in: path
+          description: รหัส กองทุน
+          required: true
+          schema:
+            type: string
+        - name: nav_date
+          in: path
+          description: วันที่ NAV (YYYY-MM-DD)
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: FundDailyNav
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundDailyNav'
+              example:
+                last_upd_date: string
+                nav_date: string
+                class_abbr_name: string
+                net_asset: 0
+                last_val: 0
+                previous_val: 0
+                amc_info:
+                  - unique_id: string
+                    sell_price: 0
+                    buy_price: 0
+                    sell_swap_price: 0
+                    buy_swap_price: 0
+                    remark_th: string
+                    remark_en: string
+        '204':
+          description: ไม่พบข้อมูล
+          content:
+            application/json: { }
+  '/{proj_id}/dividend':
+    get:
+      summary: 02. ประวัติการจ่ายเงินปันผลของกองทุน
+      description: "<table style=\"width:100%\">\n  <tr>\n  <th>ชื่อ Field</th>\n  <th>รายละเอียด</th>\n  </tr>\n  <tr><td>last_upd_date</td><td>วันที่แก้ไขข้อมูลล่าสุด</td></tr>\n  <tr><td>unique_id</td><td>รหัสอ้างอิงบริษัทจัดการที่เป็นผู้ส่งข้อมูล</td></tr>\n  <tr><td>class_abbr_name</td><td>ชื่อกองทุน</td></tr>\n  <tr><td>book_close_date</td><td>วันที่ปิดสมุดทะเบียน (YYYY-MM-DD)</td></tr>\n  <tr><td>dividend_date</td><td>วันที่จ่ายเงินปันผล (YYYY-MM-DD)</td></tr>\n  <tr><td>dividend_value</td><td>เงินปันผลต่อหน่วย (บาท)</td></tr>\n  </table>\n  <br>\n  <p>ที่มา: สมาคมบริษัทจัดการลงทุน (AIMC)</p>\n  <p>หมายเหตุ: ผลลัพธ์มีเฉพาะข้อมูลที่มีวันที่ปิดสมุดทะเบียน และวันที่จ่ายเงินปันผลครบถ้วนเท่านั้น </p>"
+      operationId: 02-ประวัติการจ่ายเงินปันผลของกองทุน
+      parameters:
+        - name: proj_id
+          in: path
+          description: รหัส กองทุน
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ประวัติการจ่ายเงินปันผลของกองทุน
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundDividendHistories'
+              example:
+                - unique_id: '0000000569'
+                  class_abbr_name: ONE-UB 3
+                  book_close_date: '2025-01-27'
+                  dividend_date: '2025-02-05'
+                  dividend_value: 0.67
+                  last_upd_date: '2025-07-18T18:07:38.2800000+00:00'
+        '204':
+          description: ไม่พบข้อมูล
+          content:
+            application/json: { }
+  /amc:
+    get:
+      summary: 03. รายชื่อบริษัทที่ส่งข้อมูลรายวัน
+      description: "<table style=\"width:100%\">\n  <tr>\n  <th>ชื่อ Field</th>\n  <th>รายละเอียด</th>\n  </tr>\n  <tr><td>last_upd_date</td><td>วันที่แก้ไขข้อมูลล่าสุด</td></tr>\n  <tr><td>unique_id</td><td>รหัสนิติบุคคลบริษัทจัดการ</td></tr>\n  <tr><td>name_th</td><td>ชื่อนิติบุคคล / บุคคล (ภาษาไทย)</td></tr>\n  <tr><td>name_en</td><td>ชื่อนิติบุคคล / บุคคล (ภาษาอังกฤษ)</td></tr>\n  </table>\n  <br>"
+      operationId: 03-รายชื่อบริษัทที่ส่งข้อมูลรายวัน
+      responses:
+        '200':
+          description: 'FundAMCList[]'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FundAMCLists'
+              example:
+                - last_upd_date: string
+                  unique_id: string
+                  name_th: string
+                  name_en: string
+        '204':
+          description: ไม่พบข้อมูล
+          content:
+            application/json: { }
+components:
+  schemas:
+    FundAMCList:
+      properties:
+        last_upd_date:
+          type: string
+          description: วันที่แก้ไขข้อมูลล่าสุด
+        unique_id:
+          type: string
+          description: รหัสนิติบุคคลบริษัทจัดการ
+        name_th:
+          type: string
+          description: ชื่อนิติบุคคล / บุคคล (ภาษาไทย)
+        name_en:
+          type: string
+          description: ชื่อนิติบุคคล / บุคคล (ภาษาอังกฤษ)
+    FundAMCLists:
+      type: array
+      items:
+        $ref: '#/components/schemas/FundAMCList'
+    FundDailyNav:
+      properties:
+        last_upd_date:
+          type: string
+          description: วันที่แก้ไขข้อมูลล่าสุด
+        nav_date:
+          type: string
+          description: วันที่ NAV (YYYY-MM-DD)
+        class_abbr_name:
+          type: string
+          description: ชื่อกองทุน
+        net_asset:
+          type: number
+          description: มูลค่าทรัพย์สินสุทธิ (บาท)
+        last_val:
+          type: number
+          description: มูลค่าหน่วยลงทุน (บาท/หน่วย)
+        previous_val:
+          type: number
+          description: มูลค่าหน่วยลงทุนของวันก่อนหน้า (บาท/หน่วย)
+        amc_info:
+          type: array
+          items:
+            $ref: '#/components/schemas/AmcInfo'
+    AmcInfo:
+      properties:
+        unique_id:
+          type: string
+          description: รหัสอ้างอิงบริษัทจัดการที่เป็นผู้ส่งข้อมูล
+        sell_price:
+          type: number
+          description: ราคาขาย (บาท/หน่วย)
+        buy_price:
+          type: number
+          description: ราคาซื้อคืน (บาท/หน่วย)
+        sell_swap_price:
+          type: number
+          description: ราคาขายสับเปลี่ยน (บาท/หน่วย)
+        buy_swap_price:
+          type: number
+          description: ราคาซื้อคืนสับเปลี่ยน (บาท/หน่วย)
+        remark_th:
+          type: string
+          description: หมายเหตุภาษาไทย
+        remark_en:
+          type: string
+          description: หมายเหตุภาษาอังกฤษ
+    FundDividendHistory:
+      properties:
+        last_upd_date:
+          type: string
+          description: วันที่แก้ไขข้อมูลล่าสุด
+        book_close_date:
+          type: string
+          description: วันที่ขึ้นเครื่องหมาย XD (YYYY-MM-DD)
+        dividend_date:
+          type: string
+          description: วันที่จ่ายเงินปันผล (YYYY-MM-DD)
+        dividend_value:
+          type: number
+          description: เงินปันผลต่อหน่วย (บาท)
+    FundDividendHistories:
+      type: array
+      items:
+        $ref: '#/components/schemas/FundDividendHistory'
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+    apiKeyQuery:
+      type: apiKey
+      name: subscription-key
+      in: query
+security:
+  - apiKeyHeader: [ ]
+  - apiKeyQuery: [ ]

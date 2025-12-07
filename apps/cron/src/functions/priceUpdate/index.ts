@@ -5,7 +5,8 @@ import { assetTable } from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
-import { scrapeSet } from "@/data/set";
+import { fetchCryptoPrices } from "@/data/binance";
+import { fetchFundPrices } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
 import { fetchYahooStockPrices } from "@/data/yahoo";
 
@@ -13,6 +14,7 @@ type StockUpdateConfig = {
   name: string;
   symbols: string[];
   fetcher: (symbols: string[]) => Promise<ScrapeResult[]>;
+  symbolMapper: (symbol: string) => string;
 };
 
 export async function priceUpdateStep() {
@@ -24,26 +26,39 @@ export async function priceUpdateStep() {
     .from(assetTable)
     .where(gt(assetTable.amount, "0"));
 
-  const thaiStocks = symbols
-    .filter((s) => s.symbolType === "thai_stock")
-    .map((s) => s.symbol)
-    .filter((s) => s !== null) as string[];
+  const yahooSymbols = symbols
+    .filter((s) => ["offshore_stock", "thai_stock"].includes(s.symbolType!))
+    .map((s) => (s.symbolType === "thai_stock" ? s.symbol + ".BK" : s.symbol))
+    .filter((s) => s != null);
 
-  const usStocks = symbols
-    .filter((s) => s.symbolType === "offshore_stock")
-    .map((s) => s.symbol)
-    .filter((s) => s !== null) as string[];
+  const thaiFundSymbols = symbols
+    .filter((s) => s.symbolType === "thai_mutual_fund")
+    .map((s) => s.symbol!)
+    .filter((s) => s != null);
+
+  const cryptoSymbols = symbols
+    .filter((s) => s.symbolType === "cryptocurrency")
+    .map((s) => s.symbol!)
+    .filter((s) => s != null);
 
   const configs: StockUpdateConfig[] = [
     {
-      name: "Thai Stocks",
-      symbols: thaiStocks,
-      fetcher: scrapeSet,
+      name: "Thai + US Stocks via Yahoo Finance",
+      symbols: yahooSymbols,
+      fetcher: fetchYahooStockPrices,
+      symbolMapper: (s) => s.replace(".BK", ""),
     },
     {
-      name: "US Stocks",
-      symbols: usStocks,
-      fetcher: fetchYahooStockPrices,
+      name: "Thai Mutual Funds via SEC Fund API",
+      symbols: thaiFundSymbols,
+      fetcher: fetchFundPrices,
+      symbolMapper: (s) => s,
+    },
+    {
+      name: "Cryptocurrencies via Binance.th API",
+      symbols: cryptoSymbols,
+      fetcher: fetchCryptoPrices,
+      symbolMapper: (s) => s,
     },
   ];
 
@@ -79,7 +94,7 @@ async function updateStockPrices(config: StockUpdateConfig) {
       await db
         .update(assetTable)
         .set({ currentPrice: String(r.price) })
-        .where(eq(assetTable.symbol, r.symbol));
+        .where(eq(assetTable.symbol, config.symbolMapper(r.symbol)));
     }
   }
 }

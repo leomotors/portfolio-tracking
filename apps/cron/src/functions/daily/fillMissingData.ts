@@ -7,7 +7,7 @@ import {
 } from "@repo/database/schema";
 
 import { logger } from "@/core/logger.js";
-import { formatDate } from "@/lib/dateFormat.js";
+import { formatDate } from "@/lib/date.js";
 
 export async function fillMissingData() {
   await fillMissingDataBank();
