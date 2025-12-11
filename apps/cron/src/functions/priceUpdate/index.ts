@@ -1,13 +1,14 @@
 import { eq, gt } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
-import { assetTable } from "@repo/database/schema";
+import { assetTable, currencyTable } from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
 import { fetchCryptoPrices } from "@/data/binance";
 import { fetchFundPrices } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
+import { fetchCoinGecko } from "@/data/xautusd";
 import { fetchYahooStockPrices } from "@/data/yahoo";
 
 type StockUpdateConfig = {
@@ -56,8 +57,14 @@ export async function priceUpdateStep() {
     },
     {
       name: "Cryptocurrencies via Binance.th API",
-      symbols: cryptoSymbols,
+      symbols: [...cryptoSymbols, "USDTTHB"],
       fetcher: fetchCryptoPrices,
+      symbolMapper: (s) => s,
+    },
+    {
+      name: "MTS-GOLD via CoinGecko Tether Gold",
+      symbols: ["MTS-GOLD-OZ", "MTS-GOLD-KG"],
+      fetcher: (_) => fetchCoinGecko(),
       symbolMapper: (s) => s,
     },
   ];
@@ -66,7 +73,11 @@ export async function priceUpdateStep() {
   await Promise.all(
     configs.map((config) =>
       config.symbols.length > 0
-        ? updateStockPrices(config)
+        ? updateStockPrices(config).catch((err) => {
+            logger.error(
+              `Error updating ${config.name} prices: ${err.message}`,
+            );
+          })
         : logger.log(`No ${config.name} to update`),
     ),
   );
@@ -95,6 +106,20 @@ async function updateStockPrices(config: StockUpdateConfig) {
         .update(assetTable)
         .set({ currentPrice: String(r.price) })
         .where(eq(assetTable.symbol, config.symbolMapper(r.symbol)));
+    }
+  }
+
+  if (result.find((r) => r.symbol === "USDTTHB")) {
+    const usdtThbPrice = result.find((r) => r.symbol === "USDTTHB")!.price;
+    logger.log(
+      `❗ Estimating USD/THB rate from USDTTHB price: ${usdtThbPrice}`,
+    );
+
+    if (!environment.DRY_RUN) {
+      await db
+        .update(currencyTable)
+        .set({ valueInTHB: String(usdtThbPrice) })
+        .where(eq(currencyTable.symbol, "USD"));
     }
   }
 }

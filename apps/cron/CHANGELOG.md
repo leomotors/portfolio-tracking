@@ -2,6 +2,12 @@
 
 0.1.0 is not noted here
 
+## [0.5.0] - 2025-12-11
+
+- using usdt/thb to estimate currency exchange rate
+- using tether gold to estimate gold price
+- small improvement to logger to indicate if there were warnings or errors during the run
+
 ## [0.4.0] - 2025-12-07
 
 - use yahoo for thai stocks because it is easier to do than set, so we can get rid of 2GB thicc playwright

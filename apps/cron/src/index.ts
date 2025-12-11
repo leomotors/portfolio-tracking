@@ -26,7 +26,9 @@ await fillMissingData();
 await sendMessage(
   `## Portfolio Daily Cron: Run Completed
 App Version: ${APP_VERSION} ${environment.DRY_RUN ? "(Dry Run)" : ""}
-${await getSummary()}`,
+${await getSummary()}${
+    logger.hasWarning ? "\n⚠️ Warnings were found during the run." : ""
+  }${logger.hasError ? "\n❗ Errors were found during the run." : ""}`,
   logger.getMessages().join("\n"),
 );
 

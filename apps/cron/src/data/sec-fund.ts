@@ -68,7 +68,7 @@ export async function getSymbolPrice(
   }
 
   logger.error(
-    `Unable to fetch price for fund ${symbol} (Project ID: ${projectId}) after 5 attempts on dates: ${attempted.join(", ")}`,
+    `⚠️ Unable to fetch price for fund ${symbol} (Project ID: ${projectId}) after 5 attempts on dates: ${attempted.join(", ")}`,
   );
   return null;
 }
