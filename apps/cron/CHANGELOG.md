@@ -7,6 +7,7 @@
 - using usdt/thb to estimate currency exchange rate
 - using tether gold to estimate gold price
 - small improvement to logger to indicate if there were warnings or errors during the run
+- bump deps
 
 ## [0.4.0] - 2025-12-07
 
