@@ -111,8 +111,8 @@ async function updateStockPrices(config: StockUpdateConfig) {
 
   if (result.find((r) => r.symbol === "USDTTHB")) {
     const usdtThbPrice = result.find((r) => r.symbol === "USDTTHB")!.price;
-    logger.log(
-      `❗ Estimating USD/THB rate from USDTTHB price: ${usdtThbPrice}`,
+    logger.estimation(
+      `📐 Estimating USD/THB rate from USDTTHB price: ${usdtThbPrice}`,
     );
 
     if (!environment.DRY_RUN) {

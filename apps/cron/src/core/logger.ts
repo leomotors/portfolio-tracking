@@ -3,6 +3,7 @@ export class Logger {
   private messages: string[] = [];
   private _hasWarning = false;
   private _hasError = false;
+  private _hasEstimation = false;
 
   public get hasWarning() {
     return this._hasWarning;
@@ -10,6 +11,10 @@ export class Logger {
 
   public get hasError() {
     return this._hasError;
+  }
+
+  public get hasEstimation() {
+    return this._hasEstimation;
   }
 
   public static getInstance(): Logger {
@@ -26,6 +31,12 @@ export class Logger {
   public log(message: string) {
     this.messages.push(message);
     console.log(message);
+  }
+
+  public estimation(message: string) {
+    this.messages.push(message);
+    console.log(message);
+    this._hasEstimation = true;
   }
 
   public warn(message: string) {

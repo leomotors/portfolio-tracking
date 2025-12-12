@@ -30,7 +30,7 @@ export async function fetchCoinGecko() {
   const parsed = apiResultSchema.parse(data);
   const usdPrice = parsed["tether-gold"].usd;
 
-  logger.warn(`📐 Using Tether Gold to estimate MTS-GOLD price`);
+  logger.estimation(`📐 Using Tether Gold to estimate MTS-GOLD price`);
 
   return [
     {

@@ -14,7 +14,9 @@ export const currencyTable = pgTable(
     symbol: text().notNull(),
     variant: text(),
     valueInTHB: decimal("value_in_thb").notNull().default("0"),
-    updatedAt: timestamp("updated_at").notNull(),
+    updatedAt: timestamp("updated_at")
+      .notNull()
+      .$onUpdate(() => new Date()),
   },
   (table) => [unique().on(table.symbol, table.variant).nullsNotDistinct()],
 );
