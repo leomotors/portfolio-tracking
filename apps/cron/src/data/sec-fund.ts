@@ -47,7 +47,9 @@ export async function getSymbolPrice(
 
   const attempted = [] as string[];
 
-  for (let attempt = 1; attempt <= 5; attempt++) {
+  const ATTEMPTS = 10;
+
+  for (let attempt = 1; attempt <= ATTEMPTS; attempt++) {
     const data = await getSECFundDailyNav(projectId, formatDate(fetchDate));
 
     if (data) {
@@ -68,7 +70,7 @@ export async function getSymbolPrice(
   }
 
   logger.error(
-    `⚠️ Unable to fetch price for fund ${symbol} (Project ID: ${projectId}) after 5 attempts on dates: ${attempted.join(", ")}`,
+    `⚠️ Unable to fetch price for fund ${symbol} (Project ID: ${projectId}) after ${ATTEMPTS} attempts on dates: ${attempted.join(", ")}`,
   );
   return null;
 }

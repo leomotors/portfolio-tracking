@@ -2,6 +2,13 @@
 
 0.1.0 is not noted here
 
+## [0.7.0] - 2026-01-08
+
+- fix: update `yahoo-finance2` to latest version to fix current api error
+- update sec fund api to has more attempts to allow for long holiday gaps
+- make error message in webhook more noticable
+- bump deps
+
 ## [0.6.0] - 2025-12-12
 
 - fix: currency `updatedAt` column not updated

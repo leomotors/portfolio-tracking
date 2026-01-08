@@ -32,7 +32,15 @@ export async function fetchYahooStockPrices(symbols: string[]) {
       // Add a small delay to avoid rate limiting
       await new Promise((resolve) => setTimeout(resolve, 500));
     } catch (error) {
-      logger.error(`Error fetching price for ${symbol}: ${error}`);
+      const errorMsg = `${error}`;
+      logger.error(`Error fetching price for ${symbol}: ${errorMsg}`);
+
+      if (errorMsg.includes("429")) {
+        logger.error(
+          "Abort further Yahoo Finance requests due to rate limiting.",
+        );
+        break;
+      }
     }
   }
 

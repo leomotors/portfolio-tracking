@@ -1,7 +1,7 @@
 {
   "name": "@app/cron",
   "private": true,
-  "version": "0.6.0",
+  "version": "0.7.0",
   "type": "module",
   "scripts": {
     "preview": "dotenv -- node --enable-source-maps ./dist/index.mjs",
@@ -15,16 +15,16 @@
   "devDependencies": {
     "@repo/api-client": "workspace:*",
     "@repo/database": "workspace:*",
-    "@vitest/coverage-v8": "^4.0.15",
+    "@vitest/coverage-v8": "^4.0.16",
     "dotenv-cli": "^11.0.0",
     "drizzle-orm": "^0.45.1",
     "openapi-fetch": "^0.15.0",
-    "tsdown": "^0.17.3",
+    "tsdown": "^0.18.4",
     "typescript": "^5.9.3",
-    "vitest": "^4.0.15",
-    "zod": "^4.1.13"
+    "vitest": "^4.0.16",
+    "zod": "^4.3.5"
   },
   "dependencies": {
-    "yahoo-finance2": "^3.10.2"
+    "yahoo-finance2": "^3.11.2"
   }
 }
