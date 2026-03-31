@@ -1,0 +1,140 @@
+openapi: 3.0.1
+info:
+  title: SEC API v2 — Fund daily NAV
+  description: Manual OAS for SEC API v2
+  version: "2.0"
+servers:
+  - url: https://api.sec.or.th/v2
+paths:
+  /fund/daily-info/nav:
+    get:
+      summary: มูลค่าทรัพย์สินสุทธิ (NAV) ของกองทุนรวมรายวัน
+      description: >-
+        ข้อมูลมูลค่าหน่วยลงทุน (Net Asset Value: NAV) ของกองทุนรวมในรูปแบบรายวัน โดยแสดงรายละเอียดจำนวนมูลค่าทรัพย์สินสุทธิของกองทุน (Net Asset), มูลค่าหน่วยลงทุน (NAV per unit), ราคาซื้อ–ขายปกติ และราคาซื้อ–ขายสำหรับการสับเปลี่ยนหน่วยลงทุน (Switching)
+      operationId: getFundDailyInfoNAV
+      parameters:
+        - name: next_cursor
+          in: query
+          description: ค่า cursor ล่าสุดที่ได้รับจากการตอบกลับก่อนหน้า (ใช้สำหรับโหลดข้อมูลเพิ่มเติม)
+          schema:
+            type: string
+        - name: page_size
+          in: query
+          description: จำนวนรายการข้อมูลต่อหน้าที่ต้องการให้ระบบส่งกลับ (ค่าเริ่มต้น 100) โดยรองรับค่าตั้งแต่ 1 ถึง 100 รายการ
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 100
+        - name: proj_id
+          in: query
+          description: ระบุ proj_id เพื่อดึงข้อมูลของกองทุน 1 กอง
+          schema:
+            type: string
+        - name: start_nav_date
+          in: query
+          description: "ระบุวันที่เริ่มต้นของ NAV ที่ต้องการดึงข้อมูล (รูปแบบ: YYYY-MM-DD)"
+          schema:
+            type: string
+            format: date
+        - name: end_nav_date
+          in: query
+          description: "ระบุวันที่สิ้นสุดของ NAV ที่ต้องการดึงข้อมูล (รูปแบบ: YYYY-MM-DD)"
+          schema:
+            type: string
+            format: date
+        - name: fund_class_name
+          in: query
+          description: ชื่อชนิดหน่วยลงทุน
+          schema:
+            type: string
+      responses:
+        "200":
+          description: รายการ NAV ตามเงื่อนไข
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FundNavDailyInfoResponse"
+              example:
+                message: success
+                page_size: 100
+                next_cursor: xxxx-xxx-xxx
+                items:
+                  - proj_id: M0004_2559
+                    unique_id: C0000033452
+                    fund_class_name: "-"
+                    nav_date: "2023-07-13"
+                    net_asset: 248999361.26
+                    last_val: 15.0833
+                    sell_price: 15.3097
+                    buy_price: 15.0833
+                    sell_swap_price: 15.0833
+                    buy_swap_price: 15.3097
+                    last_upd_date: "2024-10-31T03:34:11Z"
+components:
+  schemas:
+    FundNavDailyInfoItem:
+      type: object
+      description: รายการ NAV หนึ่งแถว
+      properties:
+        proj_id:
+          type: string
+          description: เลขที่โครงการ ({Type}{ID}_YYYY)
+        nav_date:
+          type: string
+          format: date
+          description: วันที่ NAV (YYYY-MM-DD)
+        fund_class_name:
+          type: string
+          description: >-
+            ชื่อย่อชนิดหน่วยลงทุน (Class Fund) หมายเหตุ: เป็น "main" ถ้าเป็นกองทุนที่ไม่ใช่ Class Fund
+        net_asset:
+          type: number
+          description: มูลค่าทรัพย์สินสุทธิ (บาท)
+        last_val:
+          type: number
+          description: มูลค่าหน่วยลงทุน (บาท/หน่วย)
+        unique_id:
+          type: string
+          description: รหัสอ้างอิงบริษัทจัดการที่เป็นผู้ส่งข้อมูล
+        sell_price:
+          type: number
+          description: ราคาขาย (บาท/หน่วย)
+        buy_price:
+          type: number
+          description: ราคาซื้อคืน (บาท/หน่วย)
+        sell_swap_price:
+          type: number
+          description: ราคาขายสับเปลี่ยน (บาท/หน่วย)
+        buy_swap_price:
+          type: number
+          description: ราคาซื้อคืนสับเปลี่ยน (บาท/หน่วย)
+        last_upd_date:
+          type: string
+          format: date-time
+          description: วันที่แก้ไขข้อมูลล่าสุด
+    FundNavDailyInfoResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: ข้อความสถานะของการเรียก API
+        page_size:
+          type: number
+          description: จำนวนรายการที่ส่งกลับต่อครั้ง
+        next_cursor:
+          type: string
+          description: >-
+            ค่า cursor ที่ได้รับจาก Response ล่าสุด (กรณีที่ค่า next_cursor = "" หมายถึงระบบส่งข้อมูลให้ครบทั้งหมดแล้ว ไม่มีหน้าถัดไป)
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FundNavDailyInfoItem"
+          description: รายการข้อมูลหลักที่ส่งกลับมา
+  securitySchemes:
+    apiKeyHeader:
+      type: apiKey
+      name: Ocp-Apim-Subscription-Key
+      in: header
+security:
+  - apiKeyHeader: []

@@ -1,2 +1,2 @@
-# SEC Fund Daily Info
-pnpm openapi-typescript data/sec-fund-daily-info.yaml -o src/sec-fund.d.ts
+# SEC API v2 (manual OAS)
+pnpm openapi-typescript data/sec-v2.yaml -o src/sec-v2.d.ts

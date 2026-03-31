@@ -2,6 +2,11 @@
 
 0.1.0 is not noted here
 
+## [0.8.0] - 2026-03-31
+
+- feat: migrate to SEC API v2 for mutual fund prices
+- bump deps
+
 ## [0.7.0] - 2026-01-08
 
 - fix: update `yahoo-finance2` to latest version to fix current api error
