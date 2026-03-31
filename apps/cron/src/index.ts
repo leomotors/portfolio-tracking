@@ -7,7 +7,7 @@ import { calculateBalance } from "./functions/calculateBalance/index.js";
 import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
-import { getSummary } from "./summary.js";
+import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
 if (environment.DRY_RUN) {
   logger.log("Running in dry-run mode");
@@ -20,13 +20,16 @@ logger.log("\n--- Functions: Calculate Balance ---");
 await calculateBalance();
 
 logger.log("\n--- Functions: Daily Balance ---");
+const previousDailySnapshot = await loadPreviousDailySnapshot();
 await dailyBalance();
 await fillMissingData();
 
+const summary = await getSummary(previousDailySnapshot);
+
 await sendMessage(
-  `## Portfolio Daily Cron: Run Completed
+  `## Portfolio Daily Cron: Run Completed${summary.circleSuffix}
 App Version: ${APP_VERSION} ${environment.DRY_RUN ? "**(Dry Run: Data is not saved)**" : ""}
-${await getSummary()}${
+${summary.body}${
     logger.hasEstimation
       ? "\n📐 Estimations were made on some asset/currency price."
       : ""

@@ -6,6 +6,7 @@
 
 - feat: migrate to SEC API v2 for mutual fund prices
 - bump deps
+- feat: summarize now shows difference in net worth between today and yesterday
 
 ## [0.7.0] - 2026-01-08
 

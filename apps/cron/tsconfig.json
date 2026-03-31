@@ -17,6 +17,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
 
+    "types": ["node"],
+
     "paths": {
       "@/*": ["./src/*"]
     }
