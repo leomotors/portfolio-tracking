@@ -15,16 +15,16 @@
   "devDependencies": {
     "@repo/api-client": "workspace:*",
     "@repo/database": "workspace:*",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^4.1.2",
     "dotenv-cli": "^11.0.0",
-    "drizzle-orm": "^0.45.1",
-    "openapi-fetch": "^0.15.0",
-    "tsdown": "^0.18.4",
-    "typescript": "^5.9.3",
-    "vitest": "^4.0.16",
-    "zod": "^4.3.5"
+    "drizzle-orm": "^0.45.2",
+    "openapi-fetch": "^0.17.0",
+    "tsdown": "^0.21.7",
+    "typescript": "^6.0.2",
+    "vitest": "^4.1.2",
+    "zod": "^4.3.6"
   },
   "dependencies": {
-    "yahoo-finance2": "^3.11.2"
+    "yahoo-finance2": "^3.14.0"
   }
 }
