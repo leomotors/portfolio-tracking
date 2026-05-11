@@ -1,6 +1,7 @@
 import "server-only";
 
 import { cookies } from "next/headers";
+import type { NextRequest } from "next/server";
 
 export const COOKIE_NAMES = {
   session: "pt_session",
@@ -103,6 +104,18 @@ export function randomState(): string {
   const bytes = new Uint8Array(32);
   crypto.getRandomValues(bytes);
   return b64urlEncode(bytes);
+}
+
+// Next.js 16's dev server binds to 0.0.0.0 by default and uses that bind
+// hostname for `request.url`, ignoring the browser's Host header. Use the
+// forwarded/Host headers instead so redirects stay on the user-facing origin.
+export function getRequestOrigin(request: NextRequest): string {
+  const forwardedHost = request.headers.get("x-forwarded-host");
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const host = forwardedHost ?? request.headers.get("host");
+  if (!host) return request.nextUrl.origin;
+  const proto = forwardedProto ?? request.nextUrl.protocol.replace(":", "");
+  return `${proto}://${host}`;
 }
 
 export function sanitizeReturnTo(value: string | undefined | null): string {

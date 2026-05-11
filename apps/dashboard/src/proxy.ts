@@ -1,6 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server";
 
-import { COOKIE_NAMES, parseAllowedUserIds, verifySession } from "@/lib/auth";
+import {
+  COOKIE_NAMES,
+  getRequestOrigin,
+  parseAllowedUserIds,
+  verifySession,
+} from "@/lib/auth";
 
 const PUBLIC_PATH_PREFIXES = ["/api/auth/"];
 const PUBLIC_PATHS = new Set(["/login"]);
@@ -34,7 +39,7 @@ export async function proxy(request: NextRequest) {
   const token = request.cookies.get(COOKIE_NAMES.session)?.value;
   const session = await verifySession(token, secret);
   if (!session || !allowed.includes(session.uid)) {
-    const loginUrl = new URL("/login", request.url);
+    const loginUrl = new URL("/login", getRequestOrigin(request));
     const returnTo = request.nextUrl.pathname + request.nextUrl.search;
     if (returnTo && returnTo !== "/") {
       loginUrl.searchParams.set("returnTo", returnTo);
