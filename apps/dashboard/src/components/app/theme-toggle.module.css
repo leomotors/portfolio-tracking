@@ -1,0 +1,88 @@
+.toggleButton {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 14px;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+}
+
+.toggleButton:focus-visible {
+  outline: 2px solid var(--accent-pri);
+  outline-offset: 2px;
+}
+
+.toggle {
+  width: 56px;
+  height: 28px;
+  display: block;
+}
+
+.toggleBg,
+.slider,
+.sunIcon,
+.moonIcon,
+.moonGlow,
+.stars,
+.clouds {
+  transition: all 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Light state (default) */
+.toggleBg {
+  fill: #7dd3fc;
+}
+.slider {
+  transform: translateX(0px);
+}
+.sunIcon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  transform-origin: 40px 40px;
+}
+.moonIcon {
+  opacity: 0;
+  transform: scale(0.5) rotate(-60deg);
+  transform-origin: 40px 40px;
+}
+.moonGlow {
+  opacity: 0;
+}
+.stars {
+  opacity: 0;
+  transform: translateY(15px);
+}
+.clouds {
+  opacity: 1;
+  transform: translateY(0px);
+}
+
+/* Dark state — driven by the app's data-theme attribute */
+:global([data-theme="dark"]) .toggleBg {
+  fill: #1e293b;
+}
+:global([data-theme="dark"]) .slider {
+  transform: translateX(80px);
+}
+:global([data-theme="dark"]) .sunIcon {
+  opacity: 0;
+  transform: scale(0.5) rotate(60deg);
+  transform-origin: 40px 40px;
+}
+:global([data-theme="dark"]) .moonIcon {
+  opacity: 1;
+  transform: scale(1) rotate(0deg);
+  transform-origin: 40px 40px;
+}
+:global([data-theme="dark"]) .moonGlow {
+  opacity: 0.6;
+}
+:global([data-theme="dark"]) .stars {
+  opacity: 1;
+  transform: translateY(0px);
+}
+:global([data-theme="dark"]) .clouds {
+  opacity: 0;
+  transform: translateY(15px);
+}
