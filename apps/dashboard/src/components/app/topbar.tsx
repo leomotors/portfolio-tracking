@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 
 import { ThemeToggle } from "./theme-toggle";
 
-export function Topbar() {
+export function Topbar({ profile }: { profile?: React.ReactNode }) {
   return (
     <div className="sticky top-0 z-10 flex items-center gap-4 border-b border-[var(--hairline)] bg-[var(--bg)] px-7 py-3.5">
       <div className="flex max-w-[480px] flex-1 items-center gap-2 rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-[13px] text-[var(--ink-3)]">
@@ -14,9 +14,11 @@ export function Topbar() {
       </div>
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
-        <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-white">
-          P
-        </div>
+        {profile ?? (
+          <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-white">
+            P
+          </div>
+        )}
       </div>
     </div>
   );

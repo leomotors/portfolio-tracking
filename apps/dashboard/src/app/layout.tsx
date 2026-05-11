@@ -3,9 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 
-import { MobileNav, Sidebar } from "@/components/app/sidebar";
 import { ThemeScript } from "@/components/app/theme-script";
-import { Topbar } from "@/components/app/topbar";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -34,18 +32,7 @@ export default function RootLayout({
       <head>
         <ThemeScript />
       </head>
-      <body className="flex min-h-full">
-        <div className="grid min-h-screen w-full md:grid-cols-[240px_1fr]">
-          <Sidebar />
-          <div className="flex min-w-0 flex-col">
-            <MobileNav />
-            <Topbar />
-            <div className="w-full max-w-[1320px] px-4 pt-6 pb-15 md:px-7 md:pt-8">
-              {children}
-            </div>
-          </div>
-        </div>
-      </body>
+      <body className="flex min-h-full">{children}</body>
     </html>
   );
 }

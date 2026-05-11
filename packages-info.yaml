@@ -2,3 +2,6 @@ packages:
   - name: cron
     fullName: Daily Cron
     packagePath: apps/cron
+  - name: dashboard
+    fullName: Dashboard
+    packagePath: apps/dashboard
