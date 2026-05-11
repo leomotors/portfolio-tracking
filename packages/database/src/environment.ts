@@ -6,4 +6,15 @@ export const EnvironmentSchema = z.object({
 
 export type Environment = z.infer<typeof EnvironmentSchema>;
 
-export const environment = EnvironmentSchema.parse(process.env);
+let cached: Environment | undefined;
+
+function load(): Environment {
+  if (!cached) cached = EnvironmentSchema.parse(process.env);
+  return cached;
+}
+
+export const environment: Environment = new Proxy({} as Environment, {
+  get(_target, prop, receiver) {
+    return Reflect.get(load() as object, prop, receiver);
+  },
+});
