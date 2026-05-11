@@ -47,11 +47,19 @@ export default async function OverviewPage() {
   // refreshes prices and snapshots the *same* value on each run, so
   // comparing currentValue to the latest snapshot would always be zero
   // right after a cron run.
-  const recentByAccount = new Map<number, { latest: number; previous: number | null }>();
+  const recentByAccount = new Map<
+    number,
+    { latest: number; previous: number | null }
+  >();
   for (const d of investDaily) {
     const prev = recentByAccount.get(d.accountId);
-    if (!prev) recentByAccount.set(d.accountId, { latest: d.value, previous: null });
-    else recentByAccount.set(d.accountId, { latest: d.value, previous: prev.latest });
+    if (!prev)
+      recentByAccount.set(d.accountId, { latest: d.value, previous: null });
+    else
+      recentByAccount.set(d.accountId, {
+        latest: d.value,
+        previous: prev.latest,
+      });
   }
 
   const moverInputs: MoverInput[] = investAccts
