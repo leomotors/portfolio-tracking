@@ -2,7 +2,13 @@ import { Search } from "lucide-react";
 
 import { ThemeToggle } from "./theme-toggle";
 
-export function Topbar({ profile }: { profile?: React.ReactNode }) {
+export function Topbar({
+  aiTrigger,
+  profile,
+}: {
+  aiTrigger?: React.ReactNode;
+  profile?: React.ReactNode;
+}) {
   return (
     <div className="sticky top-0 z-10 flex items-center gap-4 border-b border-[var(--hairline)] bg-[var(--bg)] px-7 py-3.5">
       <div className="flex max-w-[480px] flex-1 items-center gap-2 rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface)] px-3 py-1.5 text-[13px] text-[var(--ink-3)]">
@@ -19,6 +25,7 @@ export function Topbar({ profile }: { profile?: React.ReactNode }) {
             P
           </div>
         )}
+        {aiTrigger}
       </div>
     </div>
   );
