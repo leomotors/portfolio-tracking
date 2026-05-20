@@ -4,6 +4,7 @@
 node_modules
 .pnp
 .pnp.js
+.pnpm-store
 
 # Local env files
 .env
@@ -38,3 +39,5 @@ yarn-error.log*
 *.pem
 .vscode
 temp
+
+.antigravitycli
