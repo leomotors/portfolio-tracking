@@ -2,6 +2,17 @@ import { anthropic } from "@ai-sdk/anthropic";
 import { openai } from "@ai-sdk/openai";
 import { xai } from "@ai-sdk/xai";
 
+/**
+ * Model registry architecture
+ *
+ * - AI_MODELS: selectable in the chat UI and when creating or changing a conversation.
+ * - RETIRED_AI_MODELS: not selectable; kept so existing conversations continue using the
+ *   same API model id and pricing for the life of the thread.
+ *
+ * When replacing a model in AI_MODELS, move the old id to RETIRED_AI_MODELS instead of
+ * aliasing it to the replacement. Use normalizeModelSelection(..., { allowRetired: true })
+ * only when honoring a stored conversation default (e.g. chat API on an existing thread).
+ */
 export type AiProvider = "openai" | "anthropic" | "xai";
 
 export interface AiModelConfig {
@@ -55,9 +66,9 @@ export const AI_MODELS = [
     outputUsdPerMillion: 5,
   },
   {
-    id: "claude-opus-4-7",
+    id: "claude-opus-4-8",
     provider: "anthropic",
-    label: "Claude Opus 4.7",
+    label: "Claude Opus 4.8",
     inputUsdPerMillion: 5,
     cachedInputUsdPerMillion: 0.5,
     outputUsdPerMillion: 25,
@@ -72,6 +83,20 @@ export const AI_MODELS = [
   },
 ] as const satisfies readonly AiModelConfig[];
 
+/** Removed from the picker; still valid for conversations that already use the id. */
+export const RETIRED_AI_MODELS = [
+  {
+    id: "claude-opus-4-7",
+    provider: "anthropic",
+    label: "Claude Opus 4.7",
+    inputUsdPerMillion: 5,
+    cachedInputUsdPerMillion: 0.5,
+    outputUsdPerMillion: 25,
+  },
+] as const satisfies readonly AiModelConfig[];
+
+const ALL_KNOWN_MODELS = [...AI_MODELS, ...RETIRED_AI_MODELS] as const;
+
 export type AiModelId = (typeof AI_MODELS)[number]["id"];
 
 export const DEFAULT_AI_PROVIDER: AiProvider = "openai";
@@ -83,25 +108,41 @@ export const TOOL_PRICING_MICRO_USD = {
   xaiXSearch: 5_000,
 } as const;
 
+export function isSelectableModel(model: string) {
+  return AI_MODELS.some((m) => m.id === model);
+}
+
+export function isRetiredModel(model: string) {
+  return RETIRED_AI_MODELS.some((m) => m.id === model);
+}
+
 export function getModelConfig(model: string): AiModelConfig | null {
-  return AI_MODELS.find((m) => m.id === model) ?? null;
+  return ALL_KNOWN_MODELS.find((m) => m.id === model) ?? null;
 }
 
 export function isAiProvider(value: string): value is AiProvider {
   return value === "openai" || value === "anthropic" || value === "xai";
 }
 
-export function normalizeModelSelection(provider: string, model: string) {
+export function normalizeModelSelection(
+  provider: string,
+  model: string,
+  options?: { allowRetired?: boolean },
+) {
   if (!isAiProvider(provider)) {
     return { provider: DEFAULT_AI_PROVIDER, model: DEFAULT_AI_MODEL };
   }
   const found = getModelConfig(model);
-  if (!found || found.provider !== provider) {
-    const fallback =
-      AI_MODELS.find((m) => m.provider === provider)?.id ?? DEFAULT_AI_MODEL;
-    return { provider, model: fallback };
+  if (
+    found &&
+    found.provider === provider &&
+    (!isRetiredModel(model) || options?.allowRetired)
+  ) {
+    return { provider, model };
   }
-  return { provider, model };
+  const fallback =
+    AI_MODELS.find((m) => m.provider === provider)?.id ?? DEFAULT_AI_MODEL;
+  return { provider, model: fallback };
 }
 
 export function providerHasApiKey(provider: AiProvider) {

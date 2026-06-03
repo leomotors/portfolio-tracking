@@ -154,7 +154,9 @@ export async function POST(request: NextRequest) {
   }
   if (!body) return badRequest("Invalid chat request");
 
-  const selection = normalizeModelSelection(body.provider, body.model);
+  const selection = normalizeModelSelection(body.provider, body.model, {
+    allowRetired: Boolean(body.conversationId),
+  });
   const modelConfig = getModelConfig(selection.model);
   if (!modelConfig || modelConfig.provider !== selection.provider) {
     return badRequest("Unsupported model");

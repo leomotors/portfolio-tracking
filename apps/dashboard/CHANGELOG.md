@@ -2,6 +2,7 @@
 
 ## [0.3.0] - 2026-06-03
 
+- chore: replace Claude Opus 4.7 with Opus 4.8 for new chats; retire 4.7 so existing threads keep the same model
 - feat: add selectable overview and investment account chart metrics with positive/negative PnL coloring
 - chore: update Lucide React and Vitest browser React dependencies
 - fix: use the direct Next ESLint plugin configuration for ESLint 10 compatibility

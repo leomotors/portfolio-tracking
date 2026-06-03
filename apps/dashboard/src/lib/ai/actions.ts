@@ -2,7 +2,12 @@
 
 import { getSession } from "@/lib/auth";
 
-import { availableModelOptions, normalizeModelSelection } from "./models";
+import {
+  availableModelOptions,
+  getModelConfig,
+  isSelectableModel,
+  normalizeModelSelection,
+} from "./models";
 import {
   createConversation,
   deleteConversation,
@@ -24,7 +29,13 @@ export async function getChatBootstrap() {
   const userId = await requireUserId();
   const conversations = await listConversations(userId);
   return {
-    conversations,
+    conversations: conversations.map((conversation) => ({
+      ...conversation,
+      defaultModelLabel:
+        getModelConfig(conversation.defaultModel)?.label ??
+        conversation.defaultModel,
+      defaultModelRetired: !isSelectableModel(conversation.defaultModel),
+    })),
     models: availableModelOptions(),
     allConversationCostMicroUsd: await getAllConversationCost(userId),
   };
@@ -32,7 +43,9 @@ export async function getChatBootstrap() {
 
 export async function createChatConversation(provider: string, model: string) {
   const userId = await requireUserId();
-  const normalized = normalizeModelSelection(provider, model);
+  const normalized = normalizeModelSelection(provider, model, {
+    allowRetired: false,
+  });
   return createConversation(userId, normalized.provider, normalized.model);
 }
 

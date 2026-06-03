@@ -128,7 +128,9 @@ export async function createConversation(
   provider = process.env.AI_DEFAULT_PROVIDER ?? DEFAULT_AI_PROVIDER,
   model = process.env.AI_DEFAULT_MODEL ?? DEFAULT_AI_MODEL,
 ) {
-  const normalized = normalizeModelSelection(provider, model);
+  const normalized = normalizeModelSelection(provider, model, {
+    allowRetired: false,
+  });
   const [row] = await db
     .insert(aiConversationTable)
     .values({
@@ -191,7 +193,9 @@ export async function updateConversationModel(
   if (existingMessages.length > 0) {
     throw new Error("Model cannot be changed after a chat has started");
   }
-  const normalized = normalizeModelSelection(provider, model);
+  const normalized = normalizeModelSelection(provider, model, {
+    allowRetired: false,
+  });
   const [row] = await db
     .update(aiConversationTable)
     .set({

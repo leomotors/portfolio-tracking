@@ -344,17 +344,8 @@ export function AiChat({
       model,
     );
     if (!updated) return;
-    setBoot((current) =>
-      current
-        ? {
-            ...current,
-            conversations: [
-              updated,
-              ...current.conversations.filter((c) => c.id !== updated.id),
-            ],
-          }
-        : current,
-    );
+    const next = await getChatBootstrap();
+    setBoot(next);
   };
 
   const refreshAfterSend = async (conversationId: number | null) => {
@@ -605,7 +596,8 @@ export function AiChat({
                   <div className="mt-1 flex items-center justify-between gap-3 text-[11px] text-[var(--ink-3)]">
                     <span className="truncate">
                       {conversation.defaultProvider} ·{" "}
-                      {conversation.defaultModel}
+                      {conversation.defaultModelLabel ??
+                        conversation.defaultModel}
                     </span>
                     <span className="num flex-shrink-0">
                       {fmtCost(conversation.totalCostMicroUsd)}
@@ -645,6 +637,14 @@ export function AiChat({
                 disabled={modelLocked}
                 onChange={(event) => void changeModel(event.target.value)}
               >
+                {activeConversation?.defaultModelRetired ? (
+                  <option
+                    value={`${activeConversation.defaultProvider}:${activeConversation.defaultModel}`}
+                  >
+                    {activeConversation.defaultModelLabel}
+                    {" · locked for this chat"}
+                  </option>
+                ) : null}
                 {availableModels.map((model) => (
                   <option
                     key={modelKey(model)}
