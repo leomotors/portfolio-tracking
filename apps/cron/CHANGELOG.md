@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.9.0] - 2026-06-03
+
+- chore: bump deps
+
 ## [0.8.0] - 2026-03-31
 
 - feat: migrate to SEC API v2 for mutual fund prices
