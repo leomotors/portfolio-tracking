@@ -79,6 +79,8 @@ export default async function OverviewPage() {
   return (
     <OverviewClient
       series={series}
+      investmentDaily={investDaily}
+      bankDaily={bankDaily}
       current={liveTotal}
       previous={previousSnapshot}
       delta={liveDelta.delta}

@@ -1,7 +1,8 @@
 # Changelog
 
-## [patch] - 2026-06-03
+## [0.3.0] - 2026-06-03
 
+- feat: add selectable overview and investment account chart metrics with positive/negative PnL coloring
 - chore: update Lucide React and Vitest browser React dependencies
 - fix: use the direct Next ESLint plugin configuration for ESLint 10 compatibility
 

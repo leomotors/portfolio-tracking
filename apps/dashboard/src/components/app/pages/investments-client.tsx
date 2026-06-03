@@ -5,6 +5,7 @@ import { useMemo, useState } from "react";
 const DUST_THRESHOLD = 0.005;
 
 import { AreaChart } from "@/components/app/area-chart";
+import { ChartMetricSelector } from "@/components/app/chart-metric-selector";
 import { Chip } from "@/components/app/chip";
 import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
@@ -46,6 +47,14 @@ interface InvestmentsClientProps {
   currencies: CurrencyRow[];
   initialAccountId?: number;
 }
+
+type InvestmentChartMetric = "total" | "cost" | "pnl";
+
+const INVESTMENT_CHART_OPTIONS = [
+  { value: "total", label: "Total" },
+  { value: "cost", label: "Cost Basis" },
+  { value: "pnl", label: "PnL" },
+] as const;
 
 export function InvestmentsClient({
   accounts,
@@ -167,12 +176,30 @@ function AccountDetail({
   assets: Asset[];
   currencies: CurrencyRow[];
 }) {
+  const [chartMetric, setChartMetric] =
+    useState<InvestmentChartMetric>("total");
   const series = useMemo(
-    () => daily.slice(-180).map((d) => ({ date: d.date, value: d.value })),
-    [daily],
+    () =>
+      daily.slice(-180).map((d) => ({
+        date: d.date,
+        value:
+          chartMetric === "cost"
+            ? d.cost
+            : chartMetric === "pnl"
+              ? d.value - d.cost
+              : d.value,
+      })),
+    [chartMetric, daily],
   );
   const pl = account.currentValue - account.currentCost;
   const plPct = account.currentCost === 0 ? 0 : pl / account.currentCost;
+  const latestChartValue = series.at(-1)?.value ?? 0;
+  const chartAccent =
+    chartMetric === "pnl"
+      ? "var(--accent-pos)"
+      : latestChartValue >= 0
+        ? "var(--accent-pos)"
+        : "var(--accent-neg)";
   const classBreak = useMemo(
     () => byAssetClass(assets, currencies),
     [assets, currencies],
@@ -241,10 +268,21 @@ function AccountDetail({
       </div>
 
       <Card className="px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-2 pt-1">
+          <div className="text-[12px] font-medium text-[var(--ink-2)]">
+            Chart
+          </div>
+          <ChartMetricSelector
+            value={chartMetric}
+            onChange={setChartMetric}
+            options={INVESTMENT_CHART_OPTIONS}
+          />
+        </div>
         <AreaChart
           data={series}
           height={200}
-          accent={pl >= 0 ? "var(--accent-pos)" : "var(--accent-neg)"}
+          accent={chartAccent}
+          splitAtZero={chartMetric === "pnl"}
           formatY={(v) => thb(v)}
           formatX={(p) =>
             new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {

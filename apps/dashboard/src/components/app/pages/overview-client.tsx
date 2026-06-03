@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useMemo, useState } from "react";
 
 import { AreaChart, type AreaChartPoint } from "@/components/app/area-chart";
+import { ChartMetricSelector } from "@/components/app/chart-metric-selector";
 import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { Kpi, KpiGrid } from "@/components/app/kpi";
@@ -33,8 +34,36 @@ interface Mover {
   deltaPct: number;
 }
 
+interface InvestmentDailyPoint {
+  accountId: number;
+  date: string;
+  cost: number;
+  value: number;
+}
+
+interface BankDailyPoint {
+  accountId: number;
+  date: string;
+  balance: number;
+}
+
+type OverviewChartMetric =
+  | "total"
+  | "investmentCost"
+  | "investmentPnl"
+  | "bank";
+
+const OVERVIEW_CHART_OPTIONS = [
+  { value: "total", label: "Total" },
+  { value: "investmentCost", label: "Investment Cost Basis" },
+  { value: "investmentPnl", label: "Investment PnL" },
+  { value: "bank", label: "Bank Account" },
+] as const;
+
 interface OverviewClientProps {
   series: AreaChartPoint[];
+  investmentDaily: InvestmentDailyPoint[];
+  bankDaily: BankDailyPoint[];
   current: number;
   previous: number;
   delta: number;
@@ -50,6 +79,8 @@ interface OverviewClientProps {
 
 export function OverviewClient({
   series,
+  investmentDaily,
+  bankDaily,
   current,
   delta,
   deltaPct,
@@ -62,10 +93,34 @@ export function OverviewClient({
   asOf,
 }: OverviewClientProps) {
   const [tf, setTf] = useState<Timeframe>("1Y");
-  const sliced = useMemo(() => sliceTimeframe(series, tf), [series, tf]);
+  const [chartMetric, setChartMetric] = useState<OverviewChartMetric>("total");
+  const chartSeries = useMemo(
+    () => ({
+      total: series,
+      investmentCost: aggregateSeries(investmentDaily, (p) => p.cost),
+      investmentPnl: aggregateSeries(investmentDaily, (p) => p.value - p.cost),
+      bank: aggregateSeries(bankDaily, (p) => p.balance),
+    }),
+    [bankDaily, investmentDaily, series],
+  );
+  const selectedSeries = chartSeries[chartMetric];
+  const sliced = useMemo(
+    () => sliceTimeframe(selectedSeries, tf),
+    [selectedSeries, tf],
+  );
   const investPL = investTotal - investCost;
   const investPLPct = investCost === 0 ? 0 : investPL / investCost;
-  const accent = delta >= 0 ? "var(--accent-pos)" : "var(--accent-neg)";
+  const latestChartValue = selectedSeries.at(-1)?.value ?? 0;
+  const accent =
+    chartMetric === "investmentPnl"
+      ? "var(--accent-pos)"
+      : chartMetric === "total"
+        ? delta >= 0
+          ? "var(--accent-pos)"
+          : "var(--accent-neg)"
+        : latestChartValue >= 0
+          ? "var(--accent-pos)"
+          : "var(--accent-neg)";
 
   const kicker = asOf
     ? `As of ${new Date(asOf + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
@@ -87,10 +142,21 @@ export function OverviewClient({
       </div>
 
       <Card className="px-3 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-2 pt-1">
+          <div className="text-[12px] font-medium text-[var(--ink-2)]">
+            Chart
+          </div>
+          <ChartMetricSelector
+            value={chartMetric}
+            onChange={setChartMetric}
+            options={OVERVIEW_CHART_OPTIONS}
+          />
+        </div>
         <AreaChart
           data={sliced}
           height={260}
           accent={accent}
+          splitAtZero={chartMetric === "investmentPnl"}
           formatY={(v) => thb(v)}
           formatX={(p) =>
             new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
@@ -186,4 +252,18 @@ export function OverviewClient({
       </div>
     </div>
   );
+}
+
+function aggregateSeries<T extends { date: string }>(
+  rows: readonly T[],
+  getValue: (row: T) => number,
+): AreaChartPoint[] {
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    byDate.set(row.date, (byDate.get(row.date) ?? 0) + getValue(row));
+  }
+
+  return Array.from(byDate.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
 }

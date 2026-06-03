@@ -11,6 +11,8 @@ interface AreaChartProps {
   data: AreaChartPoint[];
   height?: number;
   accent?: string;
+  negativeAccent?: string;
+  splitAtZero?: boolean;
   formatY?: (v: number) => string;
   formatX?: (p: AreaChartPoint) => string;
   emptyLabel?: string;
@@ -26,6 +28,8 @@ export function AreaChart({
   data,
   height = 220,
   accent = "var(--accent-pos)",
+  negativeAccent = "var(--accent-neg)",
+  splitAtZero = false,
   formatY,
   formatX,
   emptyLabel = "No history yet",
@@ -36,7 +40,7 @@ export function AreaChart({
 
   const layout = useMemo(() => {
     if (data.length === 0) {
-      return { points: [], minV: 0, maxV: 0, yTicks: [] };
+      return { points: [], minV: 0, maxV: 0, yTicks: [], zeroY: null };
     }
     const vals = data.map((d) => d.value);
     const minV = Math.min(...vals);
@@ -54,7 +58,11 @@ export function AreaChart({
       const y = PAD_T + (1 - i / ticks) * (height - PAD_T - PAD_B);
       return { y, i };
     });
-    return { points, minV, maxV, yTicks };
+    const zeroY =
+      minV <= 0 && maxV >= 0
+        ? PAD_T + (1 - (0 - minV) / range) * (height - PAD_T - PAD_B)
+        : null;
+    return { points, minV, maxV, yTicks, zeroY };
   }, [data, height]);
 
   const linePath = useMemo(() => {
@@ -78,6 +86,43 @@ export function AreaChart({
       ` L ${pts.at(-1)!.x},${height - PAD_B} L ${pts[0]!.x},${height - PAD_B} Z`
     );
   }, [linePath, layout.points, height]);
+
+  const splitLinePaths = useMemo(() => {
+    const pts = layout.points;
+    if (pts.length === 0) return [];
+    if (pts.length === 1) {
+      const p = pts[0]!;
+      return [
+        {
+          d: `M ${p.x - 0.01},${p.y} L ${p.x + 0.01},${p.y}`,
+          color: p.d.value >= 0 ? accent : negativeAccent,
+        },
+      ];
+    }
+
+    const paths: { d: string; color: string }[] = [];
+    for (let i = 1; i < pts.length; i++) {
+      const prev = pts[i - 1]!;
+      const cur = pts[i]!;
+      const prevColor = prev.d.value >= 0 ? accent : negativeAccent;
+      const curColor = cur.d.value >= 0 ? accent : negativeAccent;
+
+      if (prevColor === curColor || prev.d.value === cur.d.value) {
+        paths.push({
+          d: `M ${prev.x},${prev.y} L ${cur.x},${cur.y}`,
+          color: curColor,
+        });
+        continue;
+      }
+
+      const t = (0 - prev.d.value) / (cur.d.value - prev.d.value);
+      const x = prev.x + (cur.x - prev.x) * t;
+      const y = prev.y + (cur.y - prev.y) * t;
+      paths.push({ d: `M ${prev.x},${prev.y} L ${x},${y}`, color: prevColor });
+      paths.push({ d: `M ${x},${y} L ${cur.x},${cur.y}`, color: curColor });
+    }
+    return paths;
+  }, [accent, layout.points, negativeAccent]);
 
   function handleMove(e: React.MouseEvent<SVGSVGElement>) {
     if (!ref.current || layout.points.length === 0) return;
@@ -107,6 +152,8 @@ export function AreaChart({
   }
 
   const hovered = hover != null ? layout.points[hover] : null;
+  const hoverAccent =
+    splitAtZero && hovered && hovered.d.value < 0 ? negativeAccent : accent;
 
   return (
     <div className="relative" data-testid="area-chart">
@@ -136,14 +183,40 @@ export function AreaChart({
             strokeDasharray={i === 0 ? "0" : "2 4"}
           />
         ))}
-        <path d={areaPath} fill={`url(#${gid})`} />
-        <path
-          d={linePath}
-          fill="none"
-          stroke={accent}
-          strokeWidth="1.6"
-          strokeLinejoin="round"
-        />
+        {splitAtZero && layout.zeroY != null && (
+          <line
+            x1={PAD_L}
+            x2={W - PAD_R}
+            y1={layout.zeroY}
+            y2={layout.zeroY}
+            stroke="var(--ink-3)"
+            strokeWidth="1"
+            strokeDasharray="4 4"
+            opacity="0.45"
+          />
+        )}
+        {!splitAtZero && <path d={areaPath} fill={`url(#${gid})`} />}
+        {splitAtZero ? (
+          splitLinePaths.map((p, i) => (
+            <path
+              key={i}
+              d={p.d}
+              fill="none"
+              stroke={p.color}
+              strokeWidth="1.8"
+              strokeLinejoin="round"
+              strokeLinecap="round"
+            />
+          ))
+        ) : (
+          <path
+            d={linePath}
+            fill="none"
+            stroke={accent}
+            strokeWidth="1.6"
+            strokeLinejoin="round"
+          />
+        )}
         {hovered && (
           <g>
             <line
@@ -161,7 +234,7 @@ export function AreaChart({
               cy={hovered.y}
               r="4"
               fill="var(--surface)"
-              stroke={accent}
+              stroke={hoverAccent}
               strokeWidth="1.6"
             />
           </g>
