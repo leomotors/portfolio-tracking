@@ -1,14 +1,22 @@
 // @ts-check
 
 import { createESLintConfig } from "@leomotors/config";
+import nextPlugin from "@next/eslint-plugin-next";
 import { defineConfig, globalIgnores } from "eslint/config";
-import nextVitals from "eslint-config-next/core-web-vitals";
-import nextTs from "eslint-config-next/typescript";
+
+const nextConfig = {
+  plugins: {
+    "@next/next": nextPlugin,
+  },
+  rules: {
+    ...nextPlugin.configs.recommended.rules,
+    ...nextPlugin.configs["core-web-vitals"].rules,
+  },
+};
 
 const eslintConfig = defineConfig([
   createESLintConfig(),
-  ...nextVitals,
-  ...nextTs,
+  nextConfig,
   {
     languageOptions: {
       parserOptions: {
@@ -20,9 +28,8 @@ const eslintConfig = defineConfig([
     // context. Pinning the version here skips the runtime detection path.
     settings: { react: { version: "19.2" } },
   },
-  // Override default ignores of eslint-config-next.
+  // Preserve the default ignores from Next's ESLint config.
   globalIgnores([
-    // Default ignores of eslint-config-next:
     ".next/**",
     "out/**",
     "build/**",

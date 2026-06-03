@@ -1,5 +1,10 @@
 # Changelog
 
+## [patch] - 2026-06-03
+
+- chore: update Lucide React and Vitest browser React dependencies
+- fix: use the direct Next ESLint plugin configuration for ESLint 10 compatibility
+
 ## [0.2.0] - 2026-05-21
 
 - feat: add multi-provider AI agent with streaming chat, tool progress, Markdown rendering, history, and usage cost tracking

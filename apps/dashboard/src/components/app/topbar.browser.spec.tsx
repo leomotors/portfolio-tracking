@@ -14,7 +14,7 @@ describe("<Topbar>", () => {
   });
 
   it("toggles the data-theme attribute on click", async () => {
-    const screen = render(<Topbar />);
+    const screen = await render(<Topbar />);
     expect(document.documentElement.getAttribute("data-theme")).toBe("light");
     await screen.getByRole("button", { name: "Toggle theme" }).click();
     expect(document.documentElement.getAttribute("data-theme")).toBe("dark");
@@ -23,7 +23,7 @@ describe("<Topbar>", () => {
   });
 
   it("persists the theme choice to localStorage", async () => {
-    const screen = render(<Topbar />);
+    const screen = await render(<Topbar />);
     await screen.getByRole("button", { name: "Toggle theme" }).click();
     expect(localStorage.getItem("theme")).toBe("dark");
   });

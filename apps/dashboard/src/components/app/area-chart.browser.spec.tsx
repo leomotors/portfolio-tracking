@@ -11,7 +11,7 @@ const sampleData = Array.from({ length: 30 }, (_, i) => ({
 
 describe("<AreaChart>", () => {
   it("renders an SVG path for the data", async () => {
-    const screen = render(<AreaChart data={sampleData} height={200} />);
+    const screen = await render(<AreaChart data={sampleData} height={200} />);
     const svg = screen.container.querySelector("svg");
     expect(svg).toBeTruthy();
     const linePath = svg?.querySelectorAll("path");
@@ -20,7 +20,7 @@ describe("<AreaChart>", () => {
   });
 
   it("shows the empty label when there is no data", async () => {
-    const screen = render(
+    const screen = await render(
       <AreaChart data={[]} emptyLabel="Nothing to show" height={200} />,
     );
     await expect
@@ -29,7 +29,7 @@ describe("<AreaChart>", () => {
   });
 
   it("reveals a tooltip on hover", async () => {
-    const screen = render(
+    const screen = await render(
       <AreaChart
         data={sampleData}
         height={200}

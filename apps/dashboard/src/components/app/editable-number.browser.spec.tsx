@@ -7,7 +7,7 @@ import { EditableNumber } from "./editable-number";
 describe("<EditableNumber>", () => {
   it("calls onSave with the parsed number when save is clicked", async () => {
     const onSave = vi.fn();
-    const screen = render(
+    const screen = await render(
       <EditableNumber value={100} onSave={onSave} ariaLabel="Edit balance" />,
     );
 
@@ -22,7 +22,7 @@ describe("<EditableNumber>", () => {
 
   it("submits on Enter key", async () => {
     const onSave = vi.fn();
-    const screen = render(
+    const screen = await render(
       <EditableNumber value={50} onSave={onSave} ariaLabel="Edit value" />,
     );
 
@@ -41,7 +41,7 @@ describe("<EditableNumber>", () => {
 
   it("cancels editing on Escape without calling onSave", async () => {
     const onSave = vi.fn();
-    const screen = render(
+    const screen = await render(
       <EditableNumber value={42} onSave={onSave} ariaLabel="Edit" />,
     );
 
@@ -61,7 +61,7 @@ describe("<EditableNumber>", () => {
 
   it("does not call onSave when the value is unchanged", async () => {
     const onSave = vi.fn();
-    const screen = render(
+    const screen = await render(
       <EditableNumber value={123} onSave={onSave} ariaLabel="Edit" />,
     );
 
