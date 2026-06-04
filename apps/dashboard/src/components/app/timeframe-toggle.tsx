@@ -2,7 +2,7 @@
 
 import { cn } from "@/lib/utils";
 
-export type Timeframe = "1M" | "3M" | "6M" | "1Y";
+export type Timeframe = "1M" | "3M" | "6M" | "1Y" | "ALL";
 
 interface TimeframeToggleProps {
   value: Timeframe;
@@ -10,7 +10,7 @@ interface TimeframeToggleProps {
   options?: readonly Timeframe[];
 }
 
-const DEFAULT_OPTIONS = ["1M", "3M", "6M", "1Y"] as const;
+const DEFAULT_OPTIONS = ["1M", "3M", "6M", "1Y", "ALL"] as const;
 
 export function TimeframeToggle({
   value,

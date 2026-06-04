@@ -20,7 +20,7 @@ import {
   type BankDailyPoint,
   type FcdAccount,
 } from "@/lib/db/queries";
-import { num, thb } from "@/lib/portfolio/format";
+import { compactThb, num, thb } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 
 interface BanksClientProps {
@@ -179,6 +179,7 @@ function ThbView({
             height={200}
             accent="var(--accent-pri)"
             formatY={(v) => thb(v)}
+            formatAxisY={(v) => compactThb(v)}
             formatX={(p) =>
               new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
                 month: "short",

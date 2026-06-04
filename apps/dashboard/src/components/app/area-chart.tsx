@@ -12,26 +12,34 @@ interface AreaChartProps {
   height?: number;
   accent?: string;
   negativeAccent?: string;
+  baselineValue?: number;
+  baselineLabel?: string;
   splitAtZero?: boolean;
   formatY?: (v: number) => string;
+  formatAxisY?: (v: number) => string;
   formatX?: (p: AreaChartPoint) => string;
+  formatDelta?: (delta: number, pct: number) => string;
   emptyLabel?: string;
 }
 
 const W = 1000;
-const PAD_L = 8;
-const PAD_R = 8;
-const PAD_T = 8;
-const PAD_B = 22;
+const PAD_L = 56;
+const PAD_R = 18;
+const PAD_T = 14;
+const PAD_B = 38;
 
 export function AreaChart({
   data,
   height = 220,
   accent = "var(--accent-pos)",
   negativeAccent = "var(--accent-neg)",
+  baselineValue,
+  baselineLabel = "vs start",
   splitAtZero = false,
   formatY,
+  formatAxisY,
   formatX,
+  formatDelta,
   emptyLabel = "No history yet",
 }: AreaChartProps) {
   const [hover, setHover] = useState<number | null>(null);
@@ -40,11 +48,19 @@ export function AreaChart({
 
   const layout = useMemo(() => {
     if (data.length === 0) {
-      return { points: [], minV: 0, maxV: 0, yTicks: [], zeroY: null };
+      return {
+        points: [],
+        minV: 0,
+        maxV: 0,
+        yTicks: [],
+        xTicks: [],
+        baselineY: null,
+      };
     }
     const vals = data.map((d) => d.value);
-    const minV = Math.min(...vals);
-    const maxV = Math.max(...vals);
+    const splitValue = getSplitValue(baselineValue, splitAtZero);
+    const minV = Math.min(...vals, ...(splitValue == null ? [] : [splitValue]));
+    const maxV = Math.max(...vals, ...(splitValue == null ? [] : [splitValue]));
     const range = maxV - minV || 1;
     const points = data.map((d, i) => {
       const x =
@@ -56,14 +72,26 @@ export function AreaChart({
     const ticks = 4;
     const yTicks = Array.from({ length: ticks + 1 }, (_, i) => {
       const y = PAD_T + (1 - i / ticks) * (height - PAD_T - PAD_B);
-      return { y, i };
+      const value = minV + (i / ticks) * range;
+      return { y, value, i };
     });
-    const zeroY =
-      minV <= 0 && maxV >= 0
-        ? PAD_T + (1 - (0 - minV) / range) * (height - PAD_T - PAD_B)
+    const xTickIndexes = Array.from(
+      new Set(
+        [0, Math.floor((data.length - 1) / 2), data.length - 1].filter(
+          (i) => i >= 0,
+        ),
+      ),
+    );
+    const xTicks = xTickIndexes.map((i) => {
+      const p = points[i]!;
+      return { x: p.x, d: p.d, i };
+    });
+    const baselineY =
+      splitValue != null && minV <= splitValue && maxV >= splitValue
+        ? PAD_T + (1 - (splitValue - minV) / range) * (height - PAD_T - PAD_B)
         : null;
-    return { points, minV, maxV, yTicks, zeroY };
-  }, [data, height]);
+    return { points, minV, maxV, yTicks, xTicks, baselineY };
+  }, [baselineValue, data, height, splitAtZero]);
 
   const linePath = useMemo(() => {
     const pts = layout.points;
@@ -89,13 +117,17 @@ export function AreaChart({
 
   const splitLinePaths = useMemo(() => {
     const pts = layout.points;
+    const splitValue = getSplitValue(baselineValue, splitAtZero);
     if (pts.length === 0) return [];
     if (pts.length === 1) {
       const p = pts[0]!;
       return [
         {
           d: `M ${p.x - 0.01},${p.y} L ${p.x + 0.01},${p.y}`,
-          color: p.d.value >= 0 ? accent : negativeAccent,
+          color:
+            splitValue == null || p.d.value >= splitValue
+              ? accent
+              : negativeAccent,
         },
       ];
     }
@@ -104,8 +136,14 @@ export function AreaChart({
     for (let i = 1; i < pts.length; i++) {
       const prev = pts[i - 1]!;
       const cur = pts[i]!;
-      const prevColor = prev.d.value >= 0 ? accent : negativeAccent;
-      const curColor = cur.d.value >= 0 ? accent : negativeAccent;
+      const prevColor =
+        splitValue == null || prev.d.value >= splitValue
+          ? accent
+          : negativeAccent;
+      const curColor =
+        splitValue == null || cur.d.value >= splitValue
+          ? accent
+          : negativeAccent;
 
       if (prevColor === curColor || prev.d.value === cur.d.value) {
         paths.push({
@@ -115,14 +153,15 @@ export function AreaChart({
         continue;
       }
 
-      const t = (0 - prev.d.value) / (cur.d.value - prev.d.value);
+      const t =
+        ((splitValue ?? 0) - prev.d.value) / (cur.d.value - prev.d.value);
       const x = prev.x + (cur.x - prev.x) * t;
       const y = prev.y + (cur.y - prev.y) * t;
       paths.push({ d: `M ${prev.x},${prev.y} L ${x},${y}`, color: prevColor });
       paths.push({ d: `M ${x},${y} L ${cur.x},${cur.y}`, color: curColor });
     }
     return paths;
-  }, [accent, layout.points, negativeAccent]);
+  }, [accent, baselineValue, layout.points, negativeAccent, splitAtZero]);
 
   function handleMove(e: React.MouseEvent<SVGSVGElement>) {
     if (!ref.current || layout.points.length === 0) return;
@@ -152,8 +191,12 @@ export function AreaChart({
   }
 
   const hovered = hover != null ? layout.points[hover] : null;
+  const splitValue = getSplitValue(baselineValue, splitAtZero);
   const hoverAccent =
-    splitAtZero && hovered && hovered.d.value < 0 ? negativeAccent : accent;
+    splitValue != null && hovered && hovered.d.value < splitValue
+      ? negativeAccent
+      : accent;
+  const formatAxis = formatAxisY ?? formatCompact;
 
   return (
     <div className="relative" data-testid="area-chart">
@@ -183,20 +226,20 @@ export function AreaChart({
             strokeDasharray={i === 0 ? "0" : "2 4"}
           />
         ))}
-        {splitAtZero && layout.zeroY != null && (
+        {splitValue != null && layout.baselineY != null && (
           <line
             x1={PAD_L}
             x2={W - PAD_R}
-            y1={layout.zeroY}
-            y2={layout.zeroY}
+            y1={layout.baselineY}
+            y2={layout.baselineY}
             stroke="var(--ink-3)"
             strokeWidth="1"
             strokeDasharray="4 4"
             opacity="0.45"
           />
         )}
-        {!splitAtZero && <path d={areaPath} fill={`url(#${gid})`} />}
-        {splitAtZero ? (
+        {splitValue == null && <path d={areaPath} fill={`url(#${gid})`} />}
+        {splitValue != null ? (
           splitLinePaths.map((p, i) => (
             <path
               key={i}
@@ -217,6 +260,24 @@ export function AreaChart({
             strokeLinejoin="round"
           />
         )}
+        <line
+          x1={PAD_L}
+          x2={W - PAD_R}
+          y1={height - PAD_B}
+          y2={height - PAD_B}
+          stroke="var(--ink-3)"
+          strokeWidth="1"
+          opacity="0.4"
+        />
+        <line
+          x1={PAD_L}
+          x2={PAD_L}
+          y1={PAD_T}
+          y2={height - PAD_B}
+          stroke="var(--ink-3)"
+          strokeWidth="1"
+          opacity="0.4"
+        />
         {hovered && (
           <g>
             <line
@@ -240,6 +301,36 @@ export function AreaChart({
           </g>
         )}
       </svg>
+      {layout.yTicks.map(({ y, value, i }) => (
+        <div
+          key={i}
+          className="pointer-events-none absolute whitespace-nowrap pr-1.5 text-right text-[10px] tabular-nums text-[var(--ink-3)]"
+          style={{
+            left: `${(PAD_L / W) * 100}%`,
+            top: y,
+            transform: "translate(-100%, -50%)",
+          }}
+        >
+          {formatAxis(value)}
+        </div>
+      ))}
+      {layout.xTicks.map(({ x, d, i }) => {
+        const xPct = (x / W) * 100;
+        const tx = i === 0 ? "0%" : i === data.length - 1 ? "-100%" : "-50%";
+        return (
+          <div
+            key={i}
+            className="pointer-events-none absolute whitespace-nowrap text-[10px] text-[var(--ink-3)]"
+            style={{
+              left: `${xPct}%`,
+              top: height - PAD_B + 16,
+              transform: `translateX(${tx})`,
+            }}
+          >
+            {formatX ? formatX(d) : d.date}
+          </div>
+        );
+      })}
       {hovered &&
         (() => {
           const xPct = (hovered.x / W) * 100;
@@ -249,6 +340,12 @@ export function AreaChart({
           const placeBelow = yPct < 35;
           const tx = xPct < 12 ? "0%" : xPct > 88 ? "-100%" : "-50%";
           const ty = placeBelow ? "16px" : "calc(-100% - 12px)";
+          const delta =
+            baselineValue == null ? null : hovered.d.value - baselineValue;
+          const deltaPct =
+            delta == null || baselineValue == null || baselineValue === 0
+              ? 0
+              : delta / baselineValue;
           return (
             <div
               className="pointer-events-none absolute left-0 top-0 z-10 whitespace-nowrap rounded-lg bg-[var(--ink)] px-2.5 py-1.5 text-[11px] text-[var(--bg)] shadow-sm"
@@ -265,9 +362,40 @@ export function AreaChart({
               <div className="num font-medium">
                 {formatY ? formatY(hovered.d.value) : hovered.d.value}
               </div>
+              {delta != null && (
+                <div
+                  className="num text-[10px] font-medium"
+                  style={{
+                    color:
+                      delta >= 0 ? "var(--accent-pos)" : "var(--accent-neg)",
+                  }}
+                >
+                  {baselineLabel}{" "}
+                  {formatDelta
+                    ? formatDelta(delta, deltaPct)
+                    : `${delta >= 0 ? "+" : ""}${formatCompact(delta)}`}
+                </div>
+              )}
             </div>
           );
         })()}
     </div>
   );
+}
+
+function getSplitValue(
+  baselineValue: number | undefined,
+  splitAtZero: boolean,
+) {
+  if (baselineValue != null) return baselineValue;
+  if (splitAtZero) return 0;
+  return null;
+}
+
+function formatCompact(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  return Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: 1,
+  }).format(value);
 }

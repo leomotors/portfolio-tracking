@@ -24,7 +24,7 @@ import {
   type AllocationBucket,
   sliceTimeframe,
 } from "@/lib/portfolio/aggregate";
-import { pct, thb } from "@/lib/portfolio/format";
+import { compactThb, pct, thb } from "@/lib/portfolio/format";
 
 interface Mover {
   accountId: number;
@@ -110,17 +110,7 @@ export function OverviewClient({
   );
   const investPL = investTotal - investCost;
   const investPLPct = investCost === 0 ? 0 : investPL / investCost;
-  const latestChartValue = selectedSeries.at(-1)?.value ?? 0;
-  const accent =
-    chartMetric === "investmentPnl"
-      ? "var(--accent-pos)"
-      : chartMetric === "total"
-        ? delta >= 0
-          ? "var(--accent-pos)"
-          : "var(--accent-neg)"
-        : latestChartValue >= 0
-          ? "var(--accent-pos)"
-          : "var(--accent-neg)";
+  const chartBaseline = sliced[0]?.value;
 
   const kicker = asOf
     ? `As of ${new Date(asOf + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
@@ -134,11 +124,11 @@ export function OverviewClient({
         right={<TimeframeToggle value={tf} onChange={setTf} />}
       />
 
-      <div className="flex items-baseline gap-6">
+      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
         <div className="num text-[56px] leading-none font-semibold tracking-[-0.03em]">
           {thb(current)}
         </div>
-        {series.length > 1 && <Delta value={delta} pct={deltaPct} />}
+        {series.length > 1 && <Delta value={delta} pct={deltaPct} large />}
       </div>
 
       <Card className="px-3 py-2">
@@ -155,9 +145,11 @@ export function OverviewClient({
         <AreaChart
           data={sliced}
           height={260}
-          accent={accent}
-          splitAtZero={chartMetric === "investmentPnl"}
+          accent="var(--accent-pos)"
+          baselineValue={chartBaseline}
           formatY={(v) => thb(v)}
+          formatAxisY={(v) => compactThb(v)}
+          formatDelta={(v, p) => `${thb(v, { sign: true })} (${pct(p)})`}
           formatX={(p) =>
             new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
               month: "short",
@@ -208,6 +200,8 @@ export function OverviewClient({
               centerLabel="Portfolio"
               centerValue={thb(allocation.reduce((s, b) => s + b.value, 0))}
               emptyLabel="No assets yet"
+              valueFormatter={thb}
+              ariaLabel="Asset allocation by class"
             />
           </CardContent>
         </Card>

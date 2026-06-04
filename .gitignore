@@ -28,6 +28,8 @@ out/
 build
 dist
 
+# Test Outputs
+.vitest-attachments
 
 # Debug
 npm-debug.log*

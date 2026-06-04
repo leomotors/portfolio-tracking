@@ -49,4 +49,28 @@ describe("<AreaChart>", () => {
       .element(page.getByTestId("area-chart-tooltip"))
       .toBeInTheDocument();
   });
+
+  it("shows the delta from the baseline in the tooltip", async () => {
+    const screen = await render(
+      <AreaChart
+        data={[
+          { date: "2026-04-01", value: 100 },
+          { date: "2026-04-02", value: 110 },
+        ]}
+        baselineValue={100}
+        formatY={(v) => `฿${v}`}
+        formatDelta={(v) => `${v >= 0 ? "+" : ""}฿${v}`}
+      />,
+    );
+    const svg = screen.container.querySelector("svg")!;
+    const rect = svg.getBoundingClientRect();
+    svg.dispatchEvent(
+      new MouseEvent("mousemove", {
+        bubbles: true,
+        clientX: rect.left + rect.width - 1,
+        clientY: rect.top + rect.height / 2,
+      }),
+    );
+    await expect.element(page.getByText("vs start +฿10")).toBeInTheDocument();
+  });
 });

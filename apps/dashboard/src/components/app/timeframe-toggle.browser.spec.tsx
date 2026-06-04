@@ -14,6 +14,9 @@ describe("<TimeframeToggle>", () => {
     await expect
       .element(screen.getByRole("button", { name: "1M" }))
       .toHaveAttribute("aria-pressed", "false");
+    await expect
+      .element(screen.getByRole("button", { name: "ALL" }))
+      .toBeInTheDocument();
   });
 
   it("calls onChange with the clicked timeframe", async () => {

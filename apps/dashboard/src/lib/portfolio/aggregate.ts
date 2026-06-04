@@ -211,8 +211,9 @@ export function dayDelta(series: DailySnapshotPoint[]): DayDelta {
 
 export function sliceTimeframe(
   series: DailySnapshotPoint[],
-  timeframe: "1M" | "3M" | "6M" | "1Y",
+  timeframe: "1M" | "3M" | "6M" | "1Y" | "ALL",
 ): DailySnapshotPoint[] {
+  if (timeframe === "ALL") return series;
   const days = { "1M": 30, "3M": 90, "6M": 180, "1Y": 365 }[timeframe];
   return series.slice(-days);
 }

@@ -11,6 +11,8 @@ interface DonutProps {
   centerLabel?: string;
   centerValue?: string;
   emptyLabel?: string;
+  valueFormatter?: (value: number) => string;
+  ariaLabel?: string;
 }
 
 export function Donut({
@@ -20,11 +22,16 @@ export function Donut({
   centerLabel,
   centerValue,
   emptyLabel = "No data",
+  valueFormatter,
+  ariaLabel,
 }: DonutProps) {
   const total = data.reduce((s, d) => s + d.value, 0);
   const r = (size - thickness) / 2;
   const c = size / 2;
   const circ = 2 * Math.PI * r;
+  const centerValueSize = centerValue
+    ? Math.max(12, Math.min(16, size / Math.max(12, centerValue.length * 0.75)))
+    : 16;
 
   const fracs = data.map((d) => (total === 0 ? 0 : d.value / total));
   const segs = data.map((d, i) => {
@@ -36,10 +43,23 @@ export function Donut({
       frac: fracs[i]!,
     };
   });
+  const description =
+    segs.length === 0
+      ? emptyLabel
+      : segs.map((s) => `${s.label} ${formatPercent(s.frac)}`).join(", ");
+  const label = ariaLabel ?? "Allocation chart";
 
   return (
-    <div className="flex items-center gap-6">
-      <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+    <div className="grid w-full grid-cols-1 items-center gap-5 sm:grid-cols-[minmax(9rem,max-content)_minmax(0,1fr)]">
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        role="img"
+        aria-label={`${label}: ${description}`}
+        className="mx-auto max-w-full shrink-0"
+      >
+        <title>{label}</title>
         <circle
           cx={c}
           cy={c}
@@ -60,7 +80,10 @@ export function Donut({
             strokeDasharray={`${s.dash} ${circ - s.dash}`}
             strokeDashoffset={s.offset}
             transform={`rotate(-90 ${c} ${c})`}
-            style={{ transition: "stroke-dasharray 0.4s ease" }}
+            aria-hidden="true"
+            style={{
+              filter: "drop-shadow(0 1px 0 rgb(0 0 0 / 0.06))",
+            }}
           />
         ))}
         {centerLabel && (
@@ -68,8 +91,9 @@ export function Donut({
             x={c}
             y={c - 6}
             textAnchor="middle"
-            fill="var(--ink-3)"
+            fill="var(--ink-2)"
             fontSize="11"
+            fontWeight="500"
           >
             {centerLabel}
           </text>
@@ -80,7 +104,7 @@ export function Donut({
             y={c + 14}
             textAnchor="middle"
             fill="var(--ink)"
-            fontSize="16"
+            fontSize={centerValueSize}
             fontWeight="600"
             fontFamily="var(--font-mono), ui-monospace, monospace"
           >
@@ -89,23 +113,39 @@ export function Donut({
         )}
       </svg>
 
-      <div className="flex flex-1 flex-col gap-2">
+      <div className="grid min-w-0 gap-1.5">
         {segs.length === 0 && (
-          <span className="text-[12px] text-[var(--ink-3)]">{emptyLabel}</span>
+          <span className="text-[12px] text-[var(--ink-2)]">{emptyLabel}</span>
         )}
         {segs.map((s, i) => (
-          <div key={i} className="flex items-center gap-2.5 text-[13px]">
+          <div
+            key={i}
+            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px]"
+          >
             <span
-              className="h-2.5 w-2.5 flex-shrink-0 rounded-sm"
+              className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]"
               style={{ background: s.color }}
             />
-            <span className="flex-1 text-[var(--ink-2)]">{s.label}</span>
-            <span className="num text-[var(--ink)]">
-              {(s.frac * 100).toFixed(1)}%
+            <span className="min-w-0 truncate text-[var(--ink-2)]">
+              {s.label}
+            </span>
+            <span className="flex items-baseline justify-end gap-2 text-right">
+              {valueFormatter && (
+                <span className="num hidden text-[11px] text-[var(--ink-2)] md:inline">
+                  {valueFormatter(s.value)}
+                </span>
+              )}
+              <span className="num min-w-[4.8ch] rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-[11px] font-medium text-[var(--ink)]">
+                {formatPercent(s.frac)}
+              </span>
             </span>
           </div>
         ))}
       </div>
     </div>
   );
+}
+
+function formatPercent(value: number) {
+  return `${(value * 100).toFixed(1)}%`;
 }

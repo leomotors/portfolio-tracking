@@ -14,6 +14,16 @@ export function thb(value: number, opts: ThbOptions = {}) {
   return (value < 0 ? "−" : "") + "฿" + abs;
 }
 
+export function compactThb(value: number) {
+  if (!Number.isFinite(value)) return "—";
+  const abs = Math.abs(value);
+  const compact = Intl.NumberFormat("en-US", {
+    notation: "compact",
+    maximumFractionDigits: abs >= 1_000_000 ? 1 : 0,
+  }).format(abs);
+  return (value < 0 ? "−" : "") + "฿" + compact;
+}
+
 export function pct(value: number, decimals = 2) {
   if (!Number.isFinite(value)) return "—";
   const abs = (Math.abs(value) * 100).toFixed(decimals);

@@ -14,6 +14,10 @@ import { PageHeader } from "@/components/app/page-header";
 import { Sparkline } from "@/components/app/sparkline";
 import { Stale } from "@/components/app/stale";
 import {
+  type Timeframe,
+  TimeframeToggle,
+} from "@/components/app/timeframe-toggle";
+import {
   Card,
   CardContent,
   CardDescription,
@@ -30,14 +34,18 @@ import {
   type InvestmentAccount,
   type InvestmentDailyPoint,
 } from "@/lib/db/queries";
-import { byAssetClass, type CurrencyRow } from "@/lib/portfolio/aggregate";
+import {
+  byAssetClass,
+  type CurrencyRow,
+  sliceTimeframe,
+} from "@/lib/portfolio/aggregate";
 import {
   CLASS_COLOR,
   CLASS_LABEL,
   RISK_COLOR,
   RISK_LABEL,
 } from "@/lib/portfolio/colors";
-import { num, pct, thb } from "@/lib/portfolio/format";
+import { compactThb, num, pct, thb } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 
 interface InvestmentsClientProps {
@@ -178,9 +186,10 @@ function AccountDetail({
 }) {
   const [chartMetric, setChartMetric] =
     useState<InvestmentChartMetric>("total");
-  const series = useMemo(
+  const [tf, setTf] = useState<Timeframe>("6M");
+  const fullSeries = useMemo(
     () =>
-      daily.slice(-180).map((d) => ({
+      daily.map((d) => ({
         date: d.date,
         value:
           chartMetric === "cost"
@@ -191,15 +200,13 @@ function AccountDetail({
       })),
     [chartMetric, daily],
   );
+  const series = useMemo(
+    () => sliceTimeframe(fullSeries, tf),
+    [fullSeries, tf],
+  );
   const pl = account.currentValue - account.currentCost;
   const plPct = account.currentCost === 0 ? 0 : pl / account.currentCost;
-  const latestChartValue = series.at(-1)?.value ?? 0;
-  const chartAccent =
-    chartMetric === "pnl"
-      ? "var(--accent-pos)"
-      : latestChartValue >= 0
-        ? "var(--accent-pos)"
-        : "var(--accent-neg)";
+  const chartBaseline = series[0]?.value;
   const classBreak = useMemo(
     () => byAssetClass(assets, currencies),
     [assets, currencies],
@@ -272,18 +279,23 @@ function AccountDetail({
           <div className="text-[12px] font-medium text-[var(--ink-2)]">
             Chart
           </div>
-          <ChartMetricSelector
-            value={chartMetric}
-            onChange={setChartMetric}
-            options={INVESTMENT_CHART_OPTIONS}
-          />
+          <div className="flex flex-wrap items-center justify-end gap-2">
+            <ChartMetricSelector
+              value={chartMetric}
+              onChange={setChartMetric}
+              options={INVESTMENT_CHART_OPTIONS}
+            />
+            <TimeframeToggle value={tf} onChange={setTf} />
+          </div>
         </div>
         <AreaChart
           data={series}
           height={200}
-          accent={chartAccent}
-          splitAtZero={chartMetric === "pnl"}
+          accent="var(--accent-pos)"
+          baselineValue={chartBaseline}
           formatY={(v) => thb(v)}
+          formatAxisY={(v) => compactThb(v)}
+          formatDelta={(v, p) => `${thb(v, { sign: true })} (${pct(p)})`}
           formatX={(p) =>
             new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
               month: "short",
@@ -305,6 +317,8 @@ function AccountDetail({
               thickness={16}
               centerLabel={`${assets.length} assets`}
               centerValue={thb(account.currentValue)}
+              valueFormatter={thb}
+              ariaLabel="Class breakdown by current value"
             />
           </CardContent>
         </Card>

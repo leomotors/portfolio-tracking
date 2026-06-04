@@ -253,6 +253,7 @@ describe("sliceTimeframe", () => {
     expect(sliceTimeframe(series, "3M")).toHaveLength(90);
     expect(sliceTimeframe(series, "6M")).toHaveLength(180);
     expect(sliceTimeframe(series, "1Y")).toHaveLength(365);
+    expect(sliceTimeframe(series, "ALL")).toHaveLength(400);
   });
 });
 

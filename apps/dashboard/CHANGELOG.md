@@ -1,5 +1,12 @@
 # Changelog
 
+## [minor] - 2026-06-04
+
+- feat: add all-time chart timeframes, investment chart timeframe controls, chart axes, and start-of-timeframe comparison tooltips
+- feat: color overview and investment chart lines relative to the selected timeframe start value
+- feat: refine allocation donut charts with tighter legends, accessible chart labels, and value-aware legend rows
+- chore: add product design context for future dashboard UI work
+
 ## [0.3.0] - 2026-06-03
 
 - chore: replace Claude Opus 4.7 with Opus 4.8 for new chats; retire 4.7 so existing threads keep the same model

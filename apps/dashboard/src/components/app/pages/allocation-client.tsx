@@ -75,6 +75,8 @@ export function AllocationClient({
                   thickness={26}
                   centerLabel="Portfolio"
                   centerValue={thb(total)}
+                  valueFormatter={thb}
+                  ariaLabel="Asset class allocation"
                 />
               </CardContent>
             </Card>
@@ -159,6 +161,8 @@ export function AllocationClient({
                   thickness={26}
                   centerLabel="Total"
                   centerValue={thb(byCurrency.reduce((s, d) => s + d.value, 0))}
+                  valueFormatter={thb}
+                  ariaLabel="Currency exposure allocation"
                 />
               </CardContent>
             </Card>
