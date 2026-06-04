@@ -23,7 +23,7 @@ interface AreaChartProps {
 }
 
 const W = 1000;
-const PAD_L = 56;
+const PAD_L = 44;
 const PAD_R = 18;
 const PAD_T = 14;
 const PAD_B = 38;
@@ -221,7 +221,7 @@ export function AreaChart({
             x2={W - PAD_R}
             y1={y}
             y2={y}
-            stroke="var(--hairline)"
+            stroke="var(--hairline-2)"
             strokeWidth="1"
             strokeDasharray={i === 0 ? "0" : "2 4"}
           />
@@ -246,7 +246,7 @@ export function AreaChart({
               d={p.d}
               fill="none"
               stroke={p.color}
-              strokeWidth="1.8"
+              strokeWidth="2.2"
               strokeLinejoin="round"
               strokeLinecap="round"
             />
@@ -256,8 +256,9 @@ export function AreaChart({
             d={linePath}
             fill="none"
             stroke={accent}
-            strokeWidth="1.6"
+            strokeWidth="2.1"
             strokeLinejoin="round"
+            strokeLinecap="round"
           />
         )}
         <line
@@ -267,7 +268,7 @@ export function AreaChart({
           y2={height - PAD_B}
           stroke="var(--ink-3)"
           strokeWidth="1"
-          opacity="0.4"
+          opacity="0.32"
         />
         <line
           x1={PAD_L}
@@ -276,7 +277,7 @@ export function AreaChart({
           y2={height - PAD_B}
           stroke="var(--ink-3)"
           strokeWidth="1"
-          opacity="0.4"
+          opacity="0.32"
         />
         {hovered && (
           <g>
@@ -348,7 +349,7 @@ export function AreaChart({
               : delta / baselineValue;
           return (
             <div
-              className="pointer-events-none absolute left-0 top-0 z-10 whitespace-nowrap rounded-lg bg-[var(--ink)] px-2.5 py-1.5 text-[11px] text-[var(--bg)] shadow-sm"
+              className="pointer-events-none absolute left-0 top-0 z-10 whitespace-nowrap rounded-[var(--radius)] bg-[var(--ink)] px-2.5 py-1.5 text-[11px] text-[var(--bg)] shadow-[0_4px_8px_rgba(15,23,42,0.12)]"
               style={{
                 left: `${xPct}%`,
                 top: `${yPct}%`,

@@ -118,45 +118,74 @@ export function OverviewClient({
 
   return (
     <div className="flex flex-col gap-5">
-      <PageHeader
-        kicker={kicker}
-        title="Net Worth"
-        right={<TimeframeToggle value={tf} onChange={setTf} />}
-      />
+      <Card className="bg-[var(--surface)]">
+        <div className="px-5 pt-5 pb-4 md:px-6 md:pt-6">
+          <PageHeader
+            kicker={kicker}
+            title="Net Worth"
+            right={<TimeframeToggle value={tf} onChange={setTf} />}
+          />
 
-      <div className="flex flex-wrap items-baseline gap-x-6 gap-y-2">
-        <div className="num text-[56px] leading-none font-semibold tracking-[-0.03em]">
-          {thb(current)}
-        </div>
-        {series.length > 1 && <Delta value={delta} pct={deltaPct} large />}
-      </div>
-
-      <Card className="px-3 py-2">
-        <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-2 pt-1">
-          <div className="text-[12px] font-medium text-[var(--ink-2)]">
-            Chart
+          <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
+            <div className="min-w-0">
+              <div className="num text-[42px] leading-none font-semibold tracking-[-0.03em] md:text-[52px]">
+                {thb(current)}
+              </div>
+              <div className="mt-2 flex min-h-6 flex-wrap items-center gap-3">
+                {series.length > 1 ? (
+                  <Delta value={delta} pct={deltaPct} large />
+                ) : (
+                  <span className="text-[13px] text-[var(--ink-3)]">
+                    Waiting for another snapshot
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="grid min-w-[180px] gap-1 rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface-2)] p-3">
+              <div className="text-[12px] font-medium text-[var(--ink-2)]">
+                Investment mark
+              </div>
+              <div className="num text-[18px] font-semibold">
+                {thb(investTotal)}
+              </div>
+              <div className="text-[11px] text-[var(--ink-3)]">
+                Cash {thb(bankTotal)}
+              </div>
+            </div>
           </div>
-          <ChartMetricSelector
-            value={chartMetric}
-            onChange={setChartMetric}
-            options={OVERVIEW_CHART_OPTIONS}
+        </div>
+        <div className="border-t border-[var(--hairline)] px-3 py-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1 pb-2 pt-1">
+            <div>
+              <div className="text-[12px] font-medium text-[var(--ink-2)]">
+                Trend
+              </div>
+              <div className="text-[11px] text-[var(--ink-3)]">
+                Baseline follows the selected window
+              </div>
+            </div>
+            <ChartMetricSelector
+              value={chartMetric}
+              onChange={setChartMetric}
+              options={OVERVIEW_CHART_OPTIONS}
+            />
+          </div>
+          <AreaChart
+            data={sliced}
+            height={270}
+            accent="var(--accent-pos)"
+            baselineValue={chartBaseline}
+            formatY={(v) => thb(v)}
+            formatAxisY={(v) => compactThb(v)}
+            formatDelta={(v, p) => `${thb(v, { sign: true })} (${pct(p)})`}
+            formatX={(p) =>
+              new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+              })
+            }
           />
         </div>
-        <AreaChart
-          data={sliced}
-          height={260}
-          accent="var(--accent-pos)"
-          baselineValue={chartBaseline}
-          formatY={(v) => thb(v)}
-          formatAxisY={(v) => compactThb(v)}
-          formatDelta={(v, p) => `${thb(v, { sign: true })} (${pct(p)})`}
-          formatX={(p) =>
-            new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-            })
-          }
-        />
       </Card>
 
       <KpiGrid layout="4up">

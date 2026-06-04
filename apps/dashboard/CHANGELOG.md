@@ -1,10 +1,13 @@
 # Changelog
 
-## [minor] - 2026-06-04
+## [0.4.0] - 2026-06-05
 
+- feat: refresh the dashboard shell, overview report, account detail panels, KPIs, tables, tabs, controls, and login screen with tighter product UI styling
 - feat: add all-time chart timeframes, investment chart timeframe controls, chart axes, and start-of-timeframe comparison tooltips
 - feat: color overview and investment chart lines relative to the selected timeframe start value
 - feat: refine allocation donut charts with tighter legends, accessible chart labels, and value-aware legend rows
+- fix: reduce area chart left-axis gutter spacing while preserving room for THB tick labels
+- chore: keep the warm dashboard theme and fancy SVG theme toggle while adding shared UI helper tokens
 - chore: add product design context for future dashboard UI work
 
 ## [0.3.0] - 2026-06-03

@@ -40,9 +40,14 @@ export default async function CreditPage() {
         />
       </KpiGrid>
 
-      <h3 className="my-1 text-[13px] font-semibold uppercase tracking-[0.02em] text-[var(--ink-2)]">
-        Credit cards
-      </h3>
+      <div className="mt-1 flex items-center justify-between">
+        <h3 className="m-0 text-[15px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+          Credit cards
+        </h3>
+        <span className="rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
+          {creditCards.length} on file
+        </span>
+      </div>
 
       {creditCards.length === 0 ? (
         <Card>
@@ -57,7 +62,7 @@ export default async function CreditPage() {
           {creditCards.map((c) => (
             <div
               key={c.id}
-              className="relative flex min-h-[180px] flex-col gap-2.5 overflow-hidden rounded-[var(--radius-lg)] p-[18px] text-white"
+              className="relative flex min-h-[180px] flex-col gap-2.5 overflow-hidden rounded-[var(--radius-lg)] p-[18px] text-white shadow-[0_1px_2px_rgba(15,23,42,0.10)]"
               style={{
                 background: CARD_BG[c.cardType] ?? "oklch(0.30 0.02 250)",
               }}
@@ -112,9 +117,14 @@ export default async function CreditPage() {
         </div>
       )}
 
-      <h3 className="my-1 text-[13px] font-semibold uppercase tracking-[0.02em] text-[var(--ink-2)]">
-        Personal loans
-      </h3>
+      <div className="mt-1 flex items-center justify-between">
+        <h3 className="m-0 text-[15px] font-semibold tracking-[-0.01em] text-[var(--ink)]">
+          Personal loans
+        </h3>
+        <span className="rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
+          {personalLoans.length} on file
+        </span>
+      </div>
 
       <Card>
         {personalLoans.length === 0 ? (
@@ -141,7 +151,7 @@ export default async function CreditPage() {
                 </thead>
                 <tbody>
                   {personalLoans.map((l) => (
-                    <tr key={l.id}>
+                    <tr key={l.id} className="hover:bg-[var(--hover)]">
                       <Td>
                         <span className="text-[13px] font-semibold">
                           {l.name}
@@ -188,7 +198,7 @@ function Th({
   return (
     <th
       className={cn(
-        "border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]",
+        "border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]",
         align === "right" ? "text-right" : "text-left",
       )}
     >
@@ -208,7 +218,9 @@ function Td({
     <td
       className={cn(
         "border-b border-[var(--hairline-2)] px-4 py-3 align-middle",
-        align === "right" ? "text-right" : "text-left",
+        align === "right"
+          ? "text-right text-[var(--ink)]"
+          : "text-left text-[var(--ink-2)]",
       )}
     >
       {children}

@@ -14,7 +14,7 @@ const TabsList = React.forwardRef<
   <TabsPrimitive.List
     ref={ref}
     className={cn(
-      "inline-flex gap-0.5 self-start rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface-2)] p-[3px]",
+      "inline-flex max-w-full gap-0.5 self-start overflow-x-auto rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface-2)] p-[3px]",
       className,
     )}
     {...props}
@@ -29,8 +29,8 @@ const TabsTrigger = React.forwardRef<
   <TabsPrimitive.Trigger
     ref={ref}
     className={cn(
-      "cursor-pointer rounded-[7px] px-3.5 py-1.5 text-[13px] text-[var(--ink-2)] transition-colors",
-      "data-[state=active]:bg-[var(--surface)] data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-[0_1px_2px_rgba(0,0,0,0.04)]",
+      "cursor-pointer rounded-md px-3.5 py-1.5 text-[13px] whitespace-nowrap text-[var(--ink-2)] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
+      "data-[state=active]:bg-[var(--surface)] data-[state=active]:text-[var(--ink)] data-[state=active]:shadow-[0_1px_1px_rgba(15,23,42,0.05)]",
       "[[data-theme='dark']_&]:data-[state=active]:shadow-[inset_0_0_0_1px_var(--hairline)]",
       className,
     )}

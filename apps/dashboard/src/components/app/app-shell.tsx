@@ -1,5 +1,6 @@
 "use client";
 
+import { Bot } from "lucide-react";
 import { useCallback, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -57,7 +58,7 @@ export function AppShell({
       }
     >
       <Sidebar />
-      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-col overflow-hidden bg-[var(--bg)]">
         <MobileNav />
         <Topbar
           profile={profile}
@@ -70,14 +71,12 @@ export function AppShell({
               aria-label="AI Agent"
               onClick={() => setChatOpen((value) => !value)}
             >
-              <span aria-hidden="true" className="text-[15px] leading-none">
-                ✨
-              </span>
+              <Bot size={16} strokeWidth={2} />
             </Button>
           }
         />
         <div className="min-h-0 flex-1 overflow-y-auto">
-          <div className="w-full max-w-[1320px] px-4 pt-6 pb-15 md:px-7 md:pt-8">
+          <div className="mx-auto w-full max-w-[1360px] px-4 pt-6 pb-15 md:px-7 md:pt-8">
             {children}
           </div>
         </div>

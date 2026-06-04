@@ -174,16 +174,16 @@ export function AllocationClient({
                 <table className="w-full min-w-[420px] border-collapse text-[13px]">
                   <thead>
                     <tr>
-                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]">
+                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]">
                         Currency
                       </th>
-                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-left text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]">
+                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-left text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]">
                         Variant
                       </th>
-                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]">
+                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]">
                         THB
                       </th>
-                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-right text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]">
+                      <th className="border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-right text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]">
                         Updated
                       </th>
                     </tr>
@@ -200,7 +200,7 @@ export function AllocationClient({
                       </tr>
                     )}
                     {currencies.map((c) => (
-                      <tr key={c.id}>
+                      <tr key={c.id} className="hover:bg-[var(--hover)]">
                         <td className="border-b border-[var(--hairline-2)] px-4 py-3 align-middle">
                           <span className="num">{c.symbol}</span>
                         </td>

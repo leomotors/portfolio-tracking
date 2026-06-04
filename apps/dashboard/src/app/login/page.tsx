@@ -1,3 +1,4 @@
+import { LineChart } from "lucide-react";
 import Link from "next/link";
 
 import { sanitizeReturnTo } from "@/lib/auth";
@@ -17,8 +18,11 @@ export default async function LoginPage({
 
   return (
     <main className="flex min-h-screen w-full items-center justify-center bg-[var(--bg)] px-6">
-      <div className="w-full max-w-[380px] rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-7 py-8 shadow-sm">
-        <h1 className="text-lg font-semibold text-[var(--ink)]">
+      <div className="w-full max-w-[390px] rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] px-7 py-8 shadow-[0_1px_2px_rgba(15,23,42,0.06)] [[data-theme='dark']_&]:shadow-none">
+        <div className="mb-5 grid h-10 w-10 place-items-center rounded-[var(--radius)] bg-[var(--ink)] text-[var(--bg)]">
+          <LineChart size={19} strokeWidth={2} />
+        </div>
+        <h1 className="text-xl font-semibold tracking-[-0.02em] text-[var(--ink)]">
           Portfolio Tracking
         </h1>
         <p className="mt-1.5 text-[13px] text-[var(--ink-3)]">
@@ -27,7 +31,7 @@ export default async function LoginPage({
 
         <Link
           href={startUrl}
-          className="mt-6 flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-[#5865F2] px-4 py-2.5 text-sm font-medium text-white transition-colors hover:bg-[#4752c4]"
+          className="mt-6 flex w-full items-center justify-center gap-2 rounded-[var(--radius)] bg-[#5865F2] px-4 py-2.5 text-sm font-medium text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] transition-colors hover:bg-[#4752c4] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#5865F2] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)]"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"

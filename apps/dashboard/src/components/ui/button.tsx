@@ -5,16 +5,18 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)] disabled:pointer-events-none disabled:opacity-50",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-[background-color,border-color,color,box-shadow,opacity] duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--bg)] disabled:pointer-events-none disabled:opacity-50",
   {
     variants: {
       variant: {
-        default: "bg-[var(--ink)] text-[var(--bg)] hover:opacity-90",
+        default:
+          "bg-[var(--ink)] text-[var(--bg)] shadow-[0_1px_2px_rgba(15,23,42,0.08)] hover:opacity-90",
         outline:
-          "border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
+          "border border-[var(--hairline)] bg-[var(--surface)] text-[var(--ink-2)] hover:border-[var(--hairline)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
         ghost:
           "text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
-        primary: "bg-[var(--accent-pri)] text-white hover:opacity-90",
+        primary:
+          "bg-[var(--accent-pri)] text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] hover:opacity-90",
       },
       size: {
         default: "h-9 px-4",

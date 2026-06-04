@@ -65,7 +65,7 @@ export function Donut({
           cy={c}
           r={r}
           fill="none"
-          stroke="var(--hairline)"
+          stroke="var(--track)"
           strokeWidth={thickness}
         />
         {segs.map((s, i) => (
@@ -120,7 +120,7 @@ export function Donut({
         {segs.map((s, i) => (
           <div
             key={i}
-            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px]"
+            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] hover:bg-[var(--surface-2)]"
           >
             <span
               className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]"

@@ -58,7 +58,7 @@
   transform: translateY(0px);
 }
 
-/* Dark state — driven by the app's data-theme attribute */
+/* Dark state - driven by the app's data-theme attribute */
 :global([data-theme="dark"]) .toggleBg {
   fill: #1e293b;
 }

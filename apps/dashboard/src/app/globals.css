@@ -11,20 +11,23 @@
   --color-bg-2: var(--bg-2);
   --color-surface: var(--surface);
   --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
   --color-ink-3: var(--ink-3);
   --color-hairline: var(--hairline);
   --color-hairline-2: var(--hairline-2);
   --color-hover: var(--hover);
+  --color-track: var(--track);
 
   --color-accent-pos: var(--accent-pos);
   --color-accent-neg: var(--accent-neg);
   --color-accent-pri: var(--accent-pri);
+  --color-accent-soft: var(--accent-soft);
 
   --radius-sm: 6px;
-  --radius: 10px;
-  --radius-lg: 14px;
+  --radius: 8px;
+  --radius-lg: 12px;
 }
 
 :root,
@@ -33,16 +36,19 @@
   --bg-2: #fffcf7;
   --surface: #ffffff;
   --surface-2: #fafaf6;
+  --surface-3: #f4f1eb;
   --ink: #111111;
   --ink-2: #5a5a55;
   --ink-3: #8e8e88;
   --hairline: #e8e5de;
   --hairline-2: #f0ede6;
   --hover: #f2efe8;
+  --track: #e8e5de;
 
   --accent-pos: oklch(0.62 0.13 145);
   --accent-neg: oklch(0.62 0.18 25);
   --accent-pri: oklch(0.62 0.13 250);
+  --accent-soft: color-mix(in oklch, var(--accent-pri) 10%, var(--surface));
 }
 
 :root[data-theme="dark"] {
@@ -50,12 +56,15 @@
   --bg-2: #121317;
   --surface: #16181c;
   --surface-2: #1b1d22;
+  --surface-3: #22252b;
   --ink: #e8e6e0;
   --ink-2: #a8a8a2;
   --ink-3: #6f706a;
   --hairline: #22252b;
   --hairline-2: #1b1d22;
   --hover: #1f2126;
+  --track: #22252b;
+  --accent-soft: color-mix(in oklch, var(--accent-pri) 18%, var(--surface));
 }
 
 * {
@@ -79,6 +88,19 @@ body {
     "ss01",
     "cv11";
   text-wrap: pretty;
+}
+
+::selection {
+  background: var(--accent-soft);
+  color: var(--ink);
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  -webkit-tap-highlight-color: transparent;
 }
 
 .num {

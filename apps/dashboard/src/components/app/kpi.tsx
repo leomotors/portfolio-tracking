@@ -26,19 +26,23 @@ export function Kpi({
   return (
     <div
       className={cn(
-        "flex flex-col gap-1.5 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-5",
+        "flex min-h-[132px] flex-col gap-2 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] [[data-theme='dark']_&]:shadow-none",
         className,
       )}
     >
-      <div className="text-xs text-[var(--ink-3)]">{label}</div>
-      <div className="num text-[22px] font-medium tracking-[-0.015em]">
+      <div className="text-xs font-medium text-[var(--ink-2)]">{label}</div>
+      <div className="num text-[23px] leading-tight font-semibold tracking-[-0.015em]">
         {value}
       </div>
       {native && (
         <div className="num text-[11px] text-[var(--ink-3)]">{native}</div>
       )}
       {delta != null && <Delta value={delta} pct={pct} />}
-      {sub && <div className="text-[11px] text-[var(--ink-3)]">{sub}</div>}
+      {sub && (
+        <div className="mt-auto text-[11px] leading-4 text-[var(--ink-3)]">
+          {sub}
+        </div>
+      )}
     </div>
   );
 }

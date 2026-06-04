@@ -18,7 +18,7 @@ export function TimeframeToggle({
   options = DEFAULT_OPTIONS,
 }: TimeframeToggleProps) {
   return (
-    <div className="inline-flex rounded-lg border border-[var(--hairline)] bg-[var(--surface)] p-[3px]">
+    <div className="inline-flex rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface-2)] p-[3px]">
       {options.map((opt) => (
         <button
           key={opt}
@@ -26,10 +26,10 @@ export function TimeframeToggle({
           onClick={() => onChange(opt)}
           aria-pressed={opt === value}
           className={cn(
-            "num cursor-pointer rounded-md px-3 py-1 text-[12px]",
+            "num cursor-pointer rounded-md px-3 py-1 text-[12px] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
             opt === value
-              ? "bg-[var(--bg)] text-[var(--ink)]"
-              : "text-[var(--ink-2)]",
+              ? "bg-[var(--surface)] text-[var(--ink)] shadow-[0_1px_1px_rgba(15,23,42,0.05)]"
+              : "text-[var(--ink-2)] hover:text-[var(--ink)]",
           )}
         >
           {opt}

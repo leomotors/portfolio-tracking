@@ -110,9 +110,9 @@ function ThbView({
             type="button"
             onClick={() => onSelect(a.id)}
             className={cn(
-              "flex flex-col gap-2 rounded-[var(--radius)] border bg-[var(--surface)] p-3.5 text-left transition-colors hover:bg-[var(--surface-2)]",
+              "flex flex-col gap-2 rounded-[var(--radius)] border bg-[var(--surface)] p-3.5 text-left transition-[background-color,border-color,box-shadow] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
               a.id === acc.id
-                ? "border-[var(--ink)] [[data-theme='dark']_&]:border-[var(--ink-2)]"
+                ? "border-[var(--accent-pri)] bg-[var(--accent-soft)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] [[data-theme='dark']_&]:shadow-none"
                 : "border-[var(--hairline)]",
             )}
           >
@@ -140,9 +140,9 @@ function ThbView({
       </aside>
 
       <div className="flex min-w-0 flex-col gap-3.5">
-        <div className="flex flex-wrap items-end justify-between gap-4 px-1 pb-2 pt-1">
+        <div className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] [[data-theme='dark']_&]:shadow-none">
           <div>
-            <div className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-3)]">
+            <div className="inline-flex rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
               {acc.bank}
               {acc.branch ? ` · ${acc.branch}` : ""}
             </div>
@@ -174,6 +174,14 @@ function ThbView({
         </div>
 
         <Card className="px-3 py-2">
+          <div className="px-1 pb-2 pt-1">
+            <div className="text-[12px] font-medium text-[var(--ink-2)]">
+              Balance history
+            </div>
+            <div className="text-[11px] text-[var(--ink-3)]">
+              Latest 180 daily snapshots
+            </div>
+          </div>
           <AreaChart
             data={series}
             height={200}
@@ -244,7 +252,7 @@ function FcdView({ accounts }: { accounts: FcdAccount[] }) {
               </tr>
             )}
             {accounts.map((a) => (
-              <tr key={a.id}>
+              <tr key={a.id} className="hover:bg-[var(--hover)]">
                 <Td>
                   <div className="text-[13px] font-semibold">{a.name}</div>
                   <div className="num text-[11px] text-[var(--ink-3)]">
@@ -302,7 +310,7 @@ function Th({
   return (
     <th
       className={cn(
-        "border-b border-[var(--hairline)] bg-[var(--surface-2)] px-4 py-2.5 text-[11px] font-medium uppercase tracking-[0.04em] text-[var(--ink-3)]",
+        "border-b border-[var(--hairline)] bg-[var(--surface-3)] px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.04em] text-[var(--ink-2)]",
         align === "right" ? "text-right" : "text-left",
       )}
     >
@@ -322,7 +330,9 @@ function Td({
     <td
       className={cn(
         "border-b border-[var(--hairline-2)] px-4 py-3 align-middle",
-        align === "right" ? "text-right" : "text-left",
+        align === "right"
+          ? "text-right text-[var(--ink)]"
+          : "text-left text-[var(--ink-2)]",
       )}
     >
       {children}
