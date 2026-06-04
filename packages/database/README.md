@@ -3,12 +3,14 @@
 Drizzle ORM schema and Postgres client for the portfolio tracking system.
 
 The database stores the **current state** of bank accounts, investment accounts,
-their underlying assets, FX rates, and credit/loan accounts. It also stores a
-**daily history** of bank balances and investment account values so day-over-day
-performance can be computed.
+their underlying assets, FX rates, credit/loan accounts, and AI chat records. It
+also stores a **daily history** of bank balances and investment account values so
+day-over-day performance can be computed.
 
-The only writer today is [`apps/cron`](../../apps/cron/) which runs once per day to
-refresh prices, recalculate balances, and append a new daily snapshot.
+The main scheduled writer is [`apps/cron`](../../apps/cron/) which runs once per
+day to refresh prices, recalculate balances, and append a new daily snapshot.
+[`apps/dashboard`](../../apps/dashboard/) also writes user-entered portfolio
+values and AI chat history.
 
 ## Layout
 
@@ -33,6 +35,9 @@ erDiagram
     investment_account ||--o{ investment_daily_balance : "snapshots"
     currency           ||--o{ asset : "priced in"
     bank_account       ||--o{ bank_daily_balance : "snapshots"
+    ai_conversation    ||--o{ ai_message : "contains"
+    ai_conversation    ||--o{ ai_tool_call : "logs"
+    ai_message         ||--o{ ai_tool_call : "may produce"
 
     investment_account {
         int    id PK
@@ -136,12 +141,57 @@ erDiagram
         date   opened_at
         date   closed_at
     }
+
+    ai_conversation {
+        int       id PK
+        text      user_id
+        text      title
+        text      default_provider
+        text      default_model
+        int       total_input_tokens
+        int       total_output_tokens
+        int       total_cost_micro_usd
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    ai_message {
+        int             id PK
+        int             conversation_id FK
+        ai_message_role role
+        text            content
+        text            provider
+        text            model
+        int             input_tokens
+        int             output_tokens
+        int             cost_micro_usd
+        jsonb           raw_usage
+        jsonb           sources
+        timestamp       created_at
+    }
+
+    ai_tool_call {
+        int       id PK
+        int       conversation_id FK
+        int       message_id FK
+        text      tool_name
+        text      provider
+        text      model
+        jsonb     input
+        jsonb     output
+        int       input_tokens
+        int       output_tokens
+        int       cost_micro_usd
+        jsonb     raw_usage
+        timestamp created_at
+    }
 ```
 
 There are two disconnected subgraphs:
 
 - **Investment side** — `investment_account` → `asset` → `currency`, with `investment_daily_balance` as the time series.
 - **Bank side** — `bank_account` → `bank_daily_balance` as the time series. `fcd_account` is a separate, currently un-snapshotted multi-currency account.
+- **AI chat side** — `ai_conversation` → `ai_message` / `ai_tool_call` for dashboard chat persistence and cost tracking.
 
 `credit_card_account` and `personal_loan_account` are independent records (no foreign keys, no daily snapshot).
 
@@ -241,6 +291,35 @@ Personal loan / revolving line. Unique `(issued_by, account_no)` (account_no is 
 
 These two tables exist for record-keeping; they aren't read or written by the cron.
 
+### AI chat domain
+
+#### `ai_conversation` — [ai.ts](src/schema/ai.ts)
+Persisted dashboard chat conversation metadata.
+
+| Column | Notes |
+| --- | --- |
+| `id` | identity PK |
+| `user_id` | dashboard/auth user identifier |
+| `title` | conversation title, defaulting to `"New chat"` |
+| `default_provider` / `default_model` | model selection stored with the thread |
+| `total_input_tokens` / `total_output_tokens` | accumulated token usage |
+| `total_cost_micro_usd` | accumulated model/tool cost in micro-USD |
+| `created_at` / `updated_at` | timestamps |
+
+#### `ai_message` — [ai.ts](src/schema/ai.ts)
+Persisted chat messages.
+
+- FK `conversation_id` → `ai_conversation.id`, **`onDelete: cascade`**.
+- `role` uses the `ai_message_role` enum.
+- `provider`, `model`, usage, cost, raw usage, and `sources` are stored per message when available.
+
+#### `ai_tool_call` — [ai.ts](src/schema/ai.ts)
+Persisted AI tool-call logs.
+
+- FK `conversation_id` → `ai_conversation.id`, **`onDelete: cascade`**.
+- Optional FK `message_id` → `ai_message.id`, **`onDelete: cascade`**.
+- Stores tool name, provider/model metadata, JSON input/output, usage, cost, and raw usage.
+
 ## Enums — [types.ts](src/schema/types.ts) and others
 
 Enum types defined in Postgres via `pgEnum`:
@@ -254,6 +333,7 @@ Enum types defined in Postgres via `pgEnum`:
 | `risk_level_type` | `safe_core`, `surface_core`, `lower_satellite`, `mid_satellite`, `higher_satellite` | `asset.risk_level` (core-satellite portfolio bucketing) |
 | `bank_account_type` | `savings`, `e_savings`, `fixed` | `bank_account.account_type` |
 | `credit_card_type` | `visa`, `mastercard`, `american_express`, `jcb`, `unionpay` | `credit_card_account.card_type` |
+| `ai_message_role` | `user`, `assistant`, `system`, `tool` | `ai_message.role` |
 
 Note: `coperate_bond` is a typo of `corporate_bond` preserved across the schema for backward compatibility.
 
@@ -290,6 +370,19 @@ Note: `coperate_bond` is a typo of `corporate_bond` preserved across the schema 
 After those steps, [summary.ts](../../apps/cron/src/summary.ts) computes
 day-over-day deltas using yesterday's snapshot (or, if missing, the latest date
 that exists in **both** daily balance tables) and posts a Discord summary.
+
+## How the dashboard writes this database
+
+[`apps/dashboard`](../../apps/dashboard/) writes current user-entered values via
+server actions in [actions.ts](../../apps/dashboard/src/lib/db/actions.ts):
+
+- `bank_account.current_balance`
+- `asset.amount`
+- `asset.average_cost`
+- `investment_account.current_cost`
+
+The dashboard also persists AI conversations, messages, tool calls, usage, and
+cost totals through [store.ts](../../apps/dashboard/src/lib/ai/store.ts).
 
 ## Conventions and gotchas
 
