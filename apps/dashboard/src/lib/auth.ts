@@ -118,10 +118,29 @@ export function getRequestOrigin(request: NextRequest): string {
   return `${proto}://${host}`;
 }
 
+// Determine whether the user-facing connection is HTTPS. Behind a
+// TLS-terminating proxy `request.nextUrl.protocol` is often "http", so trust
+// the forwarded proto first (consistent with getRequestOrigin) — otherwise the
+// session cookie would be issued without the Secure flag.
+export function isSecureRequest(request: NextRequest): boolean {
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const proto = forwardedProto ?? request.nextUrl.protocol.replace(":", "");
+  return proto.split(",")[0].trim() === "https";
+}
+
 export function sanitizeReturnTo(value: string | undefined | null): string {
-  if (!value) return "/";
-  if (!value.startsWith("/") || value.startsWith("//")) return "/";
-  return value;
+  if (!value || !value.startsWith("/") || value.startsWith("//")) return "/";
+  // A plain prefix check misses backslash/control-character tricks such as
+  // "/\\evil.com", which the URL parser normalizes to an off-origin host.
+  // Resolve against a sentinel origin and reject anything that escapes it.
+  try {
+    const base = "https://internal.invalid";
+    const resolved = new URL(value, base);
+    if (resolved.origin !== base) return "/";
+    return resolved.pathname + resolved.search + resolved.hash;
+  } catch {
+    return "/";
+  }
 }
 
 export async function getSession(): Promise<SessionPayload | null> {
@@ -130,6 +149,22 @@ export async function getSession(): Promise<SessionPayload | null> {
   const store = await cookies();
   const token = store.get(COOKIE_NAMES.session)?.value;
   return verifySession(token, secret);
+}
+
+export function isAllowedUser(uid: string): boolean {
+  const allowed = parseAllowedUserIds(process.env.ALLOWED_USER_IDS);
+  return allowed !== null && allowed.includes(uid);
+}
+
+// Authorization guard for server actions / data mutations. Verifies the
+// signed session AND re-checks the allowlist so the data layer never relies
+// on the proxy/middleware as its only line of defense.
+export async function requireSession(): Promise<SessionPayload> {
+  const session = await getSession();
+  if (!session || !isAllowedUser(session.uid)) {
+    throw new Error("Unauthorized");
+  }
+  return session;
 }
 
 export function discordAvatarUrl(

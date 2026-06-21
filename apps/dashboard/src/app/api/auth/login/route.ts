@@ -2,6 +2,7 @@ import { type NextRequest, NextResponse } from "next/server";
 
 import {
   COOKIE_NAMES,
+  isSecureRequest,
   randomState,
   sanitizeReturnTo,
   STATE_TTL_SECONDS,
@@ -30,7 +31,7 @@ export async function GET(request: NextRequest) {
   authorizeUrl.searchParams.set("state", state);
 
   const response = NextResponse.redirect(authorizeUrl);
-  const isSecure = request.nextUrl.protocol === "https:";
+  const isSecure = isSecureRequest(request);
   const baseOptions = {
     httpOnly: true,
     secure: isSecure,

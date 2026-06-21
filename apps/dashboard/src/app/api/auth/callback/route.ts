@@ -3,6 +3,7 @@ import { type NextRequest, NextResponse } from "next/server";
 import {
   COOKIE_NAMES,
   getRequestOrigin,
+  isSecureRequest,
   parseAllowedUserIds,
   sanitizeReturnTo,
   SESSION_TTL_SECONDS,
@@ -106,7 +107,7 @@ export async function GET(request: NextRequest) {
   const response = NextResponse.redirect(
     new URL(returnTo, getRequestOrigin(request)),
   );
-  const isSecure = request.nextUrl.protocol === "https:";
+  const isSecure = isSecureRequest(request);
   response.cookies.set(COOKIE_NAMES.session, sessionToken, {
     httpOnly: true,
     secure: isSecure,

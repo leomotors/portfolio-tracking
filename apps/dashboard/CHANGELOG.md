@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.4.1] - 2026-06-21
+
+- fix: require an authorized session in portfolio mutation server actions instead of relying on the proxy middleware alone
+- fix: enforce the user allowlist, not just a valid session, in AI server actions and the AI chat route
+- fix: reject backslash and control-character `returnTo` values that normalized to an off-origin open redirect after login
+- fix: derive the session cookie `Secure` flag from the forwarded protocol so it survives behind a TLS-terminating proxy
+- fix: add a defense-in-depth session and allowlist check in the dashboard app layout
+
 ## [0.4.0] - 2026-06-05
 
 - feat: refresh the dashboard shell, overview report, account detail panels, KPIs, tables, tabs, controls, and login screen with tighter product UI styling

@@ -1,6 +1,6 @@
 "use server";
 
-import { getSession } from "@/lib/auth";
+import { requireSession } from "@/lib/auth";
 
 import {
   availableModelOptions,
@@ -20,8 +20,7 @@ import {
 } from "./store";
 
 async function requireUserId() {
-  const session = await getSession();
-  if (!session) throw new Error("Unauthorized");
+  const session = await requireSession();
   return session.uid;
 }
 

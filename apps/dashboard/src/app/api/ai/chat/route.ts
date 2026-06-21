@@ -25,7 +25,7 @@ import {
   type ToolCallInsert,
 } from "@/lib/ai/store";
 import { createPortfolioTools } from "@/lib/ai/tools";
-import { getSession } from "@/lib/auth";
+import { getSession, isAllowedUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -144,7 +144,9 @@ function ndjson(event: StreamEvent) {
 
 export async function POST(request: NextRequest) {
   const session = await getSession();
-  if (!session) return badRequest("Unauthorized", 401);
+  if (!session || !isAllowedUser(session.uid)) {
+    return badRequest("Unauthorized", 401);
+  }
 
   let body: ChatRequestBody | null;
   try {

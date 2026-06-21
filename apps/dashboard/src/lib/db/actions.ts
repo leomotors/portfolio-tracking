@@ -10,6 +10,8 @@ import {
   investmentAccountTable,
 } from "@repo/database/schema";
 
+import { requireSession } from "@/lib/auth";
+
 const assertNonNegative = (n: number, label: string) => {
   if (!Number.isFinite(n) || n < 0) {
     throw new Error(`Invalid ${label}: must be a non-negative finite number`);
@@ -17,6 +19,7 @@ const assertNonNegative = (n: number, label: string) => {
 };
 
 export async function updateBankBalance(id: number, balance: number) {
+  await requireSession();
   assertNonNegative(balance, "balance");
   await db
     .update(bankAccountTable)
@@ -27,6 +30,7 @@ export async function updateBankBalance(id: number, balance: number) {
 }
 
 export async function updateAssetAmount(id: number, amount: number) {
+  await requireSession();
   assertNonNegative(amount, "amount");
   await db
     .update(assetTable)
@@ -38,6 +42,7 @@ export async function updateAssetAmount(id: number, amount: number) {
 }
 
 export async function updateAssetAverageCost(id: number, averageCost: number) {
+  await requireSession();
   assertNonNegative(averageCost, "averageCost");
   await db
     .update(assetTable)
@@ -51,6 +56,7 @@ export async function updateInvestmentAccountCost(
   id: number,
   currentCost: number,
 ) {
+  await requireSession();
   assertNonNegative(currentCost, "currentCost");
   await db
     .update(investmentAccountTable)
