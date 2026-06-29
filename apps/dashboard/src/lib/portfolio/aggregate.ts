@@ -260,8 +260,7 @@ export function combineCapitalSeries(
     .sort()
     .map((date) => ({
       date,
-      value:
-        valueAsOf(date, costSeries) + valueAsOf(date, savingsSeries),
+      value: valueAsOf(date, costSeries) + valueAsOf(date, savingsSeries),
     }));
 }
 
@@ -290,10 +289,7 @@ export function savingsFlowSeries(
   chartDates: readonly string[],
   savingsBankDaily: BankBalanceRow[],
 ): DailySnapshotPoint[] {
-  return valueFlowSeries(
-    chartDates,
-    aggregateBalanceByDate(savingsBankDaily),
-  );
+  return valueFlowSeries(chartDates, aggregateBalanceByDate(savingsBankDaily));
 }
 
 /** Combined capital flow: investment cost + high-yield savings. */

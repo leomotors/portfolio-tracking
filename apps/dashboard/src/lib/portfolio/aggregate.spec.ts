@@ -5,11 +5,11 @@ import {
   byAssetClass,
   byCurrency,
   byRiskLevel,
-  combineNetWorthSeries,
-  combineCapitalSeries,
   capitalFlowSeries,
-  costBasisFlowSeries,
+  combineCapitalSeries,
+  combineNetWorthSeries,
   coreSatelliteSplit,
+  costBasisFlowSeries,
   type CurrencyRow,
   dayDelta,
   dayMovers,
@@ -258,10 +258,13 @@ describe("savingsFlowSeries", () => {
 
 describe("valueFlowSeries", () => {
   it("derives flow from a level series", () => {
-    const out = valueFlowSeries(["2026-05-08", "2026-05-09"], [
-      { date: "2026-05-08", value: 100 },
-      { date: "2026-05-09", value: 130 },
-    ]);
+    const out = valueFlowSeries(
+      ["2026-05-08", "2026-05-09"],
+      [
+        { date: "2026-05-08", value: 100 },
+        { date: "2026-05-09", value: 130 },
+      ],
+    );
     expect(out).toEqual([
       { date: "2026-05-08", value: 100 },
       { date: "2026-05-09", value: 30 },

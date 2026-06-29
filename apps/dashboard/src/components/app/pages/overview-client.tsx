@@ -138,11 +138,7 @@ export function OverviewClient({
     [investmentDaily],
   );
   const investmentPnlSeries = useMemo(
-    () =>
-      aggregateSeries(
-        investmentDaily,
-        (point) => point.value - point.cost,
-      ),
+    () => aggregateSeries(investmentDaily, (point) => point.value - point.cost),
     [investmentDaily],
   );
 
@@ -172,11 +168,7 @@ export function OverviewClient({
   const moneyFlow = useMemo(() => {
     const chartDates = sliced.map((point) => point.date);
     if (chartMetric === "netWorth" || chartMetric === "totalCapital") {
-      return capitalFlowSeries(
-        chartDates,
-        investmentDaily,
-        savingsBankDaily,
-      );
+      return capitalFlowSeries(chartDates, investmentDaily, savingsBankDaily);
     }
     if (chartMetric === "investments") {
       return costBasisFlowSeries(chartDates, investmentDaily);
@@ -190,7 +182,8 @@ export function OverviewClient({
   const investPL = investTotal - investCost;
   const investPLPct = investCost === 0 ? 0 : investPL / investCost;
   const chartBaseline = sliced[0]?.value;
-  const splitAtZero = chartMetric === "investments" && investmentSubview === "pnl";
+  const splitAtZero =
+    chartMetric === "investments" && investmentSubview === "pnl";
 
   const kicker = asOf
     ? `As of ${new Date(asOf + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`

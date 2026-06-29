@@ -83,8 +83,7 @@ export function AreaChart({
       const x =
         PAD_L + (i * (W - PAD_L - PAD_R)) / Math.max(1, data.length - 1);
       const y =
-        PAD_T +
-        (1 - (d.value - minV) / range) * (mainHeight - PAD_T - PAD_B);
+        PAD_T + (1 - (d.value - minV) / range) * (mainHeight - PAD_T - PAD_B);
       return { x, y, d };
     });
     const ticks = 4;
@@ -146,15 +145,7 @@ export function AreaChart({
       volumeBars,
       volBaselineY,
     };
-  }, [
-    baselineValue,
-    data,
-    hasVolume,
-    height,
-    mainHeight,
-    splitAtZero,
-    volume,
-  ]);
+  }, [baselineValue, data, hasVolume, height, mainHeight, splitAtZero, volume]);
 
   const linePath = useMemo(() => {
     const pts = layout.points;
