@@ -169,10 +169,143 @@ export interface DailyBalanceRow {
   value: number;
 }
 
+export interface InvestmentCostDailyRow {
+  accountId: number;
+  date: string;
+  cost: number;
+}
+
 export interface BankBalanceRow {
   accountId: number;
   date: string;
   balance: number;
+}
+
+export const CAPITAL_BANK_ACCOUNT_TYPES = [
+  "savings",
+  "e_savings",
+  "fixed",
+] as const;
+
+export type CapitalBankAccountType =
+  (typeof CAPITAL_BANK_ACCOUNT_TYPES)[number];
+
+export function isCapitalBankAccount(
+  accountType: string | null,
+): accountType is CapitalBankAccountType {
+  return (
+    accountType != null &&
+    (CAPITAL_BANK_ACCOUNT_TYPES as readonly string[]).includes(accountType)
+  );
+}
+
+export function aggregateBalanceByDate(
+  rows: BankBalanceRow[],
+): DailySnapshotPoint[] {
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.balance);
+  }
+  return Array.from(byDate.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+function valueAsOf(date: string, series: DailySnapshotPoint[]): number {
+  let value = 0;
+  for (const point of series) {
+    if (point.date <= date) value = point.value;
+    else break;
+  }
+  return value;
+}
+
+/** Daily level change aligned to chart dates (positive = money in). */
+export function valueFlowSeries(
+  chartDates: readonly string[],
+  levelSeries: DailySnapshotPoint[],
+): DailySnapshotPoint[] {
+  if (chartDates.length === 0) return [];
+
+  return chartDates.map((date, i) => {
+    const current = valueAsOf(date, levelSeries);
+    const previousDate = i > 0 ? chartDates[i - 1]! : null;
+    const previous =
+      previousDate != null
+        ? valueAsOf(previousDate, levelSeries)
+        : (() => {
+            let value = 0;
+            for (const point of levelSeries) {
+              if (point.date < date) value = point.value;
+              else break;
+            }
+            return value;
+          })();
+    return { date, value: current - previous };
+  });
+}
+
+export function combineCapitalSeries(
+  investmentDaily: InvestmentCostDailyRow[],
+  savingsBankDaily: BankBalanceRow[],
+): DailySnapshotPoint[] {
+  const costSeries = aggregateCostByDate(investmentDaily);
+  const savingsSeries = aggregateBalanceByDate(savingsBankDaily);
+  const dates = new Set([
+    ...costSeries.map((point) => point.date),
+    ...savingsSeries.map((point) => point.date),
+  ]);
+
+  return Array.from(dates)
+    .sort()
+    .map((date) => ({
+      date,
+      value:
+        valueAsOf(date, costSeries) + valueAsOf(date, savingsSeries),
+    }));
+}
+
+export function aggregateCostByDate(
+  rows: InvestmentCostDailyRow[],
+): DailySnapshotPoint[] {
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.cost);
+  }
+  return Array.from(byDate.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+/** Daily investment cost-basis change aligned to chart dates. */
+export function costBasisFlowSeries(
+  chartDates: readonly string[],
+  costDaily: InvestmentCostDailyRow[],
+): DailySnapshotPoint[] {
+  return valueFlowSeries(chartDates, aggregateCostByDate(costDaily));
+}
+
+/** Daily savings balance change aligned to chart dates. */
+export function savingsFlowSeries(
+  chartDates: readonly string[],
+  savingsBankDaily: BankBalanceRow[],
+): DailySnapshotPoint[] {
+  return valueFlowSeries(
+    chartDates,
+    aggregateBalanceByDate(savingsBankDaily),
+  );
+}
+
+/** Combined capital flow: investment cost + high-yield savings. */
+export function capitalFlowSeries(
+  chartDates: readonly string[],
+  investmentDaily: InvestmentCostDailyRow[],
+  savingsBankDaily: BankBalanceRow[],
+): DailySnapshotPoint[] {
+  return valueFlowSeries(
+    chartDates,
+    combineCapitalSeries(investmentDaily, savingsBankDaily),
+  );
 }
 
 export function combineNetWorthSeries(

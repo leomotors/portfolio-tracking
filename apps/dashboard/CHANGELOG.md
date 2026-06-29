@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.5.0] - 2026-06-29
+
+- feat: redesign overview chart metrics into Net worth, Total capital, Investments, and Savings with an investment Value/Cost/PnL sub-selector
+- feat: add money-flow volume bars to overview charts; green for inflows and red for outflows, scaled upward only
+- feat: compute total capital from high-yield savings balances plus investment cost basis, excluding non-capital bank accounts
+- fix: give overview chart x-axis date labels consistent bottom and edge padding
+
 ## [0.4.1] - 2026-06-21
 
 - fix: require an authorized session in portfolio mutation server actions instead of relying on the proxy middleware alone

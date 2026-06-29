@@ -73,4 +73,23 @@ describe("<AreaChart>", () => {
     );
     await expect.element(page.getByText("vs start +฿10")).toBeInTheDocument();
   });
+
+  it("renders volume bars when volume data is provided", async () => {
+    const screen = await render(
+      <AreaChart
+        data={[
+          { date: "2026-04-01", value: 100 },
+          { date: "2026-04-02", value: 110 },
+        ]}
+        height={220}
+        volume={[
+          { date: "2026-04-01", value: 5000 },
+          { date: "2026-04-02", value: -2000 },
+        ]}
+        formatVolume={(v) => `${v >= 0 ? "+" : ""}฿${v}`}
+      />,
+    );
+    const bars = screen.container.querySelectorAll("rect");
+    expect(bars.length).toBeGreaterThanOrEqual(2);
+  });
 });

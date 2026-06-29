@@ -15,10 +15,14 @@ interface AreaChartProps {
   baselineValue?: number;
   baselineLabel?: string;
   splitAtZero?: boolean;
+  volume?: AreaChartPoint[];
+  volumeHeight?: number;
+  volumeLabel?: string;
   formatY?: (v: number) => string;
   formatAxisY?: (v: number) => string;
   formatX?: (p: AreaChartPoint) => string;
   formatDelta?: (delta: number, pct: number) => string;
+  formatVolume?: (v: number) => string;
   emptyLabel?: string;
 }
 
@@ -27,6 +31,10 @@ const PAD_L = 44;
 const PAD_R = 18;
 const PAD_T = 14;
 const PAD_B = 38;
+const VOL_GAP = 6;
+const VOL_PAD_B = 28;
+const X_LABEL_EDGE_PCT = 1.5;
+const X_LABEL_BOTTOM_PAD = 12;
 
 export function AreaChart({
   data,
@@ -36,15 +44,22 @@ export function AreaChart({
   baselineValue,
   baselineLabel = "vs start",
   splitAtZero = false,
+  volume,
+  volumeHeight = 52,
+  volumeLabel = "Money flow",
   formatY,
   formatAxisY,
   formatX,
   formatDelta,
+  formatVolume,
   emptyLabel = "No history yet",
 }: AreaChartProps) {
   const [hover, setHover] = useState<number | null>(null);
   const ref = useRef<SVGSVGElement>(null);
   const gid = useId().replace(/[:]/g, "");
+  const hasVolume = volume != null && volume.length > 0;
+  const volBlock = hasVolume ? volumeHeight + VOL_GAP : 0;
+  const mainHeight = height - volBlock;
 
   const layout = useMemo(() => {
     if (data.length === 0) {
@@ -55,6 +70,8 @@ export function AreaChart({
         yTicks: [],
         xTicks: [],
         baselineY: null,
+        volumeBars: [] as VolumeBar[],
+        volBaselineY: null as number | null,
       };
     }
     const vals = data.map((d) => d.value);
@@ -66,12 +83,13 @@ export function AreaChart({
       const x =
         PAD_L + (i * (W - PAD_L - PAD_R)) / Math.max(1, data.length - 1);
       const y =
-        PAD_T + (1 - (d.value - minV) / range) * (height - PAD_T - PAD_B);
+        PAD_T +
+        (1 - (d.value - minV) / range) * (mainHeight - PAD_T - PAD_B);
       return { x, y, d };
     });
     const ticks = 4;
     const yTicks = Array.from({ length: ticks + 1 }, (_, i) => {
-      const y = PAD_T + (1 - i / ticks) * (height - PAD_T - PAD_B);
+      const y = PAD_T + (1 - i / ticks) * (mainHeight - PAD_T - PAD_B);
       const value = minV + (i / ticks) * range;
       return { y, value, i };
     });
@@ -88,10 +106,55 @@ export function AreaChart({
     });
     const baselineY =
       splitValue != null && minV <= splitValue && maxV >= splitValue
-        ? PAD_T + (1 - (splitValue - minV) / range) * (height - PAD_T - PAD_B)
+        ? PAD_T +
+          (1 - (splitValue - minV) / range) * (mainHeight - PAD_T - PAD_B)
         : null;
-    return { points, minV, maxV, yTicks, xTicks, baselineY };
-  }, [baselineValue, data, height, splitAtZero]);
+
+    let volumeBars: VolumeBar[] = [];
+    let volBaselineY: number | null = null;
+    if (hasVolume) {
+      const volTop = mainHeight + VOL_GAP;
+      const volBottom = height - VOL_PAD_B;
+      volBaselineY = volBottom;
+      const volSpan = volBottom - volTop - 2;
+      const volVals = volume.map((d) => d.value);
+      const maxAbs = Math.max(...volVals.map((v) => Math.abs(v)), 1);
+      const barWidth = Math.min(
+        10,
+        ((W - PAD_L - PAD_R) / Math.max(1, data.length)) * 0.72,
+      );
+      volumeBars = points.map((p, i) => {
+        const value = volume[i]?.value ?? 0;
+        const barHeight = (Math.abs(value) / maxAbs) * volSpan;
+        return {
+          x: p.x,
+          y: volBottom - barHeight,
+          height: barHeight,
+          value,
+          width: barWidth,
+        };
+      });
+    }
+
+    return {
+      points,
+      minV,
+      maxV,
+      yTicks,
+      xTicks,
+      baselineY,
+      volumeBars,
+      volBaselineY,
+    };
+  }, [
+    baselineValue,
+    data,
+    hasVolume,
+    height,
+    mainHeight,
+    splitAtZero,
+    volume,
+  ]);
 
   const linePath = useMemo(() => {
     const pts = layout.points;
@@ -111,9 +174,9 @@ export function AreaChart({
     if (pts.length === 0) return "";
     return (
       linePath +
-      ` L ${pts.at(-1)!.x},${height - PAD_B} L ${pts[0]!.x},${height - PAD_B} Z`
+      ` L ${pts.at(-1)!.x},${mainHeight - PAD_B} L ${pts[0]!.x},${mainHeight - PAD_B} Z`
     );
-  }, [linePath, layout.points, height]);
+  }, [linePath, layout.points, mainHeight]);
 
   const splitLinePaths = useMemo(() => {
     const pts = layout.points;
@@ -239,7 +302,16 @@ export function AreaChart({
           />
         )}
         {splitValue == null && <path d={areaPath} fill={`url(#${gid})`} />}
-        {splitValue != null ? (
+        {splitValue == null ? (
+          <path
+            d={linePath}
+            fill="none"
+            stroke={accent}
+            strokeWidth="2.1"
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+        ) : (
           splitLinePaths.map((p, i) => (
             <path
               key={i}
@@ -251,21 +323,38 @@ export function AreaChart({
               strokeLinecap="round"
             />
           ))
-        ) : (
-          <path
-            d={linePath}
-            fill="none"
-            stroke={accent}
-            strokeWidth="2.1"
-            strokeLinejoin="round"
-            strokeLinecap="round"
-          />
+        )}
+        {hasVolume && layout.volBaselineY != null && (
+          <>
+            <line
+              x1={PAD_L}
+              x2={W - PAD_R}
+              y1={mainHeight + VOL_GAP / 2}
+              y2={mainHeight + VOL_GAP / 2}
+              stroke="var(--hairline-2)"
+              strokeWidth="1"
+            />
+            {layout.volumeBars.map((bar, i) => (
+              <rect
+                key={i}
+                x={bar.x - bar.width / 2}
+                y={bar.y}
+                width={bar.width}
+                height={Math.max(1, bar.height)}
+                rx="1"
+                fill={
+                  bar.value >= 0 ? "var(--accent-pos)" : "var(--accent-neg)"
+                }
+                opacity={hover === i ? 0.95 : 0.72}
+              />
+            ))}
+          </>
         )}
         <line
           x1={PAD_L}
           x2={W - PAD_R}
-          y1={height - PAD_B}
-          y2={height - PAD_B}
+          y1={mainHeight - PAD_B}
+          y2={mainHeight - PAD_B}
           stroke="var(--ink-3)"
           strokeWidth="1"
           opacity="0.32"
@@ -274,7 +363,7 @@ export function AreaChart({
           x1={PAD_L}
           x2={PAD_L}
           y1={PAD_T}
-          y2={height - PAD_B}
+          y2={mainHeight - PAD_B}
           stroke="var(--ink-3)"
           strokeWidth="1"
           opacity="0.32"
@@ -285,7 +374,7 @@ export function AreaChart({
               x1={hovered.x}
               x2={hovered.x}
               y1={PAD_T}
-              y2={height - PAD_B}
+              y2={height - VOL_PAD_B}
               stroke="var(--ink)"
               strokeWidth="1"
               strokeDasharray="2 3"
@@ -316,7 +405,15 @@ export function AreaChart({
         </div>
       ))}
       {layout.xTicks.map(({ x, d, i }) => {
-        const xPct = (x / W) * 100;
+        const rawPct = (x / W) * 100;
+        const minPct = X_LABEL_EDGE_PCT;
+        const maxPct = 100 - X_LABEL_EDGE_PCT;
+        const xPct =
+          i === 0
+            ? Math.max(rawPct, minPct)
+            : i === data.length - 1
+              ? Math.min(rawPct, maxPct)
+              : rawPct;
         const tx = i === 0 ? "0%" : i === data.length - 1 ? "-100%" : "-50%";
         return (
           <div
@@ -324,7 +421,7 @@ export function AreaChart({
             className="pointer-events-none absolute whitespace-nowrap text-[10px] text-[var(--ink-3)]"
             style={{
               left: `${xPct}%`,
-              top: height - PAD_B + 16,
+              bottom: X_LABEL_BOTTOM_PAD,
               transform: `translateX(${tx})`,
             }}
           >
@@ -332,6 +429,18 @@ export function AreaChart({
           </div>
         );
       })}
+      {hasVolume && layout.volBaselineY != null && (
+        <div
+          className="pointer-events-none absolute text-[9px] text-[var(--ink-3)]"
+          style={{
+            left: `${((PAD_L - 10) / W) * 100}%`,
+            top: mainHeight + VOL_GAP + 10,
+            transform: "translate(-100%, 0)",
+          }}
+        >
+          {volumeLabel}
+        </div>
+      )}
       {hovered &&
         (() => {
           const xPct = (hovered.x / W) * 100;
@@ -347,6 +456,8 @@ export function AreaChart({
             delta == null || baselineValue == null || baselineValue === 0
               ? 0
               : delta / baselineValue;
+          const hoveredVolume =
+            hover != null && volume ? volume[hover]?.value : null;
           return (
             <div
               className="pointer-events-none absolute left-0 top-0 z-10 whitespace-nowrap rounded-[var(--radius)] bg-[var(--ink)] px-2.5 py-1.5 text-[11px] text-[var(--bg)] shadow-[0_4px_8px_rgba(15,23,42,0.12)]"
@@ -377,6 +488,22 @@ export function AreaChart({
                     : `${delta >= 0 ? "+" : ""}${formatCompact(delta)}`}
                 </div>
               )}
+              {hoveredVolume != null && hoveredVolume !== 0 && (
+                <div
+                  className="num text-[10px] font-medium"
+                  style={{
+                    color:
+                      hoveredVolume >= 0
+                        ? "var(--accent-pos)"
+                        : "var(--accent-neg)",
+                  }}
+                >
+                  {volumeLabel}{" "}
+                  {formatVolume
+                    ? formatVolume(hoveredVolume)
+                    : `${hoveredVolume >= 0 ? "+" : ""}${formatCompact(hoveredVolume)}`}
+                </div>
+              )}
             </div>
           );
         })()}
@@ -391,6 +518,14 @@ function getSplitValue(
   if (baselineValue != null) return baselineValue;
   if (splitAtZero) return 0;
   return null;
+}
+
+interface VolumeBar {
+  x: number;
+  y: number;
+  height: number;
+  value: number;
+  width: number;
 }
 
 function formatCompact(value: number) {

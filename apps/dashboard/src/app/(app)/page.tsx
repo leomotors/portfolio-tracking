@@ -15,6 +15,7 @@ import {
   dayDelta,
   dayMovers,
   investmentTotals,
+  isCapitalBankAccount,
   type MoverInput,
 } from "@/lib/portfolio/aggregate";
 
@@ -32,6 +33,18 @@ export default async function OverviewPage() {
   const series = combineNetWorthSeries(investDaily, bankDaily);
   const totals = investmentTotals(investAccts);
   const bankTotal = bankAccts.reduce((s, a) => s + a.currentBalance, 0);
+  const savingsAccounts = bankAccts.filter((a) =>
+    isCapitalBankAccount(a.accountType),
+  );
+  const savingsAccountIds = new Set(savingsAccounts.map((a) => a.id));
+  const savingsBankDaily = bankDaily.filter((d) =>
+    savingsAccountIds.has(d.accountId),
+  );
+  const savingsTotal = savingsAccounts.reduce(
+    (s, a) => s + a.currentBalance,
+    0,
+  );
+  const totalCapital = totals.cost + savingsTotal;
   const allocation = byAssetClass(assets, currencies, bankAccts);
 
   const liveTotal = totals.total + bankTotal;
@@ -80,15 +93,17 @@ export default async function OverviewPage() {
     <OverviewClient
       series={series}
       investmentDaily={investDaily}
-      bankDaily={bankDaily}
+      savingsBankDaily={savingsBankDaily}
       current={liveTotal}
       previous={previousSnapshot}
       delta={liveDelta.delta}
       deltaPct={liveDelta.deltaPct}
       investTotal={totals.total}
       investCost={totals.cost}
+      savingsTotal={savingsTotal}
+      savingsCount={savingsAccounts.length}
+      totalCapital={totalCapital}
       bankTotal={bankTotal}
-      bankCount={bankAccts.length}
       allocation={allocation}
       movers={movers.slice(0, 8)}
       asOf={series.at(-1)?.date ?? null}

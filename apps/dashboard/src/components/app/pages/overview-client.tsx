@@ -22,6 +22,10 @@ import {
 } from "@/components/ui/card";
 import {
   type AllocationBucket,
+  capitalFlowSeries,
+  combineCapitalSeries,
+  costBasisFlowSeries,
+  savingsFlowSeries,
   sliceTimeframe,
 } from "@/lib/portfolio/aggregate";
 import { compactThb, pct, thb } from "@/lib/portfolio/format";
@@ -48,30 +52,47 @@ interface BankDailyPoint {
 }
 
 type OverviewChartMetric =
-  | "total"
-  | "investmentCost"
-  | "investmentPnl"
-  | "bank";
+  | "netWorth"
+  | "totalCapital"
+  | "investments"
+  | "savings";
+
+type InvestmentSubview = "value" | "cost" | "pnl";
 
 const OVERVIEW_CHART_OPTIONS = [
-  { value: "total", label: "Total" },
-  { value: "investmentCost", label: "Investment Cost Basis" },
-  { value: "investmentPnl", label: "Investment PnL" },
-  { value: "bank", label: "Bank Account" },
+  { value: "netWorth", label: "Net worth" },
+  { value: "totalCapital", label: "Total capital" },
+  { value: "investments", label: "Investments" },
+  { value: "savings", label: "Savings" },
 ] as const;
+
+const INVESTMENT_SUBVIEW_OPTIONS = [
+  { value: "value", label: "Value" },
+  { value: "cost", label: "Cost" },
+  { value: "pnl", label: "PnL" },
+] as const;
+
+const CHART_SUBTITLES: Record<OverviewChartMetric, string> = {
+  netWorth: "Line is mark-to-market · bars are total capital flow",
+  totalCapital: "High-yield savings + investment cost basis",
+  investments: "Bars show investment cost flow",
+  savings: "High-yield savings only · bars show balance flow",
+};
 
 interface OverviewClientProps {
   series: AreaChartPoint[];
   investmentDaily: InvestmentDailyPoint[];
-  bankDaily: BankDailyPoint[];
+  savingsBankDaily: BankDailyPoint[];
   current: number;
   previous: number;
   delta: number;
   deltaPct: number;
   investTotal: number;
   investCost: number;
+  savingsTotal: number;
+  savingsCount: number;
+  totalCapital: number;
   bankTotal: number;
-  bankCount: number;
   allocation: AllocationBucket[];
   movers: Mover[];
   asOf: string | null;
@@ -80,37 +101,96 @@ interface OverviewClientProps {
 export function OverviewClient({
   series,
   investmentDaily,
-  bankDaily,
+  savingsBankDaily,
   current,
   delta,
   deltaPct,
   investTotal,
   investCost,
+  savingsTotal,
+  savingsCount,
+  totalCapital,
   bankTotal,
-  bankCount,
   allocation,
   movers,
   asOf,
 }: OverviewClientProps) {
   const [tf, setTf] = useState<Timeframe>("1Y");
-  const [chartMetric, setChartMetric] = useState<OverviewChartMetric>("total");
-  const chartSeries = useMemo(
-    () => ({
-      total: series,
-      investmentCost: aggregateSeries(investmentDaily, (p) => p.cost),
-      investmentPnl: aggregateSeries(investmentDaily, (p) => p.value - p.cost),
-      bank: aggregateSeries(bankDaily, (p) => p.balance),
-    }),
-    [bankDaily, investmentDaily, series],
+  const [chartMetric, setChartMetric] =
+    useState<OverviewChartMetric>("netWorth");
+  const [investmentSubview, setInvestmentSubview] =
+    useState<InvestmentSubview>("value");
+
+  const capitalSeries = useMemo(
+    () => combineCapitalSeries(investmentDaily, savingsBankDaily),
+    [investmentDaily, savingsBankDaily],
   );
-  const selectedSeries = chartSeries[chartMetric];
+  const savingsSeries = useMemo(
+    () => aggregateSeries(savingsBankDaily, (point) => point.balance),
+    [savingsBankDaily],
+  );
+  const investmentValueSeries = useMemo(
+    () => aggregateSeries(investmentDaily, (point) => point.value),
+    [investmentDaily],
+  );
+  const investmentCostSeries = useMemo(
+    () => aggregateSeries(investmentDaily, (point) => point.cost),
+    [investmentDaily],
+  );
+  const investmentPnlSeries = useMemo(
+    () =>
+      aggregateSeries(
+        investmentDaily,
+        (point) => point.value - point.cost,
+      ),
+    [investmentDaily],
+  );
+
+  const selectedSeries = useMemo(() => {
+    if (chartMetric === "netWorth") return series;
+    if (chartMetric === "totalCapital") return capitalSeries;
+    if (chartMetric === "savings") return savingsSeries;
+    if (investmentSubview === "cost") return investmentCostSeries;
+    if (investmentSubview === "pnl") return investmentPnlSeries;
+    return investmentValueSeries;
+  }, [
+    capitalSeries,
+    chartMetric,
+    investmentCostSeries,
+    investmentPnlSeries,
+    investmentSubview,
+    investmentValueSeries,
+    savingsSeries,
+    series,
+  ]);
+
   const sliced = useMemo(
     () => sliceTimeframe(selectedSeries, tf),
     [selectedSeries, tf],
   );
+
+  const moneyFlow = useMemo(() => {
+    const chartDates = sliced.map((point) => point.date);
+    if (chartMetric === "netWorth" || chartMetric === "totalCapital") {
+      return capitalFlowSeries(
+        chartDates,
+        investmentDaily,
+        savingsBankDaily,
+      );
+    }
+    if (chartMetric === "investments") {
+      return costBasisFlowSeries(chartDates, investmentDaily);
+    }
+    if (chartMetric === "savings") {
+      return savingsFlowSeries(chartDates, savingsBankDaily);
+    }
+    return undefined;
+  }, [chartMetric, investmentDaily, savingsBankDaily, sliced]);
+
   const investPL = investTotal - investCost;
   const investPLPct = investCost === 0 ? 0 : investPL / investCost;
   const chartBaseline = sliced[0]?.value;
+  const splitAtZero = chartMetric === "investments" && investmentSubview === "pnl";
 
   const kicker = asOf
     ? `As of ${new Date(asOf + "T00:00:00").toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}`
@@ -161,23 +241,36 @@ export function OverviewClient({
                 Trend
               </div>
               <div className="text-[11px] text-[var(--ink-3)]">
-                Baseline follows the selected window
+                {CHART_SUBTITLES[chartMetric]}
               </div>
             </div>
-            <ChartMetricSelector
-              value={chartMetric}
-              onChange={setChartMetric}
-              options={OVERVIEW_CHART_OPTIONS}
-            />
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              {chartMetric === "investments" && (
+                <ChartMetricSelector
+                  value={investmentSubview}
+                  onChange={setInvestmentSubview}
+                  options={INVESTMENT_SUBVIEW_OPTIONS}
+                />
+              )}
+              <ChartMetricSelector
+                value={chartMetric}
+                onChange={setChartMetric}
+                options={OVERVIEW_CHART_OPTIONS}
+              />
+            </div>
           </div>
           <AreaChart
             data={sliced}
             height={270}
             accent="var(--accent-pos)"
             baselineValue={chartBaseline}
+            splitAtZero={splitAtZero}
+            volume={moneyFlow}
+            volumeLabel="Money flow"
             formatY={(v) => thb(v)}
             formatAxisY={(v) => compactThb(v)}
             formatDelta={(v, p) => `${thb(v, { sign: true })} (${pct(p)})`}
+            formatVolume={(v) => thb(v, { sign: true })}
             formatX={(p) =>
               new Date(p.date + "T00:00:00").toLocaleDateString("en-US", {
                 month: "short",
@@ -197,14 +290,14 @@ export function OverviewClient({
           sub={`cost ${thb(investCost)}`}
         />
         <Kpi
-          label="Banks (THB)"
-          value={thb(bankTotal)}
-          sub={`${bankCount} ${bankCount === 1 ? "account" : "accounts"}`}
+          label="Savings (HY)"
+          value={thb(savingsTotal)}
+          sub={`${savingsCount} ${savingsCount === 1 ? "account" : "accounts"}`}
         />
         <Kpi
-          label="Total cost basis"
-          value={thb(investCost)}
-          sub="manually maintained"
+          label="Total capital"
+          value={thb(totalCapital)}
+          sub="savings + investment cost"
         />
         <Kpi
           label="All-time P/L"

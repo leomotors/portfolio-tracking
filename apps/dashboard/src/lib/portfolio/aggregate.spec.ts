@@ -6,12 +6,18 @@ import {
   byCurrency,
   byRiskLevel,
   combineNetWorthSeries,
+  combineCapitalSeries,
+  capitalFlowSeries,
+  costBasisFlowSeries,
   coreSatelliteSplit,
   type CurrencyRow,
   dayDelta,
   dayMovers,
   investmentTotals,
+  isCapitalBankAccount,
+  savingsFlowSeries,
   sliceTimeframe,
+  valueFlowSeries,
 } from "./aggregate";
 
 const thb: CurrencyRow = {
@@ -178,6 +184,126 @@ describe("byCurrency", () => {
   it("excludes zero-value buckets", () => {
     const buckets = byCurrency([], [thb, usd, eur], []);
     expect(buckets).toEqual([]);
+  });
+});
+
+describe("isCapitalBankAccount", () => {
+  it("accepts high-yield savings account types", () => {
+    expect(isCapitalBankAccount("savings")).toBe(true);
+    expect(isCapitalBankAccount("e_savings")).toBe(true);
+    expect(isCapitalBankAccount("fixed")).toBe(true);
+  });
+
+  it("rejects unknown or missing types", () => {
+    expect(isCapitalBankAccount("spending")).toBe(false);
+    expect(isCapitalBankAccount(null)).toBe(false);
+  });
+});
+
+describe("combineCapitalSeries", () => {
+  it("sums investment cost and savings balance by date", () => {
+    const out = combineCapitalSeries(
+      [
+        { accountId: 1, date: "2026-05-08", cost: 100 },
+        { accountId: 1, date: "2026-05-09", cost: 120 },
+      ],
+      [
+        { accountId: 1, date: "2026-05-08", balance: 50 },
+        { accountId: 1, date: "2026-05-10", balance: 80 },
+      ],
+    );
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 150 },
+      { date: "2026-05-09", value: 170 },
+      { date: "2026-05-10", value: 200 },
+    ]);
+  });
+});
+
+describe("capitalFlowSeries", () => {
+  it("combines investment cost and savings balance changes", () => {
+    const out = capitalFlowSeries(
+      ["2026-05-08", "2026-05-09"],
+      [
+        { accountId: 1, date: "2026-05-08", cost: 100 },
+        { accountId: 1, date: "2026-05-09", cost: 150 },
+      ],
+      [
+        { accountId: 1, date: "2026-05-08", balance: 50 },
+        { accountId: 1, date: "2026-05-09", balance: 30 },
+      ],
+    );
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 150 },
+      { date: "2026-05-09", value: 30 },
+    ]);
+  });
+});
+
+describe("savingsFlowSeries", () => {
+  it("tracks savings balance changes only", () => {
+    const out = savingsFlowSeries(
+      ["2026-05-08", "2026-05-09"],
+      [
+        { accountId: 1, date: "2026-05-08", balance: 100 },
+        { accountId: 1, date: "2026-05-09", balance: 80 },
+      ],
+    );
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 100 },
+      { date: "2026-05-09", value: -20 },
+    ]);
+  });
+});
+
+describe("valueFlowSeries", () => {
+  it("derives flow from a level series", () => {
+    const out = valueFlowSeries(["2026-05-08", "2026-05-09"], [
+      { date: "2026-05-08", value: 100 },
+      { date: "2026-05-09", value: 130 },
+    ]);
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 100 },
+      { date: "2026-05-09", value: 30 },
+    ]);
+  });
+});
+
+describe("costBasisFlowSeries", () => {
+  it("computes day-over-day cost changes aligned to chart dates", () => {
+    const out = costBasisFlowSeries(
+      ["2026-05-08", "2026-05-09", "2026-05-10"],
+      [
+        { accountId: 1, date: "2026-05-08", cost: 100 },
+        { accountId: 1, date: "2026-05-09", cost: 150 },
+        { accountId: 2, date: "2026-05-09", cost: 50 },
+        { accountId: 1, date: "2026-05-10", cost: 140 },
+      ],
+    );
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 100 },
+      { date: "2026-05-09", value: 100 },
+      { date: "2026-05-10", value: -60 },
+    ]);
+  });
+
+  it("carries cost forward across chart dates without new snapshots", () => {
+    const out = costBasisFlowSeries(
+      ["2026-05-08", "2026-05-09", "2026-05-10"],
+      [
+        { accountId: 1, date: "2026-05-08", cost: 100 },
+        { accountId: 1, date: "2026-05-10", cost: 120 },
+      ],
+    );
+    expect(out).toEqual([
+      { date: "2026-05-08", value: 100 },
+      { date: "2026-05-09", value: 0 },
+      { date: "2026-05-10", value: 20 },
+    ]);
+  });
+
+  it("returns empty for no chart dates", () => {
+    expect(costBasisFlowSeries([], [])).toEqual([]);
   });
 });
 
