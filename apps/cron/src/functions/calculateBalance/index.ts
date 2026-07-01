@@ -73,7 +73,8 @@ export async function calculateBalance() {
     for (const asset of assets) {
       // Check if price is outdated (skip fixed-unit assets where cost and price are both 1)
       const isFixedUnitPrice =
-        parseFloat(asset.averageCost) === 1 && parseFloat(asset.currentPrice) === 1;
+        parseFloat(asset.averageCost) === 1 &&
+        parseFloat(asset.currentPrice) === 1;
       if (
         asset.priceUpdatedAt &&
         asset.priceUpdatedAt < twentyFourHoursAgo &&
