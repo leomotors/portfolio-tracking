@@ -7,6 +7,7 @@
 - feat: snapshot real-estate property cost and market value into `real_estate_daily_balance` on each daily run
 - feat: forward-fill missing real-estate daily balance dates between existing snapshots
 - feat: include real-estate totals in Discord summary net worth and day-over-day comparison
+- fix: exclude fixed-unit assets (cost and price both 1) from stale price warnings
 
 ## [0.9.0] - 2026-06-03
 

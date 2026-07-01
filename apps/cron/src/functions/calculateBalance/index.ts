@@ -44,6 +44,7 @@ export async function calculateBalance() {
         id: assetTable.id,
         name: assetTable.name,
         amount: assetTable.amount,
+        averageCost: assetTable.averageCost,
         currentPrice: assetTable.currentPrice,
         priceUpdatedAt: assetTable.priceUpdatedAt,
         currencyId: assetTable.currencyId,
@@ -70,8 +71,14 @@ export async function calculateBalance() {
     let totalValue = 0;
 
     for (const asset of assets) {
-      // Check if price is outdated
-      if (asset.priceUpdatedAt && asset.priceUpdatedAt < twentyFourHoursAgo) {
+      // Check if price is outdated (skip fixed-unit assets where cost and price are both 1)
+      const isFixedUnitPrice =
+        parseFloat(asset.averageCost) === 1 && parseFloat(asset.currentPrice) === 1;
+      if (
+        asset.priceUpdatedAt &&
+        asset.priceUpdatedAt < twentyFourHoursAgo &&
+        !isFixedUnitPrice
+      ) {
         staleAssets.add(
           `${asset.name} (updated: ${asset.priceUpdatedAt.toLocaleString()})`,
         );
