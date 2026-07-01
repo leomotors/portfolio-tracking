@@ -8,6 +8,7 @@ import {
   assetTable,
   bankAccountTable,
   investmentAccountTable,
+  realEstatePropertyTable,
 } from "@repo/database/schema";
 
 import { requireSession } from "@/lib/auth";
@@ -63,5 +64,35 @@ export async function updateInvestmentAccountCost(
     .set({ currentCost: String(currentCost) })
     .where(eq(investmentAccountTable.id, id));
   revalidatePath("/investments");
+  revalidatePath("/");
+}
+
+export async function updateRealEstateCurrentValue(
+  id: number,
+  currentValue: number,
+) {
+  await requireSession();
+  assertNonNegative(currentValue, "currentValue");
+  await db
+    .update(realEstatePropertyTable)
+    .set({ currentValue: String(currentValue) })
+    .where(eq(realEstatePropertyTable.id, id));
+  revalidatePath("/real-estate");
+  revalidatePath("/allocation");
+  revalidatePath("/");
+}
+
+export async function updateRealEstatePurchaseCost(
+  id: number,
+  purchaseCost: number,
+) {
+  await requireSession();
+  assertNonNegative(purchaseCost, "purchaseCost");
+  await db
+    .update(realEstatePropertyTable)
+    .set({ purchaseCost: String(purchaseCost) })
+    .where(eq(realEstatePropertyTable.id, id));
+  revalidatePath("/real-estate");
+  revalidatePath("/allocation");
   revalidatePath("/");
 }

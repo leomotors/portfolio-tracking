@@ -2,6 +2,7 @@
 
 import {
   Bot,
+  Building2,
   CreditCard,
   Home,
   LineChart,
@@ -16,6 +17,7 @@ import { cn } from "@/lib/utils";
 const NAV = [
   { href: "/", label: "Overview", icon: Home },
   { href: "/investments", label: "Investments", icon: LineChart },
+  { href: "/real-estate", label: "Real Estate", icon: Building2 },
   { href: "/allocation", label: "Allocation", icon: PieChart },
   { href: "/banks", label: "Banks", icon: Wallet },
   { href: "/credit", label: "Credit & Loans", icon: CreditCard },

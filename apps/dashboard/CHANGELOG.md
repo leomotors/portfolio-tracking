@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.6.0] - Unreleased
+
+- feat: add real estate as a standalone portfolio domain with property metadata, purchase cost, and manually updated market values
+- feat: add a real-estate dashboard page with property list, valuation cards, editable values, and Google Maps embed (no API key)
+- feat: include real estate in overview net-worth charts, allocation views, and AI portfolio overview tools
+- feat: add server actions to update real-estate purchase cost and current market value
+
 ## [0.5.0] - 2026-06-29
 
 - feat: redesign overview chart metrics into Net worth, Total capital, Investments, and Savings with an investment Value/Cost/PnL sub-selector

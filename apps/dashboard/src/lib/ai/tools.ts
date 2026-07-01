@@ -16,6 +16,8 @@ import {
   getInvestmentDaily,
   getInvestmentDailyForAccount,
   getPersonalLoans,
+  getRealEstateDaily,
+  getRealEstateProperties,
 } from "@/lib/db/queries";
 import {
   byAssetClass,
@@ -24,6 +26,7 @@ import {
   combineNetWorthSeries,
   dayDelta,
   investmentTotals,
+  realEstateTotals,
 } from "@/lib/portfolio/aggregate";
 
 import {
@@ -119,6 +122,8 @@ export function createPortfolioTools(context: ToolContext) {
           currencies,
           investmentDaily,
           bankDaily,
+          realEstateDaily,
+          realEstateProperties,
         ] = await Promise.all([
           getInvestmentAccounts(),
           getBankAccounts(),
@@ -126,10 +131,21 @@ export function createPortfolioTools(context: ToolContext) {
           getCurrencies(),
           getInvestmentDaily(),
           getBankDaily(),
+          getRealEstateDaily(),
+          getRealEstateProperties(),
         ]);
-        const series = combineNetWorthSeries(investmentDaily, bankDaily);
+        const series = combineNetWorthSeries(
+          investmentDaily,
+          bankDaily,
+          realEstateDaily.map((row) => ({
+            propertyId: row.propertyId,
+            date: row.date,
+            value: row.value,
+          })),
+        );
         const delta = dayDelta(series);
         const totals = investmentTotals(investments);
+        const realEstate = realEstateTotals(realEstateProperties);
         const bankTotal = banks.reduce(
           (sum, bank) => sum + bank.currentBalance,
           0,
@@ -146,10 +162,32 @@ export function createPortfolioTools(context: ToolContext) {
             profitLossPct: totals.plPct,
           },
           banks: { value: round(bankTotal), accounts: banks.length },
+          realEstate: {
+            value: round(realEstate.value),
+            cost: round(realEstate.cost),
+            profitLoss: round(realEstate.pl),
+            profitLossPct: realEstate.plPct,
+            properties: realEstateProperties.length,
+          },
           allocation: {
-            byAssetClass: byAssetClass(assets, currencies, banks),
-            byRiskLevel: byRiskLevel(assets, currencies, banks),
-            byCurrency: byCurrency(assets, currencies, banks),
+            byAssetClass: byAssetClass(
+              assets,
+              currencies,
+              banks,
+              realEstateProperties,
+            ),
+            byRiskLevel: byRiskLevel(
+              assets,
+              currencies,
+              banks,
+              realEstateProperties,
+            ),
+            byCurrency: byCurrency(
+              assets,
+              currencies,
+              banks,
+              realEstateProperties,
+            ),
           },
         };
       },

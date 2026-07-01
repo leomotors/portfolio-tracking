@@ -33,6 +33,14 @@ export interface BankAccountRow {
   currentBalance: number;
 }
 
+export interface RealEstatePropertyRow {
+  currencyId: number;
+  currency: string;
+  riskLevel: string;
+  costValue: number;
+  marketValue: number;
+}
+
 export interface InvestmentAccountRow {
   id: number;
   name: string;
@@ -80,6 +88,7 @@ export function byAssetClass(
   assets: AssetRow[],
   currencies: CurrencyRow[],
   bankAccounts: BankAccountRow[] = [],
+  realEstateProperties: RealEstatePropertyRow[] = [],
 ): AllocationBucket[] {
   const fx = fxLookup(currencies);
   const totals = new Map<string, number>();
@@ -89,6 +98,16 @@ export function byAssetClass(
   }
   for (const b of bankAccounts) {
     totals.set("cash", (totals.get("cash") ?? 0) + b.currentBalance);
+  }
+  const realEstateTotal = realEstateProperties.reduce(
+    (sum, property) => sum + property.marketValue,
+    0,
+  );
+  if (realEstateTotal > 0) {
+    totals.set(
+      "real_estate",
+      (totals.get("real_estate") ?? 0) + realEstateTotal,
+    );
   }
   return Array.from(totals.entries())
     .filter(([, value]) => value > 0)
@@ -105,6 +124,7 @@ export function byRiskLevel(
   assets: AssetRow[],
   currencies: CurrencyRow[],
   bankAccounts: BankAccountRow[] = [],
+  realEstateProperties: RealEstatePropertyRow[] = [],
 ): AllocationBucket[] {
   const fx = fxLookup(currencies);
   const totals = new Map<string, number>();
@@ -114,6 +134,12 @@ export function byRiskLevel(
   }
   for (const b of bankAccounts) {
     totals.set("safe_core", (totals.get("safe_core") ?? 0) + b.currentBalance);
+  }
+  for (const property of realEstateProperties) {
+    totals.set(
+      property.riskLevel,
+      (totals.get(property.riskLevel) ?? 0) + property.marketValue,
+    );
   }
   return RISK_ORDER.filter((k) => (totals.get(k) ?? 0) > 0).map((k) => ({
     key: k,
@@ -137,6 +163,7 @@ export function byCurrency(
   assets: AssetRow[],
   currencies: CurrencyRow[],
   bankAccounts: BankAccountRow[],
+  realEstateProperties: RealEstatePropertyRow[] = [],
 ): AllocationBucket[] {
   const totals = new Map<string, number>();
   totals.set("THB", 0);
@@ -151,6 +178,12 @@ export function byCurrency(
   }
   for (const b of bankAccounts) {
     totals.set("THB", (totals.get("THB") ?? 0) + b.currentBalance);
+  }
+  for (const property of realEstateProperties) {
+    totals.set(
+      property.currency,
+      (totals.get(property.currency) ?? 0) + property.marketValue,
+    );
   }
   return Array.from(totals.entries())
     .filter(([, v]) => v > 0)
@@ -179,6 +212,38 @@ export interface BankBalanceRow {
   accountId: number;
   date: string;
   balance: number;
+}
+
+export interface RealEstateDailyRow {
+  propertyId: number;
+  date: string;
+  value: number;
+}
+
+export function aggregateRealEstateValueByDate(
+  rows: RealEstateDailyRow[],
+): DailySnapshotPoint[] {
+  const byDate = new Map<string, number>();
+  for (const row of rows) {
+    byDate.set(row.date, (byDate.get(row.date) ?? 0) + row.value);
+  }
+  return Array.from(byDate.entries())
+    .map(([date, value]) => ({ date, value }))
+    .sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+}
+
+export function realEstateTotals(properties: RealEstatePropertyRow[]) {
+  const cost = properties.reduce(
+    (sum, property) => sum + property.costValue,
+    0,
+  );
+  const value = properties.reduce(
+    (sum, property) => sum + property.marketValue,
+    0,
+  );
+  const pl = value - cost;
+  const plPct = cost === 0 ? 0 : pl / cost;
+  return { cost, value, pl, plPct };
 }
 
 export const CAPITAL_BANK_ACCOUNT_TYPES = [
@@ -307,6 +372,7 @@ export function capitalFlowSeries(
 export function combineNetWorthSeries(
   investmentDaily: DailyBalanceRow[],
   bankDaily: BankBalanceRow[],
+  realEstateDaily: RealEstateDailyRow[] = [],
 ): DailySnapshotPoint[] {
   const byDate = new Map<string, number>();
   for (const r of investmentDaily) {
@@ -314,6 +380,9 @@ export function combineNetWorthSeries(
   }
   for (const r of bankDaily) {
     byDate.set(r.date, (byDate.get(r.date) ?? 0) + r.balance);
+  }
+  for (const r of realEstateDaily) {
+    byDate.set(r.date, (byDate.get(r.date) ?? 0) + r.value);
   }
   return Array.from(byDate.entries())
     .map(([date, value]) => ({ date, value }))

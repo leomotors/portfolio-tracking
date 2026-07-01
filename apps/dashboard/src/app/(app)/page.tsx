@@ -8,6 +8,8 @@ import {
   getCurrencies,
   getInvestmentAccounts,
   getInvestmentDaily,
+  getRealEstateDaily,
+  getRealEstateProperties,
 } from "@/lib/db/queries";
 import {
   byAssetClass,
@@ -17,21 +19,41 @@ import {
   investmentTotals,
   isCapitalBankAccount,
   type MoverInput,
+  realEstateTotals,
 } from "@/lib/portfolio/aggregate";
 
 export default async function OverviewPage() {
-  const [investAccts, bankAccts, investDaily, bankDaily, assets, currencies] =
-    await Promise.all([
-      getInvestmentAccounts(),
-      getBankAccounts(),
-      getInvestmentDaily(),
-      getBankDaily(),
-      getAssets(),
-      getCurrencies(),
-    ]);
+  const [
+    investAccts,
+    bankAccts,
+    investDaily,
+    bankDaily,
+    realEstateDaily,
+    assets,
+    currencies,
+    realEstateProperties,
+  ] = await Promise.all([
+    getInvestmentAccounts(),
+    getBankAccounts(),
+    getInvestmentDaily(),
+    getBankDaily(),
+    getRealEstateDaily(),
+    getAssets(),
+    getCurrencies(),
+    getRealEstateProperties(),
+  ]);
 
-  const series = combineNetWorthSeries(investDaily, bankDaily);
+  const series = combineNetWorthSeries(
+    investDaily,
+    bankDaily,
+    realEstateDaily.map((row) => ({
+      propertyId: row.propertyId,
+      date: row.date,
+      value: row.value,
+    })),
+  );
   const totals = investmentTotals(investAccts);
+  const realEstate = realEstateTotals(realEstateProperties);
   const bankTotal = bankAccts.reduce((s, a) => s + a.currentBalance, 0);
   const savingsAccounts = bankAccts.filter((a) =>
     isCapitalBankAccount(a.accountType),
@@ -45,9 +67,14 @@ export default async function OverviewPage() {
     0,
   );
   const totalCapital = totals.cost + savingsTotal;
-  const allocation = byAssetClass(assets, currencies, bankAccts);
+  const allocation = byAssetClass(
+    assets,
+    currencies,
+    bankAccts,
+    realEstateProperties,
+  );
 
-  const liveTotal = totals.total + bankTotal;
+  const liveTotal = totals.total + bankTotal + realEstate.value;
   const todaySnapshot = series.at(-1)?.value ?? liveTotal;
   const previousSnapshot = series.at(-2)?.value ?? todaySnapshot;
   const liveDelta = dayDelta([

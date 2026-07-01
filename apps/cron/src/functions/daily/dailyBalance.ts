@@ -1,17 +1,26 @@
-import { gte, isNull, or } from "drizzle-orm";
+import { eq, gte, isNull, or } from "drizzle-orm";
 import { type PgInsertValue } from "drizzle-orm/pg-core";
 
 import { db } from "@repo/database/client";
 import {
   bankAccountTable,
   bankDailyBalanceTable,
+  currencyTable,
   investmentAccountTable,
   investmentDailyBalanceTable,
+  realEstateDailyBalanceTable,
+  realEstatePropertyTable,
 } from "@repo/database/schema";
 
 import { environment } from "@/core/environment.js";
 import { formatJson } from "@/core/jsonFormatter";
 import { logger } from "@/core/logger.js";
+
+const toNum = (v: string | number | null | undefined, fallback = 0) => {
+  if (v == null) return fallback;
+  const n = typeof v === "number" ? v : parseFloat(v);
+  return Number.isFinite(n) ? n : fallback;
+};
 
 export async function dailyBalance() {
   const now = new Date();
@@ -28,6 +37,7 @@ export async function dailyBalance() {
 
   await dailyBalanceBank(dateStr);
   await dailyBalanceInvestment(dateStr);
+  await dailyBalanceRealEstate(dateStr);
 }
 
 async function dailyBalanceBank(dateStr: string) {
@@ -98,6 +108,61 @@ async function dailyBalanceInvestment(dateStr: string) {
     await db
       .insert(investmentDailyBalanceTable)
       .values(investmentInsertValues)
+      .onConflictDoNothing()
+      .execute();
+  }
+}
+
+async function dailyBalanceRealEstate(dateStr: string) {
+  const properties = await db
+    .select({
+      id: realEstatePropertyTable.id,
+      purchaseCost: realEstatePropertyTable.purchaseCost,
+      currentValue: realEstatePropertyTable.currentValue,
+      valueInTHB: currencyTable.valueInTHB,
+    })
+    .from(realEstatePropertyTable)
+    .innerJoin(
+      currencyTable,
+      eq(realEstatePropertyTable.currencyId, currencyTable.id),
+    )
+    .where(
+      or(
+        isNull(realEstatePropertyTable.closedAt),
+        gte(realEstatePropertyTable.closedAt, dateStr),
+      ),
+    )
+    .orderBy(realEstatePropertyTable.id)
+    .execute();
+
+  if (properties.length === 0) {
+    logger.log("No active real-estate properties to snapshot.");
+    return;
+  }
+
+  const insertValues = properties.map(
+    (property) =>
+      ({
+        realEstatePropertyId: property.id,
+        cost: String(
+          toNum(property.purchaseCost) * toNum(property.valueInTHB, 1),
+        ),
+        value: String(
+          toNum(property.currentValue) * toNum(property.valueInTHB, 1),
+        ),
+        date: dateStr,
+      }) satisfies PgInsertValue<typeof realEstateDailyBalanceTable>,
+  );
+
+  logger.log(
+    `Inserting real-estate daily balance (length of ${insertValues.length}, on conflict do nothing):`,
+  );
+  logger.log(formatJson(insertValues));
+
+  if (!environment.DRY_RUN) {
+    await db
+      .insert(realEstateDailyBalanceTable)
+      .values(insertValues)
       .onConflictDoNothing()
       .execute();
   }

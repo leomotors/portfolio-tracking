@@ -2,6 +2,12 @@
 
 0.1.0 is not noted here
 
+## [0.10.0] - Unreleased
+
+- feat: snapshot real-estate property cost and market value into `real_estate_daily_balance` on each daily run
+- feat: forward-fill missing real-estate daily balance dates between existing snapshots
+- feat: include real-estate totals in Discord summary net worth and day-over-day comparison
+
 ## [0.9.0] - 2026-06-03
 
 - chore: bump deps

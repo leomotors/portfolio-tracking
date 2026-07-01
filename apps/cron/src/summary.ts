@@ -1,11 +1,14 @@
-import { count, eq, sql, sum } from "drizzle-orm";
+import { count, eq, isNull, sql, sum } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
 import {
   bankAccountTable,
   bankDailyBalanceTable,
+  currencyTable,
   investmentAccountTable,
   investmentDailyBalanceTable,
+  realEstateDailyBalanceTable,
+  realEstatePropertyTable,
 } from "@repo/database/schema";
 
 import { formatDate, getYesterday } from "@/lib/date";
@@ -16,6 +19,7 @@ export type PreviousDailySnapshot = {
   totalBank: number;
   totalCost: number;
   totalValue: number;
+  totalRealEstate: number;
 };
 
 export type SummaryResult = {
@@ -35,6 +39,14 @@ function formatSignedThbDelta(delta: number): string {
   return ` (${sign}${f.format(Math.abs(delta))} THB)`;
 }
 
+async function hasActiveRealEstate(): Promise<boolean> {
+  const [reCount] = await db
+    .select({ n: count() })
+    .from(realEstatePropertyTable)
+    .where(isNull(realEstatePropertyTable.closedAt));
+  return (reCount?.n ?? 0) > 0;
+}
+
 async function hasFullSnapshotForDate(dateStr: string): Promise<boolean> {
   const [b] = await db
     .select({ n: count() })
@@ -46,17 +58,34 @@ async function hasFullSnapshotForDate(dateStr: string): Promise<boolean> {
     .from(investmentDailyBalanceTable)
     .where(eq(investmentDailyBalanceTable.date, dateStr));
 
-  return (b?.n ?? 0) > 0 && (i?.n ?? 0) > 0;
+  if (!(await hasActiveRealEstate())) {
+    return (b?.n ?? 0) > 0 && (i?.n ?? 0) > 0;
+  }
+
+  const [re] = await db
+    .select({ n: count() })
+    .from(realEstateDailyBalanceTable)
+    .where(eq(realEstateDailyBalanceTable.date, dateStr));
+
+  return (b?.n ?? 0) > 0 && (i?.n ?? 0) > 0 && (re?.n ?? 0) > 0;
 }
 
 async function maxIntersectionDate(): Promise<string | null> {
-  const rows = await db.execute<{ d: string | null }>(
-    sql`SELECT MAX(date)::text AS d FROM (
-      SELECT date FROM bank_daily_balance
-      INTERSECT
-      SELECT date FROM investment_daily_balance
-    ) t`,
-  );
+  const query = (await hasActiveRealEstate())
+    ? sql`SELECT MAX(date)::text AS d FROM (
+        SELECT date FROM bank_daily_balance
+        INTERSECT
+        SELECT date FROM investment_daily_balance
+        INTERSECT
+        SELECT date FROM real_estate_daily_balance
+      ) t`
+    : sql`SELECT MAX(date)::text AS d FROM (
+        SELECT date FROM bank_daily_balance
+        INTERSECT
+        SELECT date FROM investment_daily_balance
+      ) t`;
+
+  const rows = await db.execute<{ d: string | null }>(query);
 
   const row = rows[0];
   const d = row?.d;
@@ -79,6 +108,11 @@ async function getTotalsForDate(
     .from(investmentDailyBalanceTable)
     .where(eq(investmentDailyBalanceTable.date, dateStr));
 
+  const [reRow] = await db
+    .select({ total: sum(realEstateDailyBalanceTable.value) })
+    .from(realEstateDailyBalanceTable)
+    .where(eq(realEstateDailyBalanceTable.date, dateStr));
+
   const tb = bankRow?.total;
   const tc = invRow?.cost;
   const tv = invRow?.value;
@@ -92,6 +126,7 @@ async function getTotalsForDate(
     totalBank: Number(tb),
     totalCost: Number(tc),
     totalValue: Number(tv),
+    totalRealEstate: Number(reRow?.total ?? 0),
   };
 }
 
@@ -138,11 +173,29 @@ export async function buildSummary(
   const totalCost = +(_totalCost || 0);
   const totalValue = +(_totalValue || 0);
 
+  const realEstateRows = await db
+    .select({
+      currentValue: realEstatePropertyTable.currentValue,
+      valueInTHB: currencyTable.valueInTHB,
+    })
+    .from(realEstatePropertyTable)
+    .innerJoin(
+      currencyTable,
+      eq(realEstatePropertyTable.currencyId, currencyTable.id),
+    )
+    .where(isNull(realEstatePropertyTable.closedAt));
+
+  const totalRealEstate = realEstateRows.reduce((sum, row) => {
+    const value = Number(row.currentValue ?? 0);
+    const fx = Number(row.valueInTHB ?? 1);
+    return sum + value * fx;
+  }, 0);
+
   const pnl =
     totalCost === 0 ? 0 : ((totalValue - totalCost) / totalCost) * 100;
   const pnlStr = `${pnl.toFixed(2)}%`;
 
-  const currentNetWorth = totalBalance + totalValue;
+  const currentNetWorth = totalBalance + totalValue + totalRealEstate;
 
   let circleSuffix = "";
   let body: string;
@@ -152,11 +205,13 @@ export async function buildSummary(
       `Total Bank Balance: ${f.format(totalBalance)} THB` +
       `\nTotal Investment Cost: ${f.format(totalCost)} THB` +
       `\nTotal Investment Value: ${f.format(totalValue)} THB` +
+      `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB` +
       `\nCurrent P/L: ${pnlStr}` +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB**` +
       `\n_No prior daily snapshot for day-over-day comparison._`;
   } else {
-    const prevNw = previous.totalBank + previous.totalValue;
+    const prevNw =
+      previous.totalBank + previous.totalValue + previous.totalRealEstate;
     const netDeltaThb = currentNetWorth - prevNw;
     const percentDiffNetWorth =
       prevNw === 0 ? null : (netDeltaThb / prevNw) * 100;
@@ -166,6 +221,7 @@ export async function buildSummary(
     const dBank = totalBalance - previous.totalBank;
     const dCost = totalCost - previous.totalCost;
     const dValue = totalValue - previous.totalValue;
+    const dRealEstate = totalRealEstate - previous.totalRealEstate;
 
     const prevUnrealized = previous.totalValue - previous.totalCost;
     const unrealized = totalValue - totalCost;
@@ -175,6 +231,7 @@ export async function buildSummary(
       `Total Bank Balance: ${f.format(totalBalance)} THB${formatSignedThbDelta(dBank)}` +
       `\nTotal Investment Cost: ${f.format(totalCost)} THB${formatSignedThbDelta(dCost)}` +
       `\nTotal Investment Value: ${f.format(totalValue)} THB${formatSignedThbDelta(dValue)}` +
+      `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB${formatSignedThbDelta(dRealEstate)}` +
       `\nCurrent P/L: ${pnlStr}${formatSignedThbDelta(dUnrealized)}` +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB${formatSignedThbDelta(netDeltaThb)}**`;
   }

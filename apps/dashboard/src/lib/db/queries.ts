@@ -13,6 +13,8 @@ import {
   investmentAccountTable,
   investmentDailyBalanceTable,
   personalLoanAccountTable,
+  realEstateDailyBalanceTable,
+  realEstatePropertyTable,
 } from "@repo/database/schema";
 
 import {
@@ -90,6 +92,34 @@ export interface PersonalLoan {
   creditLimit: number;
   openedAt: string;
   closedAt: string | null;
+}
+
+export interface RealEstateProperty {
+  id: number;
+  name: string;
+  propertyType: string;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  areaSqm: number | null;
+  currencyId: number;
+  currency: string;
+  purchaseCost: number;
+  currentValue: number;
+  costValue: number;
+  marketValue: number;
+  valueUpdatedAt: Date | null;
+  riskLevel: string;
+  acquiredAt: string | null;
+  closedAt: string | null;
+  notes: string[];
+}
+
+export interface RealEstateDailyPoint {
+  propertyId: number;
+  date: string;
+  cost: number;
+  value: number;
 }
 
 export interface InvestmentDailyPoint {
@@ -279,5 +309,74 @@ export async function getPersonalLoans(): Promise<PersonalLoan[]> {
     creditLimit: toNum(r.creditLimit),
     openedAt: r.openedAt,
     closedAt: r.closedAt,
+  }));
+}
+
+export async function getRealEstateProperties(): Promise<RealEstateProperty[]> {
+  const rows = await db
+    .select({
+      id: realEstatePropertyTable.id,
+      name: realEstatePropertyTable.name,
+      propertyType: realEstatePropertyTable.propertyType,
+      address: realEstatePropertyTable.address,
+      latitude: realEstatePropertyTable.latitude,
+      longitude: realEstatePropertyTable.longitude,
+      areaSqm: realEstatePropertyTable.areaSqm,
+      currencyId: realEstatePropertyTable.currencyId,
+      purchaseCost: realEstatePropertyTable.purchaseCost,
+      currentValue: realEstatePropertyTable.currentValue,
+      valueUpdatedAt: realEstatePropertyTable.valueUpdatedAt,
+      riskLevel: realEstatePropertyTable.riskLevel,
+      acquiredAt: realEstatePropertyTable.acquiredAt,
+      closedAt: realEstatePropertyTable.closedAt,
+      notes: realEstatePropertyTable.notes,
+      currency: currencyTable.symbol,
+      valueInTHB: currencyTable.valueInTHB,
+    })
+    .from(realEstatePropertyTable)
+    .innerJoin(
+      currencyTable,
+      eq(realEstatePropertyTable.currencyId, currencyTable.id),
+    )
+    .where(isNull(realEstatePropertyTable.closedAt))
+    .orderBy(desc(realEstatePropertyTable.currentValue));
+
+  return rows.map((r) => {
+    const fx = toNum(r.valueInTHB, 1);
+    const purchaseCost = toNum(r.purchaseCost);
+    const currentValue = toNum(r.currentValue);
+    return {
+      id: r.id,
+      name: r.name,
+      propertyType: r.propertyType,
+      address: r.address,
+      latitude: r.latitude == null ? null : toNum(r.latitude),
+      longitude: r.longitude == null ? null : toNum(r.longitude),
+      areaSqm: r.areaSqm == null ? null : toNum(r.areaSqm),
+      currencyId: r.currencyId,
+      currency: r.currency,
+      purchaseCost,
+      currentValue,
+      costValue: purchaseCost * fx,
+      marketValue: currentValue * fx,
+      valueUpdatedAt: r.valueUpdatedAt,
+      riskLevel: r.riskLevel,
+      acquiredAt: r.acquiredAt,
+      closedAt: r.closedAt,
+      notes: r.notes ?? [],
+    };
+  });
+}
+
+export async function getRealEstateDaily(): Promise<RealEstateDailyPoint[]> {
+  const rows = await db
+    .select()
+    .from(realEstateDailyBalanceTable)
+    .orderBy(asc(realEstateDailyBalanceTable.date));
+  return rows.map((r) => ({
+    propertyId: r.realEstatePropertyId,
+    date: r.date,
+    cost: toNum(r.cost),
+    value: toNum(r.value),
   }));
 }

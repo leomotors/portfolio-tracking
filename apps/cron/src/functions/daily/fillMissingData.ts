@@ -4,6 +4,7 @@ import { db } from "@repo/database/client";
 import {
   bankDailyBalanceTable,
   investmentDailyBalanceTable,
+  realEstateDailyBalanceTable,
 } from "@repo/database/schema";
 
 import { logger } from "@/core/logger.js";
@@ -12,6 +13,7 @@ import { formatDate } from "@/lib/date.js";
 export async function fillMissingData() {
   await fillMissingDataBank();
   await fillMissingDataInvestment();
+  await fillMissingDataRealEstate();
 }
 
 async function fillMissingDataBank() {
@@ -137,6 +139,74 @@ async function fillMissingDataInvestment() {
     if (!process.env.DRY_RUN) {
       await db
         .insert(investmentDailyBalanceTable)
+        .values(insertValues)
+        .execute();
+    }
+  }
+}
+
+async function fillMissingDataRealEstate() {
+  const allBalance = await db
+    .select()
+    .from(realEstateDailyBalanceTable)
+    .execute();
+
+  const grouped = allBalance.reduce(
+    (acc, row) => {
+      if (!acc[row.realEstatePropertyId]) {
+        acc[row.realEstatePropertyId] = [];
+      }
+      acc[row.realEstatePropertyId].push(row);
+      return acc;
+    },
+    {} as Record<string, typeof allBalance>,
+  );
+
+  const insertValues = [] as PgInsertValue<
+    typeof realEstateDailyBalanceTable
+  >[];
+
+  for (const [_, rows] of Object.entries(grouped)) {
+    const sortedRows = rows.sort((a, b) => {
+      return new Date(a.date).getTime() - new Date(b.date).getTime();
+    });
+
+    for (let i = 1; i < sortedRows.length; i++) {
+      const prev = sortedRows[i - 1];
+      const current = sortedRows[i];
+
+      const prevDate = new Date(prev.date);
+      const currentDate = new Date(current.date);
+
+      const diff =
+        (currentDate.getTime() - prevDate.getTime()) / (1000 * 60 * 60 * 24);
+
+      if (diff > 1) {
+        for (let j = 1; j < diff; j++) {
+          const targetDate = new Date(
+            prevDate.getTime() + j * 24 * 60 * 60 * 1000,
+          );
+          const dateStr = formatDate(targetDate);
+          insertValues.push({
+            realEstatePropertyId: current.realEstatePropertyId,
+            cost: prev.cost,
+            value: prev.value,
+            date: dateStr,
+          });
+        }
+      }
+    }
+  }
+
+  if (insertValues.length > 0) {
+    logger.log(
+      `Inserting missing data of real-estate daily balance with length ${insertValues.length}:`,
+    );
+    logger.log(JSON.stringify(insertValues, null, 2));
+
+    if (!process.env.DRY_RUN) {
+      await db
+        .insert(realEstateDailyBalanceTable)
         .values(insertValues)
         .execute();
     }

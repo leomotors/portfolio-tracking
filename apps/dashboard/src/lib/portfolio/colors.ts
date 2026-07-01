@@ -4,6 +4,7 @@ export const CLASS_COLOR: Record<string, string> = {
   stock: "oklch(0.70 0.10 145)",
   gold: "oklch(0.78 0.11 80)",
   digital_asset: "oklch(0.65 0.13 305)",
+  real_estate: "oklch(0.62 0.10 40)",
 };
 
 export const RISK_COLOR: Record<string, string> = {
@@ -20,6 +21,7 @@ export const CLASS_LABEL: Record<string, string> = {
   stock: "Stock",
   gold: "Gold",
   digital_asset: "Digital",
+  real_estate: "Real Estate",
 };
 
 export const RISK_LABEL: Record<string, string> = {
