@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [0.10.0] - Unreleased
+## [0.10.0] - 2026-07-01
 
 - feat: snapshot real-estate property cost and market value into `real_estate_daily_balance` on each daily run
 - feat: forward-fill missing real-estate daily balance dates between existing snapshots

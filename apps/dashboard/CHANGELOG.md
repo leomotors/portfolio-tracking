@@ -6,7 +6,7 @@
 - fix: keep the investments account sidebar flush to the top while scrolling, and restore scroll to the account value card when switching accounts
 - chore: refresh the AI chat model lineup to GPT-5.6 Luna (default)/Terra/Sol, Claude Haiku 4.5/Sonnet 5/Opus 4.8/Fable 5, and Grok 4.3/4.5; retire prior GPT and Sonnet 4.6 ids for existing threads
 
-## [0.6.0] - Unreleased
+## [0.6.0] - 2026-07-03
 
 - feat: add real estate as a standalone portfolio domain with property metadata, purchase cost, and manually updated market values
 - feat: add a real-estate dashboard page with property list, valuation cards, editable values, and Google Maps embed (no API key)
