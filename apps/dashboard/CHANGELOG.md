@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.7.0] - Unreleased
+
+- chore: refresh the AI chat model lineup to GPT-5.6 Luna (default)/Terra/Sol, Claude Haiku 4.5/Sonnet 5/Opus 4.8/Fable 5, and Grok 4.3/4.5; retire prior GPT and Sonnet 4.6 ids for existing threads
+
 ## [0.6.0] - Unreleased
 
 - feat: add real estate as a standalone portfolio domain with property metadata, purchase cost, and manually updated market values

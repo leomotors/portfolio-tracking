@@ -247,8 +247,8 @@ export function AiChat({
         availableModels.find((m) => m.available) ??
           availableModels[0] ?? {
             provider: "openai",
-            id: "gpt-5.4",
-            label: "GPT-5.4",
+            id: "gpt-5.6-luna",
+            label: "GPT-5.6 Luna",
             available: false,
             inputUsdPerMillion: 0,
             outputUsdPerMillion: 0,

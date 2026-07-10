@@ -24,27 +24,28 @@ describe("AI model registry", () => {
   });
 
   it("normalizes invalid model selections to provider defaults", () => {
-    expect(normalizeModelSelection("anthropic", "gpt-5.4")).toEqual({
+    expect(normalizeModelSelection("anthropic", "gpt-5.6-luna")).toEqual({
       provider: "anthropic",
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5",
     });
   });
 
   it("looks up pricing config by model id", () => {
-    expect(getModelConfig("grok-4.3")?.provider).toBe("xai");
+    expect(getModelConfig("grok-4.5")?.provider).toBe("xai");
   });
 
   it("excludes retired models from selectable options", () => {
     expect(availableModelOptions().every((m) => !isRetiredModel(m.id))).toBe(
       true,
     );
-    expect(isRetiredModel("claude-opus-4-7")).toBe(true);
+    expect(isRetiredModel("gpt-5.4")).toBe(true);
+    expect(isRetiredModel("claude-sonnet-4-6")).toBe(true);
   });
 
   it("rejects retired models for new selections", () => {
     expect(normalizeModelSelection("anthropic", "claude-opus-4-7")).toEqual({
       provider: "anthropic",
-      model: "claude-sonnet-4-6",
+      model: "claude-haiku-4-5",
     });
   });
 

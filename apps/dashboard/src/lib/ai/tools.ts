@@ -263,7 +263,7 @@ export function createPortfolioTools(context: ToolContext) {
           context,
           toolName: "searchWeb",
           provider: "openai",
-          model: "gpt-5.4-mini",
+          model: "gpt-5.6-luna",
           prompt: query,
           searchTools: {
             web_search: openai.tools.webSearch({ searchContextSize: "medium" }),

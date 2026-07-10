@@ -26,6 +26,82 @@ export interface AiModelConfig {
 
 export const AI_MODELS = [
   {
+    id: "gpt-5.6-luna",
+    provider: "openai",
+    label: "GPT-5.6 Luna",
+    inputUsdPerMillion: 1,
+    cachedInputUsdPerMillion: 0.1,
+    outputUsdPerMillion: 6,
+  },
+  {
+    id: "gpt-5.6-terra",
+    provider: "openai",
+    label: "GPT-5.6 Terra",
+    inputUsdPerMillion: 2.5,
+    cachedInputUsdPerMillion: 0.25,
+    outputUsdPerMillion: 15,
+  },
+  {
+    id: "gpt-5.6-sol",
+    provider: "openai",
+    label: "GPT-5.6 Sol",
+    inputUsdPerMillion: 5,
+    cachedInputUsdPerMillion: 0.5,
+    outputUsdPerMillion: 30,
+  },
+  {
+    id: "claude-haiku-4-5",
+    provider: "anthropic",
+    label: "Claude Haiku 4.5",
+    inputUsdPerMillion: 1,
+    cachedInputUsdPerMillion: 0.1,
+    outputUsdPerMillion: 5,
+  },
+  {
+    id: "claude-sonnet-5",
+    provider: "anthropic",
+    label: "Claude Sonnet 5",
+    inputUsdPerMillion: 3,
+    cachedInputUsdPerMillion: 0.3,
+    outputUsdPerMillion: 15,
+  },
+  {
+    id: "claude-opus-4-8",
+    provider: "anthropic",
+    label: "Claude Opus 4.8",
+    inputUsdPerMillion: 5,
+    cachedInputUsdPerMillion: 0.5,
+    outputUsdPerMillion: 25,
+  },
+  {
+    id: "claude-fable-5",
+    provider: "anthropic",
+    label: "Claude Fable 5",
+    inputUsdPerMillion: 10,
+    cachedInputUsdPerMillion: 1,
+    outputUsdPerMillion: 50,
+  },
+  {
+    id: "grok-4.3",
+    provider: "xai",
+    label: "Grok 4.3",
+    inputUsdPerMillion: 1.25,
+    cachedInputUsdPerMillion: 0.2,
+    outputUsdPerMillion: 2.5,
+  },
+  {
+    id: "grok-4.5",
+    provider: "xai",
+    label: "Grok 4.5",
+    inputUsdPerMillion: 2,
+    cachedInputUsdPerMillion: 0.5,
+    outputUsdPerMillion: 6,
+  },
+] as const satisfies readonly AiModelConfig[];
+
+/** Removed from the picker; still valid for conversations that already use the id. */
+export const RETIRED_AI_MODELS = [
+  {
     id: "gpt-5.4",
     provider: "openai",
     label: "GPT-5.4",
@@ -58,34 +134,6 @@ export const AI_MODELS = [
     outputUsdPerMillion: 15,
   },
   {
-    id: "claude-haiku-4-5",
-    provider: "anthropic",
-    label: "Claude Haiku 4.5",
-    inputUsdPerMillion: 1,
-    cachedInputUsdPerMillion: 0.1,
-    outputUsdPerMillion: 5,
-  },
-  {
-    id: "claude-opus-4-8",
-    provider: "anthropic",
-    label: "Claude Opus 4.8",
-    inputUsdPerMillion: 5,
-    cachedInputUsdPerMillion: 0.5,
-    outputUsdPerMillion: 25,
-  },
-  {
-    id: "grok-4.3",
-    provider: "xai",
-    label: "Grok 4.3",
-    inputUsdPerMillion: 1.25,
-    cachedInputUsdPerMillion: 0.2,
-    outputUsdPerMillion: 2.5,
-  },
-] as const satisfies readonly AiModelConfig[];
-
-/** Removed from the picker; still valid for conversations that already use the id. */
-export const RETIRED_AI_MODELS = [
-  {
     id: "claude-opus-4-7",
     provider: "anthropic",
     label: "Claude Opus 4.7",
@@ -100,7 +148,7 @@ const ALL_KNOWN_MODELS = [...AI_MODELS, ...RETIRED_AI_MODELS] as const;
 export type AiModelId = (typeof AI_MODELS)[number]["id"];
 
 export const DEFAULT_AI_PROVIDER: AiProvider = "openai";
-export const DEFAULT_AI_MODEL: AiModelId = "gpt-5.4";
+export const DEFAULT_AI_MODEL: AiModelId = "gpt-5.6-luna";
 
 export const TOOL_PRICING_MICRO_USD = {
   openaiWebSearch: 10_000,
