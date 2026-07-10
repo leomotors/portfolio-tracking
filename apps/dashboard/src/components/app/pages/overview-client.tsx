@@ -52,10 +52,7 @@ interface BankDailyPoint {
 }
 
 type OverviewChartMetric =
-  | "netWorth"
-  | "totalCapital"
-  | "investments"
-  | "savings";
+  "netWorth" | "totalCapital" | "investments" | "savings";
 
 type InvestmentSubview = "value" | "cost" | "pnl";
 

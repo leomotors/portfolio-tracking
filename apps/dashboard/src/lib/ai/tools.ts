@@ -46,7 +46,7 @@ const round = (value: number) => Math.round(value * 100) / 100;
 // Tool results are embedded into the next step's ModelMessage content, which
 // ai v7 validates as strict JSON. Date instances (drizzle timestamp columns)
 // or NaN would fail that validation, so round-trip through JSON first.
-const toJson = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+const toJson = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 
 function compactSources(sources: unknown) {
   if (!Array.isArray(sources)) return [];
