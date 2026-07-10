@@ -16,7 +16,7 @@ const buttonVariants = cva(
         ghost:
           "text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink)]",
         primary:
-          "bg-[var(--accent-pri)] text-white shadow-[0_1px_2px_rgba(15,23,42,0.08)] hover:opacity-90",
+          "bg-[var(--accent-pri)] text-[var(--accent-pri-ink)] shadow-[0_1px_2px_rgba(15,23,42,0.08)] hover:opacity-90",
       },
       size: {
         default: "h-9 px-4",

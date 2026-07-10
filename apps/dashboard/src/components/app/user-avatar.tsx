@@ -22,7 +22,7 @@ export function UserAvatar({ session }: { session: SessionPayload }) {
   const initial = (name.charAt(0) || "?").toUpperCase();
   return (
     <div
-      className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-white"
+      className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-[var(--accent-pri-ink)]"
       aria-label={name}
       title={name}
     >

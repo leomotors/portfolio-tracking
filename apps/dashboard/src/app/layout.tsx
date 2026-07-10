@@ -1,7 +1,7 @@
 import "./globals.css";
 
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Crimson_Pro, Geist, Geist_Mono } from "next/font/google";
 
 import { ThemeScript } from "@/components/app/theme-script";
 
@@ -12,6 +12,11 @@ const geistSans = Geist({
 
 const geistMono = Geist_Mono({
   variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
+
+const crimsonPro = Crimson_Pro({
+  variable: "--font-crimson-pro",
   subsets: ["latin"],
 });
 
@@ -27,7 +32,7 @@ export default function RootLayout({
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${geistSans.variable} ${geistMono.variable} ${crimsonPro.variable} h-full antialiased`}
     >
       <head>
         <ThemeScript />

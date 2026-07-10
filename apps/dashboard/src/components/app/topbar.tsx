@@ -21,7 +21,7 @@ export function Topbar({
       <div className="ml-auto flex items-center gap-3">
         <ThemeToggle />
         {profile ?? (
-          <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-white">
+          <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-[var(--accent-pri-ink)]">
             P
           </div>
         )}

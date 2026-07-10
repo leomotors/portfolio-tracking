@@ -198,7 +198,7 @@ export function OverviewClient({
 
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
-              <div className="num text-[42px] leading-none font-semibold tracking-[-0.03em] md:text-[52px]">
+              <div className="font-serif text-[46px] leading-none font-light tracking-[-0.01em] md:text-[58px]">
                 {thb(current)}
               </div>
               <div className="mt-2 flex min-h-6 flex-wrap items-center gap-3">

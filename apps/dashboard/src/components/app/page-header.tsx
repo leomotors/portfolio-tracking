@@ -30,7 +30,7 @@ export function PageHeader({
             {kicker}
           </div>
         )}
-        <h1 className="m-0 text-[30px] leading-tight font-semibold tracking-[-0.02em] text-balance md:text-[32px]">
+        <h1 className="font-serif m-0 text-[32px] leading-tight font-normal tracking-[-0.01em] text-balance md:text-[36px]">
           {title}
         </h1>
         {sub && (

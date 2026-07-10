@@ -100,7 +100,7 @@ export function EditableNumber({
         type="button"
         onClick={commit}
         disabled={pending}
-        className="cursor-pointer rounded-md bg-[var(--accent-pri)] px-2.5 py-1 text-[11px] text-white disabled:opacity-50"
+        className="cursor-pointer rounded-md bg-[var(--accent-pri)] px-2.5 py-1 text-[11px] text-[var(--accent-pri-ink)] disabled:opacity-50"
       >
         {pending ? "saving…" : "save"}
       </button>
