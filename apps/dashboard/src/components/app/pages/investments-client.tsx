@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { ChevronDown } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 
 const DUST_THRESHOLD = 0.005;
 
@@ -64,6 +65,117 @@ const INVESTMENT_CHART_OPTIONS = [
   { value: "pnl", label: "PnL" },
 ] as const;
 
+function isZeroValueAccount(account: InvestmentAccount) {
+  return account.currentValue < DUST_THRESHOLD;
+}
+
+function defaultAccountId(
+  accounts: InvestmentAccount[],
+  initialAccountId?: number,
+) {
+  if (
+    initialAccountId != null &&
+    accounts.some((a) => a.id === initialAccountId)
+  ) {
+    return initialAccountId;
+  }
+  return (
+    accounts.find((a) => a.currentValue >= DUST_THRESHOLD)?.id ??
+    accounts[0]?.id ??
+    null
+  );
+}
+
+function AccountListButton({
+  account,
+  spark,
+  selected,
+  onSelect,
+}: {
+  account: InvestmentAccount;
+  spark: { value: number }[];
+  selected: boolean;
+  onSelect: () => void;
+}) {
+  const pl = account.currentValue - account.currentCost;
+  const plPct = account.currentCost === 0 ? 0 : pl / account.currentCost;
+
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={cn(
+        "flex flex-col gap-2 rounded-[var(--radius)] border bg-[var(--surface)] p-3.5 text-left transition-[background-color,border-color,box-shadow] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
+        selected
+          ? "border-[var(--accent-pri)] bg-[var(--accent-soft)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] [[data-theme='dark']_&]:shadow-none"
+          : "border-[var(--hairline)]",
+      )}
+    >
+      <div className="flex items-start justify-between gap-2.5">
+        <div>
+          <div className="text-[13px] font-semibold">{account.name}</div>
+          <div className="num text-[11px] text-[var(--ink-3)]">
+            {account.accountNo}
+          </div>
+        </div>
+        <Sparkline
+          data={spark}
+          width={70}
+          height={22}
+          accent={pl >= 0 ? "var(--accent-pos)" : "var(--accent-neg)"}
+        />
+      </div>
+      <div className="flex items-baseline justify-between gap-2">
+        <span className="num text-[15px] font-medium">
+          {thb(account.currentValue)}
+        </span>
+        <Delta value={pl} pct={plPct} mini />
+      </div>
+      {account.investmentTypes.length > 0 && (
+        <div className="flex flex-wrap gap-1">
+          {account.investmentTypes.map((t) => (
+            <Chip key={t} label={t.replace(/_/g, " ")} />
+          ))}
+        </div>
+      )}
+    </button>
+  );
+}
+
+function DustFilterToggle({
+  expanded,
+  count,
+  onToggle,
+}: {
+  expanded: boolean;
+  count: number;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onToggle}
+      aria-expanded={expanded}
+      className="inline-flex w-full cursor-pointer items-center gap-2 rounded-[var(--radius)] border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-left text-[12px] font-medium text-[var(--ink-2)] transition-[background-color,color,border-color] hover:bg-[var(--hover)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]"
+    >
+      <ChevronDown
+        aria-hidden
+        size={15}
+        strokeWidth={2.25}
+        className={cn(
+          "shrink-0 text-[var(--ink-3)] transition-transform duration-200 ease-out motion-reduce:transition-none",
+          expanded && "rotate-180",
+        )}
+      />
+      <span>
+        {expanded
+          ? `Hide ${count} zero-value`
+          : `Show all (${count} zero-value hidden)`}
+      </span>
+    </button>
+  );
+}
+
 export function InvestmentsClient({
   accounts,
   daily,
@@ -71,9 +183,31 @@ export function InvestmentsClient({
   currencies,
   initialAccountId,
 }: InvestmentsClientProps) {
-  const [selectedId, setSelectedId] = useState<number | null>(
-    initialAccountId ?? accounts[0]?.id ?? null,
+  const [selectedId, setSelectedId] = useState<number | null>(() =>
+    defaultAccountId(accounts, initialAccountId),
   );
+  const [showZeroAccounts, setShowZeroAccounts] = useState(false);
+  const rootRef = useRef<HTMLDivElement>(null);
+  const detailTopRef = useRef<HTMLDivElement>(null);
+
+  const selectAccount = (id: number) => {
+    if (id === selectedId) return;
+    setSelectedId(id);
+
+    const anchor = detailTopRef.current;
+    let parent = rootRef.current?.parentElement ?? null;
+    while (parent) {
+      const { overflowY } = getComputedStyle(parent);
+      if (overflowY === "auto" || overflowY === "scroll") break;
+      parent = parent.parentElement;
+    }
+    if (!parent || !anchor) return;
+
+    const parentRect = parent.getBoundingClientRect();
+    const anchorRect = anchor.getBoundingClientRect();
+    const anchorOffset = anchorRect.top - parentRect.top + parent.scrollTop;
+    parent.scrollTo({ top: Math.min(parent.scrollTop, Math.max(0, anchorOffset)) });
+  };
 
   if (accounts.length === 0) {
     return (
@@ -96,6 +230,14 @@ export function InvestmentsClient({
   }
 
   const focused = accounts.find((a) => a.id === selectedId) ?? accounts[0]!;
+  const zeroAccounts = accounts.filter(isZeroValueAccount);
+  const activeAccounts = accounts.filter((a) => !isZeroValueAccount(a));
+  // Keep a focused zero-value account visible above the divider when collapsed.
+  const pinnedFocusedZero =
+    !showZeroAccounts && isZeroValueAccount(focused) ? focused : null;
+  const accountsAboveToggle = pinnedFocusedZero
+    ? [pinnedFocusedZero, ...activeAccounts]
+    : activeAccounts;
 
   const accSpark = (id: number) =>
     daily
@@ -104,62 +246,43 @@ export function InvestmentsClient({
       .map((d) => ({ value: d.value }));
 
   return (
-    <div className="flex flex-col gap-5">
+    <div ref={rootRef} className="flex flex-col gap-5">
       <PageHeader
         kicker="Investments"
         title="Accounts & positions"
-        sub={`${accounts.length} accounts · ${assets.length} positions`}
+        sub={`${activeAccounts.length} active accounts · ${assets.length} positions`}
       />
 
       <div className="grid items-start gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="flex flex-col gap-1.5 lg:sticky lg:top-20">
-          {accounts.map((a) => {
-            const spark = accSpark(a.id);
-            const pl = a.currentValue - a.currentCost;
-            const plPct = a.currentCost === 0 ? 0 : pl / a.currentCost;
-            const sel = a.id === focused.id;
-            return (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setSelectedId(a.id)}
-                className={cn(
-                  "flex flex-col gap-2 rounded-[var(--radius)] border bg-[var(--surface)] p-3.5 text-left transition-[background-color,border-color,box-shadow] hover:bg-[var(--surface-2)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
-                  sel
-                    ? "border-[var(--accent-pri)] bg-[var(--accent-soft)] shadow-[0_1px_2px_rgba(15,23,42,0.05)] [[data-theme='dark']_&]:shadow-none"
-                    : "border-[var(--hairline)]",
-                )}
-              >
-                <div className="flex items-start justify-between gap-2.5">
-                  <div>
-                    <div className="text-[13px] font-semibold">{a.name}</div>
-                    <div className="num text-[11px] text-[var(--ink-3)]">
-                      {a.accountNo}
-                    </div>
-                  </div>
-                  <Sparkline
-                    data={spark}
-                    width={70}
-                    height={22}
-                    accent={pl >= 0 ? "var(--accent-pos)" : "var(--accent-neg)"}
+        <aside className="flex flex-col gap-1.5 lg:sticky lg:top-0">
+          {accountsAboveToggle.map((a) => (
+            <AccountListButton
+              key={a.id}
+              account={a}
+              spark={accSpark(a.id)}
+              selected={a.id === focused.id}
+              onSelect={() => selectAccount(a.id)}
+            />
+          ))}
+          {zeroAccounts.length > 0 && (
+            <>
+              <DustFilterToggle
+                expanded={showZeroAccounts}
+                count={zeroAccounts.length}
+                onToggle={() => setShowZeroAccounts((v) => !v)}
+              />
+              {showZeroAccounts &&
+                zeroAccounts.map((a) => (
+                  <AccountListButton
+                    key={a.id}
+                    account={a}
+                    spark={accSpark(a.id)}
+                    selected={a.id === focused.id}
+                    onSelect={() => selectAccount(a.id)}
                   />
-                </div>
-                <div className="flex items-baseline justify-between gap-2">
-                  <span className="num text-[15px] font-medium">
-                    {thb(a.currentValue)}
-                  </span>
-                  <Delta value={pl} pct={plPct} mini />
-                </div>
-                {a.investmentTypes.length > 0 && (
-                  <div className="flex flex-wrap gap-1">
-                    {a.investmentTypes.map((t) => (
-                      <Chip key={t} label={t.replace(/_/g, " ")} />
-                    ))}
-                  </div>
-                )}
-              </button>
-            );
-          })}
+                ))}
+            </>
+          )}
         </aside>
 
         <AccountDetail
@@ -167,6 +290,7 @@ export function InvestmentsClient({
           daily={daily.filter((d) => d.accountId === focused.id)}
           assets={assets.filter((a) => a.investmentAccountId === focused.id)}
           currencies={currencies}
+          topRef={detailTopRef}
         />
       </div>
     </div>
@@ -178,11 +302,13 @@ function AccountDetail({
   daily,
   assets,
   currencies,
+  topRef,
 }: {
   account: InvestmentAccount;
   daily: InvestmentDailyPoint[];
   assets: Asset[];
   currencies: CurrencyRow[];
+  topRef?: React.Ref<HTMLDivElement>;
 }) {
   const [chartMetric, setChartMetric] =
     useState<InvestmentChartMetric>("total");
@@ -233,16 +359,20 @@ function AccountDetail({
   }, [assets, cById]);
 
   const [showDust, setShowDust] = useState(false);
-  const dustCount = sortedPositions.filter(
+  const activePositions = sortedPositions.filter(
+    (r) => r.valueThb >= DUST_THRESHOLD,
+  );
+  const dustPositions = sortedPositions.filter(
     (r) => r.valueThb < DUST_THRESHOLD,
-  ).length;
-  const visiblePositions = showDust
-    ? sortedPositions
-    : sortedPositions.filter((r) => r.valueThb >= DUST_THRESHOLD);
+  );
+  const dustCount = dustPositions.length;
 
   return (
     <div className="flex min-w-0 flex-col gap-3.5">
-      <div className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] [[data-theme='dark']_&]:shadow-none">
+      <div
+        ref={topRef}
+        className="flex flex-wrap items-end justify-between gap-4 rounded-[var(--radius-lg)] border border-[var(--hairline)] bg-[var(--surface)] p-5 shadow-[0_1px_2px_rgba(15,23,42,0.04)] [[data-theme='dark']_&]:shadow-none"
+      >
         <div>
           <div className="num inline-flex rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
             {account.accountNo}
@@ -350,17 +480,6 @@ function AccountDetail({
               Click a value to edit · stale prices flagged · sorted by value
             </CardDescription>
           </div>
-          {dustCount > 0 && (
-            <button
-              type="button"
-              onClick={() => setShowDust((v) => !v)}
-              className="cursor-pointer rounded-md border border-[var(--hairline)] bg-[var(--surface)] px-2.5 py-1 text-[11px] text-[var(--ink-2)] hover:bg-[var(--hover)] hover:text-[var(--ink)]"
-            >
-              {showDust
-                ? `Hide ${dustCount} zero-value`
-                : `Show all (${dustCount} zero-value hidden)`}
-            </button>
-          )}
         </CardHeader>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-[13px]">
@@ -377,7 +496,7 @@ function AccountDetail({
               </tr>
             </thead>
             <tbody>
-              {visiblePositions.map(({ p, native, valueThb, costThb }) => {
+              {activePositions.map(({ p, native, valueThb, costThb }) => {
                 const aPl = valueThb - costThb;
                 const aPlPct = costThb === 0 ? 0 : aPl / costThb;
                 return (
@@ -450,21 +569,122 @@ function AccountDetail({
                   </tr>
                 );
               })}
-              {visiblePositions.length === 0 && (
+              {activePositions.length === 0 && assets.length === 0 && (
                 <tr>
                   <td
                     colSpan={8}
                     className="px-4 py-6 text-center text-[12px] text-[var(--ink-3)]"
                   >
-                    {assets.length === 0
-                      ? "No positions in this account."
-                      : `All ${dustCount} positions are zero-value. Click "Show all" above.`}
+                    No positions in this account.
+                  </td>
+                </tr>
+              )}
+              {activePositions.length === 0 && dustCount > 0 && !showDust && (
+                <tr>
+                  <td
+                    colSpan={8}
+                    className="px-4 py-6 text-center text-[12px] text-[var(--ink-3)]"
+                  >
+                    All {dustCount} positions are zero-value. Expand below to
+                    show them.
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
+        {dustCount > 0 && (
+          <div className="flex flex-col gap-0 border-t border-[var(--hairline)]">
+            <div className="px-4 py-2.5">
+              <DustFilterToggle
+                expanded={showDust}
+                count={dustCount}
+                onToggle={() => setShowDust((v) => !v)}
+              />
+            </div>
+            {showDust && (
+              <div className="overflow-x-auto border-t border-[var(--hairline-2)]">
+                <table className="w-full min-w-[640px] border-collapse text-[13px]">
+                  <tbody>
+                    {dustPositions.map(({ p, native, valueThb, costThb }) => {
+                      const aPl = valueThb - costThb;
+                      const aPlPct = costThb === 0 ? 0 : aPl / costThb;
+                      return (
+                        <tr key={p.id} className="hover:bg-[var(--hover)]">
+                          <Td>
+                            <div className="flex flex-col">
+                              <span className="num text-[12px] font-semibold">
+                                {p.symbol ?? "—"}
+                              </span>
+                              <span className="text-[12px] text-[var(--ink-3)]">
+                                {p.name}
+                              </span>
+                            </div>
+                          </Td>
+                          <Td>
+                            <Chip
+                              label={CLASS_LABEL[p.assetClass] ?? p.assetClass}
+                              color={CLASS_COLOR[p.assetClass]}
+                            />
+                          </Td>
+                          <Td>
+                            <Chip
+                              label={RISK_LABEL[p.riskLevel] ?? p.riskLevel}
+                              color={RISK_COLOR[p.riskLevel]}
+                            />
+                          </Td>
+                          <Td align="right">
+                            <EditableNumber
+                              value={p.amount}
+                              prefix=""
+                              suffix={` ${p.unit}`}
+                              decimals={p.amount < 1 ? 4 : 2}
+                              onSave={(v) => updateAssetAmount(p.id, v)}
+                              ariaLabel={`Edit amount for ${p.name}`}
+                            />
+                          </Td>
+                          <Td align="right">
+                            <EditableNumber
+                              value={p.averageCost}
+                              prefix=""
+                              decimals={2}
+                              onSave={(v) => updateAssetAverageCost(p.id, v)}
+                              ariaLabel={`Edit average cost for ${p.name}`}
+                            />
+                            {native !== "THB" && (
+                              <div className="num text-[11px] text-[var(--ink-3)]">
+                                {native}
+                              </div>
+                            )}
+                          </Td>
+                          <Td align="right">
+                            <span className="num">
+                              {num(p.currentPrice, 2)}
+                              {p.assetClass !== "cash" && (
+                                <Stale date={p.priceUpdatedAt} />
+                              )}
+                            </span>
+                            {native !== "THB" && (
+                              <div className="num text-[11px] text-[var(--ink-3)]">
+                                {native}
+                              </div>
+                            )}
+                          </Td>
+                          <Td align="right">
+                            <span className="num">{thb(valueThb)}</span>
+                          </Td>
+                          <Td align="right">
+                            <Delta value={aPl} pct={aPlPct} mini />
+                          </Td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
       </Card>
     </div>
   );
