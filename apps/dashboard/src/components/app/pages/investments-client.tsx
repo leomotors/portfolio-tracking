@@ -206,7 +206,9 @@ export function InvestmentsClient({
     const parentRect = parent.getBoundingClientRect();
     const anchorRect = anchor.getBoundingClientRect();
     const anchorOffset = anchorRect.top - parentRect.top + parent.scrollTop;
-    parent.scrollTo({ top: Math.min(parent.scrollTop, Math.max(0, anchorOffset)) });
+    parent.scrollTo({
+      top: Math.min(parent.scrollTop, Math.max(0, anchorOffset)),
+    });
   };
 
   if (accounts.length === 0) {

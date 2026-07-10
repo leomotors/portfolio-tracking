@@ -13,11 +13,11 @@
   },
   "devDependencies": {
     "@leomotors/config": "^2.0.0",
-    "@types/node": "^24.12.3",
-    "eslint": "^10.4.1",
-    "prettier": "^3.8.3",
-    "turbo": "^2.9.16",
-    "typescript": "^6.0.3"
+    "@types/node": "^24.13.3",
+    "eslint": "^10.6.0",
+    "prettier": "^3.9.4",
+    "turbo": "^2.10.4",
+    "typescript": "^7.0.2"
   },
-  "packageManager": "pnpm@11.5.1"
+  "packageManager": "pnpm@11.11.0"
 }
