@@ -1,3 +1,9 @@
+"use client";
+
+import { useState } from "react";
+
+import { cn } from "@/lib/utils";
+
 interface DonutSegment {
   label: string;
   value: number;
@@ -25,13 +31,12 @@ export function Donut({
   valueFormatter,
   ariaLabel,
 }: DonutProps) {
+  const [hovered, setHovered] = useState<number | null>(null);
+
   const total = data.reduce((s, d) => s + d.value, 0);
   const r = (size - thickness) / 2;
   const c = size / 2;
   const circ = 2 * Math.PI * r;
-  const centerValueSize = centerValue
-    ? Math.max(12, Math.min(16, size / Math.max(12, centerValue.length * 0.75)))
-    : 16;
 
   const fracs = data.map((d) => (total === 0 ? 0 : d.value / total));
   const segs = data.map((d, i) => {
@@ -43,6 +48,21 @@ export function Donut({
       frac: fracs[i]!,
     };
   });
+
+  const active = hovered != null ? segs[hovered] : undefined;
+  const displayLabel = active ? truncate(active.label, 22) : centerLabel;
+  const displayValue = active
+    ? valueFormatter
+      ? valueFormatter(active.value)
+      : formatPercent(active.frac)
+    : centerValue;
+  const centerValueSize = displayValue
+    ? Math.max(
+        12,
+        Math.min(16, size / Math.max(12, displayValue.length * 0.75)),
+      )
+    : 16;
+
   const description =
     segs.length === 0
       ? emptyLabel
@@ -57,7 +77,8 @@ export function Donut({
         viewBox={`0 0 ${size} ${size}`}
         role="img"
         aria-label={`${label}: ${description}`}
-        className="mx-auto max-w-full shrink-0"
+        className="mx-auto max-w-full shrink-0 overflow-visible"
+        onMouseLeave={() => setHovered(null)}
       >
         <title>{label}</title>
         <circle
@@ -76,17 +97,20 @@ export function Donut({
             r={r}
             fill="none"
             stroke={s.color}
-            strokeWidth={thickness}
+            strokeWidth={hovered === i ? thickness + 5 : thickness}
             strokeDasharray={`${s.dash} ${circ - s.dash}`}
             strokeDashoffset={s.offset}
             transform={`rotate(-90 ${c} ${c})`}
             aria-hidden="true"
+            onMouseEnter={() => setHovered(i)}
             style={{
               filter: "drop-shadow(0 1px 0 rgb(0 0 0 / 0.06))",
+              opacity: hovered === null || hovered === i ? 1 : 0.35,
+              transition: "stroke-width 200ms ease, opacity 200ms ease",
             }}
           />
         ))}
-        {centerLabel && (
+        {displayLabel && (
           <text
             x={c}
             y={c - 6}
@@ -94,11 +118,12 @@ export function Donut({
             fill="var(--ink-2)"
             fontSize="11"
             fontWeight="500"
+            pointerEvents="none"
           >
-            {centerLabel}
+            {displayLabel}
           </text>
         )}
-        {centerValue && (
+        {displayValue && (
           <text
             x={c}
             y={c + 14}
@@ -107,8 +132,9 @@ export function Donut({
             fontSize={centerValueSize}
             fontWeight="600"
             fontFamily="var(--font-mono), ui-monospace, monospace"
+            pointerEvents="none"
           >
-            {centerValue}
+            {displayValue}
           </text>
         )}
       </svg>
@@ -120,7 +146,12 @@ export function Donut({
         {segs.map((s, i) => (
           <div
             key={i}
-            className="grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] hover:bg-[var(--surface-2)]"
+            onMouseEnter={() => setHovered(i)}
+            onMouseLeave={() => setHovered(null)}
+            className={cn(
+              "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-150",
+              hovered === i && "bg-[var(--surface-2)]",
+            )}
           >
             <span
               className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]"
@@ -148,4 +179,8 @@ export function Donut({
 
 function formatPercent(value: number) {
   return `${(value * 100).toFixed(1)}%`;
+}
+
+function truncate(value: string, max: number) {
+  return value.length > max ? value.slice(0, max - 1) + "…" : value;
 }

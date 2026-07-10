@@ -2,6 +2,9 @@
 
 ## [0.7.0] - Unreleased
 
+- feat: restyle display typography with the Crimson Pro serif for page titles and a larger light-weight overview net-worth figure
+- feat: swap the primary accent from blue to gold with a paired accent text token, and warm the dark theme from cool grey to warm charcoal
+- feat: animate allocation donut hover — the hovered segment thickens while others dim, legend rows and arcs highlight in sync, and the center text shows the hovered segment's details
 - feat: hide zero-value investment accounts and positions behind a dust-filter toggle that acts as a list separator
 - fix: keep the investments account sidebar flush to the top while scrolling, and restore scroll to the account value card when switching accounts
 - fix: serialize AI tool results to plain JSON so tool calls no longer fail AI SDK v7's strict message validation on Date values from timestamp columns
