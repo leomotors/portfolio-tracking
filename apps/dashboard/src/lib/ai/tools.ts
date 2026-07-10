@@ -43,6 +43,11 @@ interface ToolContext {
 
 const round = (value: number) => Math.round(value * 100) / 100;
 
+// Tool results are embedded into the next step's ModelMessage content, which
+// ai v7 validates as strict JSON. Date instances (drizzle timestamp columns)
+// or NaN would fail that validation, so round-trip through JSON first.
+const toJson = <T,>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
+
 function compactSources(sources: unknown) {
   if (!Array.isArray(sources)) return [];
   return sources
@@ -150,7 +155,7 @@ export function createPortfolioTools(context: ToolContext) {
           (sum, bank) => sum + bank.currentBalance,
           0,
         );
-        return {
+        return toJson({
           asOf: series.at(-1)?.date ?? null,
           netWorth: round(delta.current),
           dayChange: round(delta.delta),
@@ -189,7 +194,7 @@ export function createPortfolioTools(context: ToolContext) {
               realEstateProperties,
             ),
           },
-        };
+        });
       },
     }),
     listInvestments: tool({
@@ -203,7 +208,7 @@ export function createPortfolioTools(context: ToolContext) {
           getCurrencies(),
         ]);
         const currencyById = new Map(currencies.map((c) => [c.id, c]));
-        return {
+        return toJson({
           accounts,
           assets: assets.map((asset) => {
             const currency = currencyById.get(asset.currencyId);
@@ -215,7 +220,7 @@ export function createPortfolioTools(context: ToolContext) {
               costTHB: round(asset.amount * asset.averageCost * fx),
             };
           }),
-        };
+        });
       },
     }),
     getInvestmentHistory: tool({
@@ -224,19 +229,21 @@ export function createPortfolioTools(context: ToolContext) {
       inputSchema: z.object({
         accountId: z.number().int().positive(),
       }),
-      execute: async ({ accountId }) => getInvestmentDailyForAccount(accountId),
+      execute: async ({ accountId }) =>
+        toJson(await getInvestmentDailyForAccount(accountId)),
     }),
     listBankAccounts: tool({
       description: "List read-only bank and foreign currency deposit accounts.",
       inputSchema: z.object({}),
-      execute: async () => getBankAccounts(),
+      execute: async () => toJson(await getBankAccounts()),
     }),
     getBankHistory: tool({
       description: "Get read-only daily balance history for one bank account.",
       inputSchema: z.object({
         accountId: z.number().int().positive(),
       }),
-      execute: async ({ accountId }) => getBankDailyForAccount(accountId),
+      execute: async ({ accountId }) =>
+        toJson(await getBankDailyForAccount(accountId)),
     }),
     listCreditAndLoans: tool({
       description: "List read-only active credit cards and personal loans.",
@@ -246,7 +253,7 @@ export function createPortfolioTools(context: ToolContext) {
           getCreditCards(),
           getPersonalLoans(),
         ]);
-        return { creditCards, personalLoans };
+        return toJson({ creditCards, personalLoans });
       },
     }),
     searchWeb: tool({

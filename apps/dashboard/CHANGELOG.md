@@ -4,6 +4,7 @@
 
 - feat: hide zero-value investment accounts and positions behind a dust-filter toggle that acts as a list separator
 - fix: keep the investments account sidebar flush to the top while scrolling, and restore scroll to the account value card when switching accounts
+- fix: serialize AI tool results to plain JSON so tool calls no longer fail AI SDK v7's strict message validation on Date values from timestamp columns
 - chore: refresh the AI chat model lineup to GPT-5.6 Luna (default)/Terra/Sol, Claude Haiku 4.5/Sonnet 5/Opus 4.8/Fable 5, and Grok 4.3/4.5; retire prior GPT and Sonnet 4.6 ids for existing threads
 - chore: upgrade dependencies, including the AI SDK to v7 with v4 providers and Next.js 16.2.10
 
