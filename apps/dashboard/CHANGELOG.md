@@ -1,6 +1,6 @@
 # Changelog
 
-## [0.7.0] - Unreleased
+## [0.7.0] - 2026-07-12
 
 - feat: restyle display typography with the Crimson Pro serif for page titles and a larger light-weight overview net-worth figure
 - feat: swap the primary accent from blue to gold with a paired accent text token, and warm the dark theme from cool grey to warm charcoal
