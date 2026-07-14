@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.11.0] - 2026-07-14
+
+- feat: Discord summary includes top and worst investment-account performers by day-over-day unrealized P/L contribution
+
 ## [0.10.0] - 2026-07-01
 
 - feat: snapshot real-estate property cost and market value into `real_estate_daily_balance` on each daily run

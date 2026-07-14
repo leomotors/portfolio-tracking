@@ -12,6 +12,7 @@ import {
 } from "@repo/database/schema";
 
 import { formatDate, getYesterday } from "@/lib/date";
+import { findTopAndWorstPerformers } from "@/lib/dayPerformers";
 import { circleEmojiSuffix } from "@/lib/summaryCircles";
 
 export type PreviousDailySnapshot = {
@@ -37,6 +38,59 @@ function formatSignedThbDelta(delta: number): string {
   }
   const sign = delta >= 0 ? "+" : "-";
   return ` (${sign}${f.format(Math.abs(delta))} THB)`;
+}
+
+function formatPerformerThb(delta: number): string {
+  const sign = delta >= 0 ? "+" : "-";
+  return ` (${sign}${f.format(Math.abs(delta))} THB)`;
+}
+
+async function loadDayPerformerLines(
+  previousDate: string,
+): Promise<string> {
+  const currentAccounts = await db
+    .select({
+      id: investmentAccountTable.id,
+      name: investmentAccountTable.name,
+      cost: investmentAccountTable.currentCost,
+      value: investmentAccountTable.currentValue,
+    })
+    .from(investmentAccountTable);
+
+  const previousRows = await db
+    .select({
+      investmentAccountId: investmentDailyBalanceTable.investmentAccountId,
+      cost: investmentDailyBalanceTable.cost,
+      value: investmentDailyBalanceTable.value,
+    })
+    .from(investmentDailyBalanceTable)
+    .where(eq(investmentDailyBalanceTable.date, previousDate));
+
+  const previousById = new Map(
+    previousRows.map((row) => [
+      row.investmentAccountId,
+      { cost: Number(row.cost), value: Number(row.value) },
+    ]),
+  );
+
+  const performers = findTopAndWorstPerformers(
+    currentAccounts.map((account) => ({
+      id: account.id,
+      name: account.name,
+      cost: Number(account.cost),
+      value: Number(account.value),
+    })),
+    previousById,
+  );
+
+  if (!performers) {
+    return "";
+  }
+
+  return (
+    `\nTop Performer: ${performers.top.name}${formatPerformerThb(performers.top.pnlDelta)}` +
+    `\nWorst Performer: ${performers.worst.name}${formatPerformerThb(performers.worst.pnlDelta)}`
+  );
 }
 
 async function hasActiveRealEstate(): Promise<boolean> {
@@ -233,6 +287,7 @@ export async function buildSummary(
       `\nTotal Investment Value: ${f.format(totalValue)} THB${formatSignedThbDelta(dValue)}` +
       `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB${formatSignedThbDelta(dRealEstate)}` +
       `\nCurrent P/L: ${pnlStr}${formatSignedThbDelta(dUnrealized)}` +
+      (await loadDayPerformerLines(previous.date)) +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB${formatSignedThbDelta(netDeltaThb)}**`;
   }
 
