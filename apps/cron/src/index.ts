@@ -7,11 +7,16 @@ import { calculateBalance } from "./functions/calculateBalance/index.js";
 import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
+import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
 if (environment.DRY_RUN) {
   logger.log("Running in dry-run mode");
 }
+
+// Capture pre-update asset cost/value so day performers reflect this run's
+// price and FX changes without needing a historical asset balance table.
+const previousAssets = await loadHeldAssetSnapshots();
 
 logger.log("\n--- Functions: Scraping Prices ---");
 await priceUpdateStep();
@@ -24,7 +29,7 @@ const previousDailySnapshot = await loadPreviousDailySnapshot();
 await dailyBalance();
 await fillMissingData();
 
-const summary = await getSummary(previousDailySnapshot);
+const summary = await getSummary(previousDailySnapshot, previousAssets);
 
 await sendMessage(
   `## Portfolio Daily Cron: Run Completed${summary.circleSuffix}

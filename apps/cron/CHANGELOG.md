@@ -4,7 +4,7 @@
 
 ## [0.11.0] - 2026-07-14
 
-- feat: Discord summary includes top and worst investment-account performers by day-over-day unrealized P/L contribution
+- feat: Discord summary includes top and worst individual asset performers by this run's unrealized P/L change (pre vs post price/FX update)
 
 ## [0.10.0] - 2026-07-01
 

@@ -12,7 +12,11 @@ import {
 } from "@repo/database/schema";
 
 import { formatDate, getYesterday } from "@/lib/date";
-import { findTopAndWorstPerformers } from "@/lib/dayPerformers";
+import {
+  type AssetSnapshot,
+  findTopAndWorstPerformers,
+  loadHeldAssetSnapshots,
+} from "@/lib/dayPerformers";
 import { circleEmojiSuffix } from "@/lib/summaryCircles";
 
 export type PreviousDailySnapshot = {
@@ -46,40 +50,17 @@ function formatPerformerThb(delta: number): string {
 }
 
 async function loadDayPerformerLines(
-  previousDate: string,
+  previousAssets: AssetSnapshot[],
 ): Promise<string> {
-  const currentAccounts = await db
-    .select({
-      id: investmentAccountTable.id,
-      name: investmentAccountTable.name,
-      cost: investmentAccountTable.currentCost,
-      value: investmentAccountTable.currentValue,
-    })
-    .from(investmentAccountTable);
-
-  const previousRows = await db
-    .select({
-      investmentAccountId: investmentDailyBalanceTable.investmentAccountId,
-      cost: investmentDailyBalanceTable.cost,
-      value: investmentDailyBalanceTable.value,
-    })
-    .from(investmentDailyBalanceTable)
-    .where(eq(investmentDailyBalanceTable.date, previousDate));
-
   const previousById = new Map(
-    previousRows.map((row) => [
-      row.investmentAccountId,
-      { cost: Number(row.cost), value: Number(row.value) },
+    previousAssets.map((asset) => [
+      asset.id,
+      { cost: asset.cost, value: asset.value },
     ]),
   );
 
   const performers = findTopAndWorstPerformers(
-    currentAccounts.map((account) => ({
-      id: account.id,
-      name: account.name,
-      cost: Number(account.cost),
-      value: Number(account.value),
-    })),
+    await loadHeldAssetSnapshots(),
     previousById,
   );
 
@@ -204,6 +185,7 @@ export async function loadPreviousDailySnapshot(): Promise<PreviousDailySnapshot
 
 export async function buildSummary(
   previous: PreviousDailySnapshot | null,
+  previousAssets: AssetSnapshot[],
 ): Promise<SummaryResult> {
   const { totalBalance: _totalBalance } = (
     await db
@@ -250,6 +232,7 @@ export async function buildSummary(
   const pnlStr = `${pnl.toFixed(2)}%`;
 
   const currentNetWorth = totalBalance + totalValue + totalRealEstate;
+  const performerLines = await loadDayPerformerLines(previousAssets);
 
   let circleSuffix = "";
   let body: string;
@@ -261,6 +244,7 @@ export async function buildSummary(
       `\nTotal Investment Value: ${f.format(totalValue)} THB` +
       `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB` +
       `\nCurrent P/L: ${pnlStr}` +
+      performerLines +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB**` +
       `\n_No prior daily snapshot for day-over-day comparison._`;
   } else {
@@ -287,7 +271,7 @@ export async function buildSummary(
       `\nTotal Investment Value: ${f.format(totalValue)} THB${formatSignedThbDelta(dValue)}` +
       `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB${formatSignedThbDelta(dRealEstate)}` +
       `\nCurrent P/L: ${pnlStr}${formatSignedThbDelta(dUnrealized)}` +
-      (await loadDayPerformerLines(previous.date)) +
+      performerLines +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB${formatSignedThbDelta(netDeltaThb)}**`;
   }
 
@@ -296,6 +280,7 @@ export async function buildSummary(
 
 export async function getSummary(
   previous: PreviousDailySnapshot | null,
+  previousAssets: AssetSnapshot[],
 ): Promise<SummaryResult> {
-  return buildSummary(previous);
+  return buildSummary(previous, previousAssets);
 }
