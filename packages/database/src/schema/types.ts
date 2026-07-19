@@ -48,3 +48,16 @@ export const riskLevelType = pgEnum("risk_level_type", [
   "mid_satellite",
   "higher_satellite",
 ]);
+
+export const stakingProviderType = pgEnum("staking_provider_type", [
+  "solana_native",
+  "hyperliquid",
+  "etherfi_liquid",
+  "manual",
+]);
+
+export const stakingSyncSourceType = pgEnum("staking_sync_source_type", [
+  "chain",
+  "apy_projection",
+  "manual",
+]);

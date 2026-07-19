@@ -5,10 +5,10 @@ import { assetTable, currencyTable } from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
-import { fetchCryptoPrices } from "@/data/binance";
+import { fetchBitkubUsdcThb } from "@/data/bitkub";
+import { fetchCoinGeckoPrices } from "@/data/coingecko";
 import { fetchFundPrices } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
-import { fetchCoinGecko } from "@/data/xautusd";
 import { fetchYahooStockPrices } from "@/data/yahoo";
 
 type StockUpdateConfig = {
@@ -56,15 +56,15 @@ export async function priceUpdateStep() {
       symbolMapper: (s) => s,
     },
     {
-      name: "Cryptocurrencies via Binance.th API",
-      symbols: [...cryptoSymbols, "USDTTHB"],
-      fetcher: fetchCryptoPrices,
+      name: "USD/THB rate via Bitkub USDC",
+      symbols: ["USDCTHB"],
+      fetcher: fetchBitkubUsdcThb,
       symbolMapper: (s) => s,
     },
     {
-      name: "MTS-GOLD via CoinGecko Tether Gold",
-      symbols: ["MTS-GOLD-OZ", "MTS-GOLD-KG"],
-      fetcher: (_) => fetchCoinGecko(),
+      name: "Cryptocurrencies + MTS-GOLD via CoinGecko",
+      symbols: [...cryptoSymbols, "MTS-GOLD-OZ", "MTS-GOLD-KG"],
+      fetcher: fetchCoinGeckoPrices,
       symbolMapper: (s) => s,
     },
   ];
@@ -109,16 +109,16 @@ async function updateStockPrices(config: StockUpdateConfig) {
     }
   }
 
-  if (result.find((r) => r.symbol === "USDTTHB")) {
-    const usdtThbPrice = result.find((r) => r.symbol === "USDTTHB")!.price;
+  if (result.find((r) => r.symbol === "USDCTHB")) {
+    const usdcThbPrice = result.find((r) => r.symbol === "USDCTHB")!.price;
     logger.estimation(
-      `📐 Estimating USD/THB rate from USDTTHB price: ${usdtThbPrice}`,
+      `📐 Estimating USD/THB rate from Bitkub USDC/THB price: ${usdcThbPrice}`,
     );
 
     if (!environment.DRY_RUN) {
       await db
         .update(currencyTable)
-        .set({ valueInTHB: String(usdtThbPrice) })
+        .set({ valueInTHB: String(usdcThbPrice) })
         .where(eq(currencyTable.symbol, "USD"));
     }
   }

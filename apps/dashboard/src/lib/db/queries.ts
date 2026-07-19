@@ -15,6 +15,8 @@ import {
   personalLoanAccountTable,
   realEstateDailyBalanceTable,
   realEstatePropertyTable,
+  stakedPositionDailyTable,
+  stakedPositionTable,
 } from "@repo/database/schema";
 
 import {
@@ -122,6 +124,35 @@ export interface RealEstateDailyPoint {
   value: number;
 }
 
+export interface StakedPosition {
+  id: number;
+  assetId: number | null;
+  name: string;
+  provider: string;
+  underlyingSymbol: string;
+  depositedUnderlying: number;
+  currentUnderlying: number;
+  /** Receipt/share token actually held (e.g. liquidBTC); null for native staking */
+  receiptSymbol: string | null;
+  receiptAmount: number | null;
+  projectedApy: number | null;
+  stakedSince: string | null;
+  syncSource: string | null;
+  syncedAt: Date | null;
+  syncError: string | null;
+  /** From the linked asset row; null when the position is unlinked. */
+  currentPrice: number | null;
+  currencyId: number | null;
+  investmentAccountId: number | null;
+}
+
+export interface StakedDailyPoint {
+  stakedPositionId: number;
+  date: string;
+  currentUnderlying: number;
+  depositedUnderlying: number;
+}
+
 export interface InvestmentDailyPoint {
   accountId: number;
   date: string;
@@ -216,6 +247,65 @@ export async function getCurrencies(): Promise<CurrencyRow[]> {
     variant: r.variant,
     valueInTHB: toNum(r.valueInTHB, 1),
     updatedAt: r.updatedAt,
+  }));
+}
+
+export async function getStakedPositions(): Promise<StakedPosition[]> {
+  const rows = await db
+    .select({
+      id: stakedPositionTable.id,
+      assetId: stakedPositionTable.assetId,
+      name: stakedPositionTable.name,
+      provider: stakedPositionTable.provider,
+      underlyingSymbol: stakedPositionTable.underlyingSymbol,
+      depositedUnderlying: stakedPositionTable.depositedUnderlying,
+      currentUnderlying: stakedPositionTable.currentUnderlying,
+      receiptSymbol: stakedPositionTable.receiptSymbol,
+      receiptAmount: stakedPositionTable.receiptAmount,
+      projectedApy: stakedPositionTable.projectedApy,
+      stakedSince: stakedPositionTable.stakedSince,
+      syncSource: stakedPositionTable.syncSource,
+      syncedAt: stakedPositionTable.syncedAt,
+      syncError: stakedPositionTable.syncError,
+      currentPrice: assetTable.currentPrice,
+      currencyId: assetTable.currencyId,
+      investmentAccountId: assetTable.investmentAccountId,
+    })
+    .from(stakedPositionTable)
+    .leftJoin(assetTable, eq(stakedPositionTable.assetId, assetTable.id))
+    .orderBy(asc(stakedPositionTable.id));
+
+  return rows.map((r) => ({
+    id: r.id,
+    assetId: r.assetId,
+    name: r.name,
+    provider: r.provider,
+    underlyingSymbol: r.underlyingSymbol,
+    depositedUnderlying: toNum(r.depositedUnderlying),
+    currentUnderlying: toNum(r.currentUnderlying),
+    receiptSymbol: r.receiptSymbol,
+    receiptAmount: r.receiptAmount == null ? null : toNum(r.receiptAmount),
+    projectedApy: r.projectedApy == null ? null : toNum(r.projectedApy),
+    stakedSince: r.stakedSince,
+    syncSource: r.syncSource,
+    syncedAt: r.syncedAt,
+    syncError: r.syncError,
+    currentPrice: r.currentPrice == null ? null : toNum(r.currentPrice),
+    currencyId: r.currencyId,
+    investmentAccountId: r.investmentAccountId,
+  }));
+}
+
+export async function getStakedDaily(): Promise<StakedDailyPoint[]> {
+  const rows = await db
+    .select()
+    .from(stakedPositionDailyTable)
+    .orderBy(asc(stakedPositionDailyTable.date));
+  return rows.map((r) => ({
+    stakedPositionId: r.stakedPositionId,
+    date: r.date,
+    currentUnderlying: toNum(r.currentUnderlying),
+    depositedUnderlying: toNum(r.depositedUnderlying),
   }));
 }
 

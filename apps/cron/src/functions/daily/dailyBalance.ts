@@ -10,6 +10,8 @@ import {
   investmentDailyBalanceTable,
   realEstateDailyBalanceTable,
   realEstatePropertyTable,
+  stakedPositionDailyTable,
+  stakedPositionTable,
 } from "@repo/database/schema";
 
 import { environment } from "@/core/environment.js";
@@ -38,6 +40,7 @@ export async function dailyBalance() {
   await dailyBalanceBank(dateStr);
   await dailyBalanceInvestment(dateStr);
   await dailyBalanceRealEstate(dateStr);
+  await dailyBalanceStaking(dateStr);
 }
 
 async function dailyBalanceBank(dateStr: string) {
@@ -108,6 +111,42 @@ async function dailyBalanceInvestment(dateStr: string) {
     await db
       .insert(investmentDailyBalanceTable)
       .values(investmentInsertValues)
+      .onConflictDoNothing()
+      .execute();
+  }
+}
+
+async function dailyBalanceStaking(dateStr: string) {
+  const positions = await db
+    .select()
+    .from(stakedPositionTable)
+    .orderBy(stakedPositionTable.id)
+    .execute();
+
+  if (positions.length === 0) {
+    logger.log("No staked positions to snapshot.");
+    return;
+  }
+
+  const insertValues = positions.map(
+    (position) =>
+      ({
+        stakedPositionId: position.id,
+        currentUnderlying: position.currentUnderlying,
+        depositedUnderlying: position.depositedUnderlying,
+        date: dateStr,
+      }) satisfies PgInsertValue<typeof stakedPositionDailyTable>,
+  );
+
+  logger.log(
+    `Inserting staking daily balance (length of ${insertValues.length}, on conflict do nothing):`,
+  );
+  logger.log(formatJson(insertValues));
+
+  if (!environment.DRY_RUN) {
+    await db
+      .insert(stakedPositionDailyTable)
+      .values(insertValues)
       .onConflictDoNothing()
       .execute();
   }

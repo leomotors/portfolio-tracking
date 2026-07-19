@@ -7,6 +7,7 @@ import { calculateBalance } from "./functions/calculateBalance/index.js";
 import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
+import { stakingSyncStep } from "./functions/stakingSync/index.js";
 import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
@@ -17,6 +18,9 @@ if (environment.DRY_RUN) {
 // Capture pre-update asset cost/value so day performers reflect this run's
 // price and FX changes without needing a historical asset balance table.
 const previousAssets = await loadHeldAssetSnapshots();
+
+logger.log("\n--- Functions: Staking Sync ---");
+await stakingSyncStep();
 
 logger.log("\n--- Functions: Scraping Prices ---");
 await priceUpdateStep();

@@ -2,6 +2,19 @@
 
 0.1.0 is not noted here
 
+## [0.12.0] - 2026-07-20
+
+- feat: staking sync step — tracks `staked_position` rows and writes live balances back into linked assets, rescaling average cost so the total cost basis stays constant (rewards read as P/L)
+- feat: Solana native staking via JSON-RPC — stake accounts auto-discovered by withdraw authority (`getProgramAccounts`) or an explicit account list
+- feat: Hyperliquid staking balances via the public info API (`delegatorSummary`)
+- feat: Ether.fi Liquid (Veda BoringVault) positions via raw `eth_call` — share balance x accountant `getRate()`, with an on-chain `symbol()` guard against misconfigured addresses and an optional `getRateInQuoteSafe` quote asset
+- feat: deposit/withdrawal detection that never jumps P/L — share-based positions anchor value to the stored receipt balance, balance-based positions hold at projected APY, and both warn until the baseline is confirmed on the dashboard
+- feat: per-position projected-APY fallback keeps daily values smooth when a live source fails; sync errors surface in the Discord summary and dashboard
+- feat: snapshot staked positions daily into `staked_position_daily`
+- feat: crypto prices move to CoinGecko (USD-denominated, one call per run; optional `COINGECKO_API_KEY`), replacing Binance.th THB pairs
+- feat!: USD/THB rate for all USD currency rows now comes from Bitkub's on-shore USDC/THB market; the Binance.th integration is removed
+- chore: lazy environment parsing so data modules import cleanly in tests
+
 ## [0.11.0] - 2026-07-14
 
 - feat: Discord summary includes top and worst individual asset performers by this run's unrealized P/L change (pre vs post price/FX update)

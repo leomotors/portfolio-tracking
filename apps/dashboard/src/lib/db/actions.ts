@@ -9,9 +9,11 @@ import {
   bankAccountTable,
   investmentAccountTable,
   realEstatePropertyTable,
+  stakedPositionTable,
 } from "@repo/database/schema";
 
 import { requireSession } from "@/lib/auth";
+import { rescaleAverageCost } from "@/lib/portfolio/staking";
 
 const assertNonNegative = (n: number, label: string) => {
   if (!Number.isFinite(n) || n < 0) {
@@ -65,6 +67,94 @@ export async function updateInvestmentAccountCost(
     .where(eq(investmentAccountTable.id, id));
   revalidatePath("/investments");
   revalidatePath("/");
+}
+
+export async function updateStakedDeposited(id: number, deposited: number) {
+  await requireSession();
+  assertNonNegative(deposited, "deposited");
+  await db
+    .update(stakedPositionTable)
+    .set({ depositedUnderlying: String(deposited) })
+    .where(eq(stakedPositionTable.id, id));
+  revalidatePath("/crypto");
+}
+
+/**
+ * Manual override of the current underlying amount. Mirrors the cron sync:
+ * also writes the amount back into the linked asset row, rescaling average
+ * cost so the total cost basis stays constant.
+ */
+export async function updateStakedCurrent(id: number, current: number) {
+  await requireSession();
+  assertNonNegative(current, "current");
+
+  const [position] = await db
+    .select()
+    .from(stakedPositionTable)
+    .where(eq(stakedPositionTable.id, id));
+  if (!position) throw new Error("Staked position not found");
+
+  await db
+    .update(stakedPositionTable)
+    .set({
+      currentUnderlying: String(current),
+      syncSource: "manual",
+      syncedAt: new Date(),
+      syncError: null,
+    })
+    .where(eq(stakedPositionTable.id, id));
+
+  if (position.assetId != null) {
+    const [asset] = await db
+      .select()
+      .from(assetTable)
+      .where(eq(assetTable.id, position.assetId));
+    if (asset) {
+      const newAverageCost = rescaleAverageCost(
+        parseFloat(asset.amount),
+        parseFloat(asset.averageCost),
+        current,
+      );
+      await db
+        .update(assetTable)
+        .set({
+          amount: String(current),
+          ...(newAverageCost != null
+            ? { averageCost: String(newAverageCost) }
+            : {}),
+        })
+        .where(eq(assetTable.id, asset.id));
+    }
+  }
+
+  revalidatePath("/crypto");
+  revalidatePath("/investments");
+  revalidatePath("/allocation");
+  revalidatePath("/");
+}
+
+/**
+ * Accept a new receipt/share balance (after a deposit or withdrawal the sync
+ * warned about). The next cron run resumes valuing from this share count.
+ */
+export async function updateStakedReceipt(id: number, amount: number) {
+  await requireSession();
+  assertNonNegative(amount, "amount");
+  await db
+    .update(stakedPositionTable)
+    .set({ receiptAmount: String(amount) })
+    .where(eq(stakedPositionTable.id, id));
+  revalidatePath("/crypto");
+}
+
+export async function updateStakedApy(id: number, apy: number) {
+  await requireSession();
+  assertNonNegative(apy, "apy");
+  await db
+    .update(stakedPositionTable)
+    .set({ projectedApy: String(apy) })
+    .where(eq(stakedPositionTable.id, id));
+  revalidatePath("/crypto");
 }
 
 export async function updateRealEstateCurrentValue(

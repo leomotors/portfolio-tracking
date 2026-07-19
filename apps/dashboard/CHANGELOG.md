@@ -1,5 +1,14 @@
 # Changelog
 
+## [0.8.0] - 2026-07-20
+
+- feat: add a Crypto page — staking position cards (deposited / current / earned, receipt-token holding, effective APY, sync source and staleness) plus a consolidated crypto positions table and token allocation donut
+- feat: effective APY is time-weighted from daily staking snapshots (immune to mid-life deposits/withdrawals), falling back to simple annualization from the stake date until 7 days of history exist
+- feat: inline-edit staking fields — deposited baseline, current amount (mirrors the cron write-back incl. average-cost rescale), receipt holding, and projected APY
+- feat: crypto positions on the investments page get a chip linking to the Crypto page
+- feat: Donut supports a `stacked` layout for narrow containers, keeping legend values visible
+- fix: draw allocation donut segments as explicit SVG arc paths instead of stroke-dasharray phase offsets, removing the rasterization wedge that could leak past 12 o'clock on the last segment
+
 ## [0.7.0] - 2026-07-12
 
 - feat: restyle display typography with the Crimson Pro serif for page titles and a larger light-weight overview net-worth figure

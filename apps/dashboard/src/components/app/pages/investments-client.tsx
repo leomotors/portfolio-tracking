@@ -1,6 +1,7 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, Coins } from "lucide-react";
+import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
 const DUST_THRESHOLD = 0.005;
@@ -504,13 +505,14 @@ function AccountDetail({
                 return (
                   <tr key={p.id} className="hover:bg-[var(--hover)]">
                     <Td>
-                      <div className="flex flex-col">
+                      <div className="flex flex-col items-start">
                         <span className="num text-[12px] font-semibold">
                           {p.symbol ?? "—"}
                         </span>
                         <span className="text-[12px] text-[var(--ink-3)]">
                           {p.name}
                         </span>
+                        <CryptoPageLink asset={p} />
                       </div>
                     </Td>
                     <Td>
@@ -614,13 +616,14 @@ function AccountDetail({
                       return (
                         <tr key={p.id} className="hover:bg-[var(--hover)]">
                           <Td>
-                            <div className="flex flex-col">
+                            <div className="flex flex-col items-start">
                               <span className="num text-[12px] font-semibold">
                                 {p.symbol ?? "—"}
                               </span>
                               <span className="text-[12px] text-[var(--ink-3)]">
                                 {p.name}
                               </span>
+                              <CryptoPageLink asset={p} />
                             </div>
                           </Td>
                           <Td>
@@ -689,6 +692,20 @@ function AccountDetail({
         )}
       </Card>
     </div>
+  );
+}
+
+function CryptoPageLink({ asset }: { asset: Asset }) {
+  if (asset.symbolType !== "cryptocurrency") return null;
+  return (
+    <Link
+      href="/crypto"
+      title={`View ${asset.symbol ?? asset.name} on the Crypto page`}
+      className="mt-1 inline-flex items-center gap-1 rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] font-medium text-[var(--ink-2)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]"
+    >
+      <Coins size={11} strokeWidth={2.25} aria-hidden />
+      Crypto
+    </Link>
   );
 }
 

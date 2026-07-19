@@ -5,4 +5,5 @@ export * from "./currency.ts";
 export * from "./investmentAccount.ts";
 export * from "./loanAccount.ts";
 export * from "./realEstate.ts";
+export * from "./staking.ts";
 export * from "./types.ts";
