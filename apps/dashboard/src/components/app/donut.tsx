@@ -36,15 +36,14 @@ export function Donut({
   const total = data.reduce((s, d) => s + d.value, 0);
   const r = (size - thickness) / 2;
   const c = size / 2;
-  const circ = 2 * Math.PI * r;
 
   const fracs = data.map((d) => (total === 0 ? 0 : d.value / total));
   const segs = data.map((d, i) => {
     const before = fracs.slice(0, i).reduce((s, f) => s + f, 0);
     return {
       ...d,
-      dash: circ * fracs[i]!,
-      offset: circ * -before,
+      start: before,
+      end: before + fracs[i]!,
       frac: fracs[i]!,
     };
   });
@@ -90,17 +89,12 @@ export function Donut({
           strokeWidth={thickness}
         />
         {segs.map((s, i) => (
-          <circle
+          <path
             key={i}
-            cx={c}
-            cy={c}
-            r={r}
+            d={arcPath(c, r, s.start, s.end)}
             fill="none"
             stroke={s.color}
             strokeWidth={hovered === i ? thickness + 5 : thickness}
-            strokeDasharray={`${s.dash} ${circ - s.dash}`}
-            strokeDashoffset={s.offset}
-            transform={`rotate(-90 ${c} ${c})`}
             aria-hidden="true"
             onMouseEnter={() => setHovered(i)}
             style={{
@@ -175,6 +169,31 @@ export function Donut({
       </div>
     </div>
   );
+}
+
+/**
+ * Explicit arc geometry instead of stroke-dasharray phase tricks: dashes that
+ * terminate exactly on the circle's path seam render glitchy wedges in some
+ * browsers (seen on the segment ending at 12 o'clock).
+ */
+function arcPath(c: number, r: number, startFrac: number, endFrac: number) {
+  const span = endFrac - startFrac;
+  if (span >= 0.9999) {
+    // A single arc command can't span the full circle — its endpoints would
+    // coincide and the arc would collapse to nothing.
+    return `M ${c} ${c - r} A ${r} ${r} 0 1 1 ${c} ${c + r} A ${r} ${r} 0 1 1 ${c} ${c - r}`;
+  }
+  const a0 = 2 * Math.PI * startFrac - Math.PI / 2;
+  const a1 = 2 * Math.PI * endFrac - Math.PI / 2;
+  const x0 = round(c + r * Math.cos(a0));
+  const y0 = round(c + r * Math.sin(a0));
+  const x1 = round(c + r * Math.cos(a1));
+  const y1 = round(c + r * Math.sin(a1));
+  return `M ${x0} ${y0} A ${r} ${r} 0 ${span > 0.5 ? 1 : 0} 1 ${x1} ${y1}`;
+}
+
+function round(value: number) {
+  return Math.round(value * 1000) / 1000;
 }
 
 function formatPercent(value: number) {
