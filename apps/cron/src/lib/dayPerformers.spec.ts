@@ -22,9 +22,30 @@ describe("dayPnlDelta", () => {
 
 describe("findTopAndWorstPerformers", () => {
   const current: AssetSnapshot[] = [
-    { id: 1, name: "Alpha Stock", cost: 100, value: 150 },
-    { id: 2, name: "Beta Fund", cost: 200, value: 180 },
-    { id: 3, name: "Gamma Bond", cost: 50, value: 55 },
+    {
+      id: 1,
+      name: "Alpha Stock",
+      symbol: "ALP",
+      assetClass: "stock",
+      cost: 100,
+      value: 150,
+    },
+    {
+      id: 2,
+      name: "Beta Fund",
+      symbol: "BET",
+      assetClass: "bond",
+      cost: 200,
+      value: 180,
+    },
+    {
+      id: 3,
+      name: "Gamma Bond",
+      symbol: "GAM",
+      assetClass: "bond",
+      cost: 50,
+      value: 55,
+    },
   ];
 
   const previousById = new Map([
@@ -64,7 +85,16 @@ describe("findTopAndWorstPerformers", () => {
   it("allows the same asset to be both top and worst", () => {
     expect(
       findTopAndWorstPerformers(
-        [{ id: 1, name: "Only", cost: 10, value: 12 }],
+        [
+          {
+            id: 1,
+            name: "Only",
+            symbol: "ONLY",
+            assetClass: "stock",
+            cost: 10,
+            value: 12,
+          },
+        ],
         new Map([[1, { cost: 10, value: 11 }]]),
       ),
     ).toEqual({

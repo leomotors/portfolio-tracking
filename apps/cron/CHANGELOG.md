@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.13.0] - 2026-07-27
+
+- feat: Discord summary attaches a FinViz-style day gain/loss heatmap PNG (treemap sized by asset value, colored by day unrealized P/L %, grouped by asset class)
+
 ## [0.12.0] - 2026-07-20
 
 - feat: staking sync step — tracks `staked_position` rows and writes live balances back into linked assets, rescaling average cost so the total cost basis stays constant (rewards read as P/L)
