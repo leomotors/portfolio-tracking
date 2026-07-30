@@ -6,6 +6,8 @@ import { assetTable, currencyTable } from "@repo/database/schema";
 export type AssetSnapshot = {
   id: number;
   name: string;
+  symbol: string | null;
+  assetClass: string;
   cost: number;
   value: number;
 };
@@ -35,6 +37,8 @@ export async function loadHeldAssetSnapshots(): Promise<AssetSnapshot[]> {
     .select({
       id: assetTable.id,
       name: assetTable.name,
+      symbol: assetTable.symbol,
+      assetClass: assetTable.assetClass,
       amount: assetTable.amount,
       averageCost: assetTable.averageCost,
       currentPrice: assetTable.currentPrice,
@@ -50,6 +54,8 @@ export async function loadHeldAssetSnapshots(): Promise<AssetSnapshot[]> {
     return {
       id: asset.id,
       name: asset.name,
+      symbol: asset.symbol,
+      assetClass: asset.assetClass,
       cost: amount * toNum(asset.averageCost) * fx,
       value: amount * toNum(asset.currentPrice) * fx,
     };
