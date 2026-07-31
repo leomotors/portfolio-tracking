@@ -36,14 +36,18 @@ const hyperliquidConfigSchema = z.object({
   user: z.string(),
 });
 
-const etherfiConfigSchema = z.object({
-  wallet: z.string(),
-  vault: z.string(),
-  accountant: z.string(),
-  rateDecimals: z.number().int(),
-  quote: z.string().optional(),
-  vaultSymbol: z.string().optional(),
-});
+const etherfiConfigSchema = z
+  .object({
+    chain: z.enum(["ethereum", "optimism"]),
+    wallet: z.string(),
+    vault: z.string(),
+    accountant: z.string(),
+    rateDecimals: z.number().int(),
+    quote: z.string().optional(),
+    vaultSymbol: z.string().optional(),
+  })
+  // RPC URL comes from ETH_RPC_URL / OP_RPC_URL env — never from syncConfig.
+  .strict();
 
 type StakedPositionRow = typeof stakedPositionTable.$inferSelect;
 

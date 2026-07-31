@@ -39,8 +39,23 @@ export function toUnits(raw: bigint, decimals: number): number {
   return Number(raw) / 10 ** decimals;
 }
 
-async function ethCall(to: string, data: string): Promise<string> {
-  const res = await fetch(environment.ETH_RPC_URL, {
+export type EvmChain = "ethereum" | "optimism";
+
+function rpcUrlForChain(chain: EvmChain): string {
+  switch (chain) {
+    case "ethereum":
+      return environment.ETH_RPC_URL;
+    case "optimism":
+      return environment.OP_RPC_URL;
+  }
+}
+
+async function ethCall(
+  chain: EvmChain,
+  to: string,
+  data: string,
+): Promise<string> {
+  const res = await fetch(rpcUrlForChain(chain), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -70,6 +85,8 @@ async function ethCall(to: string, data: string): Promise<string> {
 }
 
 export interface BoringVaultConfig {
+  /** Which L1/L2 hosts the vault — picks ETH_RPC_URL or OP_RPC_URL */
+  chain: EvmChain;
   /** Wallet holding the vault share tokens */
   wallet: string;
   /** Vault share token (BoringVault), e.g. liquidBTC / liquidETH */
@@ -100,8 +117,12 @@ export interface BoringVaultBalance {
 export async function fetchBoringVaultUnderlying(
   config: BoringVaultConfig,
 ): Promise<BoringVaultBalance> {
+  const { chain } = config;
+
   if (config.vaultSymbol) {
-    const symbol = decodeString(await ethCall(config.vault, SELECTOR_SYMBOL));
+    const symbol = decodeString(
+      await ethCall(chain, config.vault, SELECTOR_SYMBOL),
+    );
     if (symbol !== config.vaultSymbol) {
       throw new Error(
         `Vault ${config.vault} symbol is "${symbol}", expected "${config.vaultSymbol}"`,
@@ -112,17 +133,19 @@ export async function fetchBoringVaultUnderlying(
   const rateCall =
     config.quote && config.quote !== "base"
       ? ethCall(
+          chain,
           config.accountant,
           SELECTOR_GET_RATE_IN_QUOTE_SAFE + encodeAddressParam(config.quote),
         )
-      : ethCall(config.accountant, SELECTOR_GET_RATE);
+      : ethCall(chain, config.accountant, SELECTOR_GET_RATE);
 
   const [sharesHex, shareDecimalsHex, rateHex] = await Promise.all([
     ethCall(
+      chain,
       config.vault,
       SELECTOR_BALANCE_OF + encodeAddressParam(config.wallet),
     ),
-    ethCall(config.vault, SELECTOR_DECIMALS),
+    ethCall(chain, config.vault, SELECTOR_DECIMALS),
     rateCall,
   ]);
 

@@ -9,6 +9,7 @@ export const environmentSchema = z.object({
   COINGECKO_API_KEY: z.string().optional(),
   SOLANA_RPC_URL: z.string().default("https://api.mainnet-beta.solana.com"),
   ETH_RPC_URL: z.string().default("https://ethereum-rpc.publicnode.com"),
+  OP_RPC_URL: z.string().default("https://optimism-rpc.publicnode.com"),
 });
 
 export type Environment = z.infer<typeof environmentSchema>;

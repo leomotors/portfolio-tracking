@@ -60,11 +60,14 @@ rescale happens when you manually edit "Current" on the Crypto tab.
 |---|---|---|
 | `solana_native` | Solana JSON-RPC: auto-discovers stake accounts by withdraw authority (`getProgramAccounts`) and sums total balances (rewards land in the account each epoch). New delegations create new stake accounts, so discovery needs no config edits. | `{"withdrawAuthority": "<wallet>"}` — or `{"stakeAccounts": ["<pubkey>", ...]}` if the RPC blocks discovery |
 | `hyperliquid` | `POST https://api.hyperliquid.xyz/info` `{"type":"delegatorSummary"}` (delegated + undelegated + pending withdrawal) | `{"user": "0x..."}` |
-| `etherfi_liquid` | raw `eth_call`: `balanceOf(wallet)` on the vault share token × `getRate()` on the accountant | `{"wallet": "0x...", "vault": "0x...", "accountant": "0x...", "rateDecimals": 8, "quote": "base", "vaultSymbol": "liquidBTC"}` |
+| `etherfi_liquid` | raw `eth_call`: `balanceOf(wallet)` on the vault share token × `getRate()` on the accountant | `{"chain": "ethereum", "wallet": "0x...", "vault": "0x...", "accountant": "0x...", "rateDecimals": 8, "quote": "base", "vaultSymbol": "liquidBTC"}` |
 | `manual` | none — APY projection between manual edits | `null` |
 
 Notes:
 
+- `chain` is required: `"ethereum"` or `"optimism"`. It selects
+  `ETH_RPC_URL` / `OP_RPC_URL` — do not put an RPC URL in `sync_config`
+  (unknown keys are rejected).
 - `vaultSymbol` is optional but recommended: the sync verifies the vault's
   on-chain `symbol()` matches and errors out otherwise (typo guard).
 - `quote` defaults to `"base"` (= `getRate()`, quoted in the vault's base
@@ -101,7 +104,8 @@ that row and converts the pre-existing `BTCTHB`/`ETHTHB`/`SOLTHB` rows —
 |---|---|---|
 | `COINGECKO_API_KEY` | none (keyless) | optional free Demo key for stable rate limits |
 | `SOLANA_RPC_URL` | `https://api.mainnet-beta.solana.com` | stake account balances |
-| `ETH_RPC_URL` | `https://ethereum-rpc.publicnode.com` | Ether.fi vault reads |
+| `ETH_RPC_URL` | `https://ethereum-rpc.publicnode.com` | Ether.fi vault reads (`chain: "ethereum"`) |
+| `OP_RPC_URL` | `https://optimism-rpc.publicnode.com` | Ether.fi vault reads (`chain: "optimism"`) |
 
 ## Seeding positions
 
@@ -130,7 +134,8 @@ VALUES
   -- Ether.fi Liquid BTC (addresses verified on-chain 2026-07-17)
   (43, 'Ether.fi Liquid BTC', 'etherfi_liquid', 'BTC',
    '0.5', '0.5', '0.03', '2025-09-20',
-   '{"wallet": "<your 0x wallet>",
+   '{"chain": "ethereum",
+     "wallet": "<your 0x wallet>",
      "vault": "0x5f46d540b6eD704C3c8789105F30E075AA900726",
      "accountant": "0xEa23aC6D7D11f6b181d6B98174D334478ADAe6b0",
      "rateDecimals": 8, "quote": "base", "vaultSymbol": "liquidBTC"}'),
@@ -139,7 +144,8 @@ VALUES
   -- call base() (0x5001f3b5) and symbol() on-chain, expect WETH/eETH + "liquidETH".
   (44, 'Ether.fi Liquid ETH', 'etherfi_liquid', 'ETH',
    '2.0', '2.0', '0.035', '2025-05-15',
-   '{"wallet": "<your 0x wallet>",
+   '{"chain": "ethereum",
+     "wallet": "<your 0x wallet>",
      "vault": "0xf0bb20865277aBd641a307eCe5Ee04E79073416C",
      "accountant": "<verify from ether.fi docs>",
      "rateDecimals": 18, "quote": "base", "vaultSymbol": "liquidETH"}');

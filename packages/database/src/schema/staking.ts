@@ -19,9 +19,11 @@ import { stakingProviderType, stakingSyncSourceType } from "./types.ts";
  *   summed via JSON-RPC getBalance (rewards land in the account each epoch).
  * - hyperliquid: `{ user: string }` — address queried via the info API
  *   (delegatorSummary: delegated + undelegated + pending withdrawal).
- * - etherfi_liquid: `{ wallet, vault, accountant: string; rateDecimals: number;
- *   quote?: "base" | <ERC20 address>; vaultSymbol?: string }` — share balance
- *   times the accountant rate; vaultSymbol guards against a typo'd address.
+ * - etherfi_liquid: `{ chain: "ethereum" | "optimism"; wallet, vault,
+ *   accountant: string; rateDecimals: number; quote?: "base" | <ERC20 address>;
+ *   vaultSymbol?: string }` — share balance times the accountant rate;
+ *   vaultSymbol guards against a typo'd address. RPC is selected from env by
+ *   chain (ETH_RPC_URL / OP_RPC_URL); per-row rpcUrl overrides are rejected.
  * - manual: null — kept current by hand or by APY projection.
  */
 export type StakingSyncConfig = Record<string, unknown>;

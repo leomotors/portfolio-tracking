@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [minor]
+
+- feat!: Ether.fi Liquid `sync_config` requires `chain` (`ethereum` | `optimism`); RPC is selected from `ETH_RPC_URL` / `OP_RPC_URL` and per-row RPC URL overrides are rejected
+
 ## [0.13.0] - 2026-07-27
 
 - feat: Discord summary attaches a FinViz-style day gain/loss heatmap PNG (treemap sized by asset value, colored by day unrealized P/L %, grouped by asset class)
