@@ -9,9 +9,9 @@ const FAKE_SOLANA = "DummySolanaAddress111111111111111111111111";
 
 test("parseHlvSymbol extracts vault address", () => {
   expect(parseHlvSymbol(`HLV:${FAKE_VAULT}`)).toBe(FAKE_VAULT);
-  expect(
-    parseHlvSymbol("hlv:0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD"),
-  ).toBe(FAKE_VAULT);
+  expect(parseHlvSymbol("hlv:0xABCDEFABCDEFABCDEFABCDEFABCDEFABCDEFABCD")).toBe(
+    FAKE_VAULT,
+  );
 });
 
 test("parseHlvSymbol rejects bad symbols", () => {
