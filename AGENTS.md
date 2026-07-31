@@ -30,6 +30,6 @@ Linting is done by ESLint and formatting is done by prettier. No need to do anyt
 
 ## Notes
 
-- The repo uses `pnpm@11.5.1` and Turbo.
+- The repo uses pnpm (version defined in package.json) and Turbo.
 - Database access is shared through `@repo/database/client` and schema exports from `@repo/database/schema`.
 - Dashboard authentication is Discord OAuth based and controlled by `AUTH_SECRET`, `DISCORD_*`, and `ALLOWED_USER_IDS`.
