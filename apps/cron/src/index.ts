@@ -42,10 +42,17 @@ const previousById = new Map(
     { cost: asset.cost, value: asset.value },
   ]),
 );
-const heatmapPng = await renderDayHeatmapPng(
-  await loadHeldAssetSnapshots(),
-  previousById,
-);
+let heatmapPng: Buffer | null = null;
+try {
+  heatmapPng = await renderDayHeatmapPng(
+    await loadHeldAssetSnapshots(),
+    previousById,
+  );
+} catch (error) {
+  logger.error(
+    `Failed to render heatmap PNG: ${error instanceof Error ? error.message : String(error)}`,
+  );
+}
 
 const attachments: DiscordAttachment[] = [
   {

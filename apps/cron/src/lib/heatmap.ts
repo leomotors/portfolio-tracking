@@ -46,6 +46,8 @@ const DEFAULT_WIDTH = 1200;
 const DEFAULT_HEIGHT = 720;
 const TITLE_BAND = 44;
 const MIN_COLOR_SCALE = 0.5;
+/** Resolves via fontconfig on Alpine (font-dejavu) and system sans elsewhere. */
+const HEATMAP_FONT_FAMILY = "DejaVu Sans, sans-serif";
 
 type HierarchyDatum = {
   name: string;
@@ -262,8 +264,8 @@ export function renderHeatmapSvg(
   const parts: string[] = [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}">`,
     `<rect width="100%" height="100%" fill="#0d1117"/>`,
-    `<text x="16" y="28" fill="#e6edf3" font-family="ui-sans-serif, system-ui, sans-serif" font-size="20" font-weight="700">${escapeXml(title)}</text>`,
-    `<text x="${width - 16}" y="28" fill="#8b949e" font-family="ui-sans-serif, system-ui, sans-serif" font-size="13" text-anchor="end">Size = value · Color = day P/L %</text>`,
+    `<text x="16" y="28" fill="#e6edf3" font-family="${HEATMAP_FONT_FAMILY}" font-size="20" font-weight="700">${escapeXml(title)}</text>`,
+    `<text x="${width - 16}" y="28" fill="#8b949e" font-family="${HEATMAP_FONT_FAMILY}" font-size="13" text-anchor="end">Size = value · Color = day P/L %</text>`,
   ];
 
   for (const rect of rects) {
@@ -278,7 +280,7 @@ export function renderHeatmapSvg(
     if (rect.depth === 1) {
       if (w >= 48) {
         parts.push(
-          `<text x="${(rect.x0 + 8).toFixed(2)}" y="${(rect.y0 + 16).toFixed(2)}" fill="#8b949e" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12" font-weight="600">${escapeXml(rect.label)}</text>`,
+          `<text x="${(rect.x0 + 8).toFixed(2)}" y="${(rect.y0 + 16).toFixed(2)}" fill="#8b949e" font-family="${HEATMAP_FONT_FAMILY}" font-size="12" font-weight="600">${escapeXml(rect.label)}</text>`,
         );
       }
       continue;
@@ -294,12 +296,12 @@ export function renderHeatmapSvg(
     if (canShowLabel) {
       const fontSize = Math.min(15, Math.max(10, w / 8));
       parts.push(
-        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 - 4).toFixed(2)}" fill="${fillText}" font-family="ui-sans-serif, system-ui, sans-serif" font-size="${fontSize.toFixed(1)}" font-weight="700" text-anchor="middle">${escapeXml(rect.label)}</text>`,
-        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 14).toFixed(2)}" fill="${fillText}" font-family="ui-sans-serif, system-ui, sans-serif" font-size="${Math.max(10, fontSize - 1).toFixed(1)}" text-anchor="middle" opacity="0.92">${pct}</text>`,
+        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 - 4).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="${fontSize.toFixed(1)}" font-weight="700" text-anchor="middle">${escapeXml(rect.label)}</text>`,
+        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 14).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="${Math.max(10, fontSize - 1).toFixed(1)}" text-anchor="middle" opacity="0.92">${pct}</text>`,
       );
     } else if (w >= 44) {
       parts.push(
-        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 4).toFixed(2)}" fill="${fillText}" font-family="ui-sans-serif, system-ui, sans-serif" font-size="11" font-weight="600" text-anchor="middle">${pct}</text>`,
+        `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 4).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="11" font-weight="600" text-anchor="middle">${pct}</text>`,
       );
     }
   }
