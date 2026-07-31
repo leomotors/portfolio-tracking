@@ -75,7 +75,12 @@ export function CryptoClient({
   const cryptoAssets = useMemo(
     () =>
       assets
-        .filter((a) => a.symbolType === "cryptocurrency" && a.amount > 0)
+        .filter(
+          (a) =>
+            (a.symbolType === "cryptocurrency" ||
+              a.symbolType === "hyperliquid_vault") &&
+            a.amount > 0,
+        )
         .map((a) => {
           const rate = fxById.get(a.currencyId)?.valueInTHB ?? 1;
           return {

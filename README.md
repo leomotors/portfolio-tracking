@@ -31,7 +31,7 @@ pnpm --filter @repo/database db:generate
 
 Shared database access uses `DATABASE_URL`.
 
-The cron also needs `DISCORD_WEBHOOK_URL`; `SEC_OCP_APIM_SUBSCRIPTION_KEY` is optional for SEC API v2 fund NAV requests, and `DRY_RUN=true` prevents database writes in supported cron steps. For staking sync and crypto prices, `COINGECKO_API_KEY` (optional Demo key), `SOLANA_RPC_URL`, `ETH_RPC_URL`, and `OP_RPC_URL` are supported — the RPC URLs default to public endpoints (see `docs/staking-tracking.md`).
+The cron also needs `DISCORD_WEBHOOK_URL`; `SEC_OCP_APIM_SUBSCRIPTION_KEY` is optional for SEC API v2 fund NAV requests, and `DRY_RUN=true` prevents database writes in supported cron steps. For staking sync and crypto prices, `COINGECKO_API_KEY` (optional Demo key), `SOLANA_RPC_URL`, `ETH_RPC_URL`, and `OP_RPC_URL` are supported — the RPC URLs default to public endpoints (see `docs/staking-tracking.md`). Hyperliquid vault positions use `symbol_type = hyperliquid_vault` and symbol `HLV:<vaultAddress>`; the wallet is read from the investment account and equity is priced in `priceUpdate`.
 
 The dashboard uses Discord OAuth and allow-listing through `AUTH_SECRET`, `ALLOWED_USER_IDS`, `DISCORD_CLIENT_ID`, `DISCORD_CLIENT_SECRET`, and `DISCORD_REDIRECT_URI`. AI chat features are enabled by provider keys such as `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, or `XAI_API_KEY`; defaults can be set with `AI_DEFAULT_PROVIDER` and `AI_DEFAULT_MODEL`.
 

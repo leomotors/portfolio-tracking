@@ -1,0 +1,1 @@
+ALTER TYPE "public"."symbol_type" ADD VALUE 'hyperliquid_vault';

@@ -17,6 +17,8 @@ export const symbolType = pgEnum("symbol_type", [
   "thai_mutual_fund",
   "offshore_stock",
   "cryptocurrency",
+  /** Hyperliquid vault equity; symbol is `HLV:<vaultAddress>` */
+  "hyperliquid_vault",
 ]);
 
 export const assetType = pgEnum("asset_type", [

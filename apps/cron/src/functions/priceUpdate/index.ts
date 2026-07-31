@@ -1,12 +1,20 @@
-import { eq, gt } from "drizzle-orm";
+import { and, eq, gt } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
-import { assetTable, currencyTable } from "@repo/database/schema";
+import {
+  assetTable,
+  currencyTable,
+  investmentAccountTable,
+} from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
 import { fetchBitkubUsdcThb } from "@/data/bitkub";
 import { fetchCoinGeckoPrices } from "@/data/coingecko";
+import {
+  fetchHyperliquidVaultPrices,
+  walletFromAccountNo,
+} from "@/data/hyperliquidVault";
 import { fetchFundPrices } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
 import { fetchYahooStockPrices } from "@/data/yahoo";
@@ -70,8 +78,8 @@ export async function priceUpdateStep() {
   ];
 
   // Run updates in parallel since they scrape different websites
-  await Promise.all(
-    configs.map((config) =>
+  await Promise.all([
+    ...configs.map((config) =>
       config.symbols.length > 0
         ? updateStockPrices(config).catch((err) => {
             logger.error(
@@ -80,7 +88,57 @@ export async function priceUpdateStep() {
           })
         : logger.log(`No ${config.name} to update`),
     ),
-  );
+    updateHyperliquidVaultPrices().catch((err) => {
+      logger.error(
+        `Error updating Hyperliquid vault prices: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }),
+  ]);
+}
+
+async function updateHyperliquidVaultPrices() {
+  const rows = await db
+    .select({
+      symbol: assetTable.symbol,
+      accountNo: investmentAccountTable.accountNo,
+    })
+    .from(assetTable)
+    .innerJoin(
+      investmentAccountTable,
+      eq(assetTable.investmentAccountId, investmentAccountTable.id),
+    )
+    .where(
+      and(
+        eq(assetTable.symbolType, "hyperliquid_vault"),
+        gt(assetTable.amount, "0"),
+      ),
+    );
+
+  const assets = rows
+    .map((r) => {
+      if (r.symbol == null) return null;
+      const wallet = walletFromAccountNo(r.accountNo);
+      if (wallet == null) {
+        logger.error(
+          `hyperliquid_vault ${r.symbol}: account_no has no EVM wallet`,
+        );
+        return null;
+      }
+      return { symbol: r.symbol, wallet };
+    })
+    .filter((a) => a != null);
+
+  if (assets.length === 0) {
+    logger.log("No Hyperliquid vault positions to update");
+    return;
+  }
+
+  await updateStockPrices({
+    name: "Hyperliquid vault equity",
+    symbols: assets.map((a) => a.symbol),
+    fetcher: () => fetchHyperliquidVaultPrices(assets),
+    symbolMapper: (s) => s,
+  });
 }
 
 async function updateStockPrices(config: StockUpdateConfig) {

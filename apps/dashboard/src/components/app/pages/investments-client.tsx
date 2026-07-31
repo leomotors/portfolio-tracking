@@ -696,7 +696,11 @@ function AccountDetail({
 }
 
 function CryptoPageLink({ asset }: { asset: Asset }) {
-  if (asset.symbolType !== "cryptocurrency") return null;
+  if (
+    asset.symbolType !== "cryptocurrency" &&
+    asset.symbolType !== "hyperliquid_vault"
+  )
+    return null;
   return (
     <Link
       href="/crypto"

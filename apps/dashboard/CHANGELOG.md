@@ -1,5 +1,9 @@
 # Changelog
 
+## [minor]
+
+- feat: include Hyperliquid vault assets (`symbol_type = hyperliquid_vault`) on the Crypto page and investments Crypto chip
+
 ## [0.8.0] - 2026-07-20
 
 - feat: add a Crypto page — staking position cards (deposited / current / earned, receipt-token holding, effective APY, sync source and staleness) plus a consolidated crypto positions table and token allocation donut
