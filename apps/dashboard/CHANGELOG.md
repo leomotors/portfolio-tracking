@@ -1,6 +1,6 @@
 # Changelog
 
-## [minor]
+## [0.9.0] - 2026-08-01
 
 - feat: include Hyperliquid vault assets (`symbol_type = hyperliquid_vault`) on the Crypto page and investments Crypto chip
 

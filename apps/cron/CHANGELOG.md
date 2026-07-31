@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [minor]
+## [0.14.0] - 2026-08-01
 
 - feat: Hyperliquid vault equity pricing — `symbol_type = hyperliquid_vault`, symbol `HLV:<vaultAddress>`, wallet from the investment account; `priceUpdate` sets `current_price` to live USDC equity (no vault allowlist in code)
 - feat!: Ether.fi Liquid `sync_config` requires `chain` (`ethereum` | `optimism`); RPC is selected from `ETH_RPC_URL` / `OP_RPC_URL` and per-row RPC URL overrides are rejected
