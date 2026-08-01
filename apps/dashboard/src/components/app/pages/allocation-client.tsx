@@ -88,7 +88,7 @@ export function AllocationClient({
                 </div>
               </CardHeader>
               <CardContent>
-                <HBars data={byClass} valueFmt={(v) => thb(v)} />
+                <HBars data={byClass} valueFmt={(v) => thb(v)} showPercent />
               </CardContent>
             </Card>
           </div>
@@ -126,19 +126,40 @@ export function AllocationClient({
                 sub={thb(riskiest?.value ?? 0)}
               />
             </KpiGrid>
-            <Card>
-              <CardHeader>
-                <div>
-                  <CardTitle>Risk ladder</CardTitle>
-                  <CardDescription>
-                    Safe core → higher satellite
-                  </CardDescription>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <HBars data={byRisk} valueFmt={(v) => thb(v)} />
-              </CardContent>
-            </Card>
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle>Risk mix</CardTitle>
+                    <CardDescription>
+                      Safe core → higher satellite
+                    </CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Donut
+                    data={byRisk}
+                    size={220}
+                    thickness={26}
+                    centerLabel="Portfolio"
+                    centerValue={thb(totalRisk)}
+                    valueFormatter={thb}
+                    ariaLabel="Risk level allocation"
+                  />
+                </CardContent>
+              </Card>
+              <Card>
+                <CardHeader>
+                  <div>
+                    <CardTitle>Risk ladder</CardTitle>
+                    <CardDescription>By value</CardDescription>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <HBars data={byRisk} valueFmt={(v) => thb(v)} showPercent />
+                </CardContent>
+              </Card>
+            </div>
           </div>
         </TabsContent>
 

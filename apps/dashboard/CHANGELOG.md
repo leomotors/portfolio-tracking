@@ -1,5 +1,10 @@
 # Changelog
 
+## [0.10.0] - 2026-08-01
+
+- feat: show a risk-mix donut on the Allocation Core · Satellite tab
+- feat: show portfolio-share percentages on Allocation horizontal bar drilldowns
+
 ## [0.9.0] - 2026-08-01
 
 - feat: include Hyperliquid vault assets (`symbol_type = hyperliquid_vault`) on the Crypto page and investments Crypto chip
