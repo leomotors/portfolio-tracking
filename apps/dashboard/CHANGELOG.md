@@ -1,5 +1,9 @@
 # Changelog
 
+## [minor]
+
+- chore: update AI chat cost estimates to current OpenAI Luna/Terra and xAI Grok 4.5 cached-input pricing
+
 ## [0.10.0] - 2026-08-01
 
 - feat: show a risk-mix donut on the Allocation Core · Satellite tab

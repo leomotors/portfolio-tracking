@@ -13,7 +13,7 @@ describe("AI cost accounting", () => {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       }),
-    ).toBe(7_000_000);
+    ).toBe(1_400_000);
   });
 
   it("uses cached input rates when cache read tokens are present", () => {
@@ -23,7 +23,7 @@ describe("AI cost accounting", () => {
         outputTokens: 0,
         cachedInputTokens: 500_000,
       }),
-    ).toBe(550_000);
+    ).toBe(110_000);
   });
 
   it("tracks provider search tool invocation costs", () => {
