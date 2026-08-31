@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { Kpi, KpiGrid } from "@/components/app/kpi";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { getCreditCards, getPersonalLoans } from "@/lib/db/queries";
 import { CARD_BG } from "@/lib/portfolio/colors";
@@ -29,13 +30,13 @@ export default async function CreditPage() {
         <Kpi label="Credit cards" value={creditCards.length} sub="on file" />
         <Kpi
           label="Total credit limit"
-          value={thb(totalLimit)}
+          value={<Sensitive>{thb(totalLimit)}</Sensitive>}
           sub="sum of card limits"
         />
         <Kpi label="Loan lines" value={personalLoans.length} sub="on file" />
         <Kpi
           label="Total loan capacity"
-          value={thb(loanLimit)}
+          value={<Sensitive>{thb(loanLimit)}</Sensitive>}
           sub="sum of loan limits"
         />
       </KpiGrid>
@@ -93,7 +94,7 @@ export default async function CreditPage() {
                     Limit
                   </div>
                   <div className="num text-[16px] font-medium">
-                    {thb(c.creditLimit)}
+                    <Sensitive>{thb(c.creditLimit)}</Sensitive>
                   </div>
                 </div>
                 <div className="text-right">
@@ -164,7 +165,9 @@ export default async function CreditPage() {
                         </span>
                       </Td>
                       <Td align="right">
-                        <span className="num">{thb(l.creditLimit)}</span>
+                        <span className="num">
+                          <Sensitive>{thb(l.creditLimit)}</Sensitive>
+                        </span>
                       </Td>
                       <Td>
                         <span className="text-[var(--ink-3)]">

@@ -8,6 +8,7 @@ import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import { Sparkline } from "@/components/app/sparkline";
 import { Stale } from "@/components/app/stale";
 import {
@@ -184,10 +185,14 @@ export function CryptoClient({
       <Card>
         <CardContent>
           <div className="grid grid-cols-2 gap-x-7 gap-y-4 md:grid-cols-4">
-            <Stat label="Total crypto" value={thb(totalCryptoThb)} large />
+            <Stat
+              label="Total crypto"
+              value={<Sensitive>{thb(totalCryptoThb)}</Sensitive>}
+              large
+            />
             <Stat
               label="In staking"
-              value={thb(stakedValueThb)}
+              value={<Sensitive>{thb(stakedValueThb)}</Sensitive>}
               sub={
                 totalCryptoThb > 0
                   ? `${((stakedValueThb / totalCryptoThb) * 100).toFixed(1)}% of crypto`
@@ -197,7 +202,7 @@ export function CryptoClient({
             />
             <Stat
               label="Earned to date"
-              value={thb(earnedThbTotal)}
+              value={<Sensitive>{thb(earnedThbTotal)}</Sensitive>}
               positive={earnedThbTotal >= 0}
               large
             />
@@ -287,7 +292,9 @@ export function CryptoClient({
                       </Td>
                       <Td align="right">
                         <span className="num">
-                          {fmtAmount(asset.amount, asset.unit)}
+                          <Sensitive>
+                            {fmtAmount(asset.amount, asset.unit)}
+                          </Sensitive>
                         </span>
                       </Td>
                       <Td align="right">
@@ -302,7 +309,9 @@ export function CryptoClient({
                         )}
                       </Td>
                       <Td align="right">
-                        <span className="num">{thb(valueThb)}</span>
+                        <span className="num">
+                          <Sensitive>{thb(valueThb)}</Sensitive>
+                        </span>
                       </Td>
                       <Td align="right">
                         <Delta value={pl} pct={plPct} mini />
@@ -400,7 +409,7 @@ function StakedPositionCard({
           </div>
           <div className="flex flex-col items-end gap-0.5 text-right">
             <span className="num text-[20px] font-semibold tracking-[-0.01em]">
-              {value == null ? "—" : thb(value)}
+              {value == null ? "—" : <Sensitive>{thb(value)}</Sensitive>}
             </span>
             {spark.length > 1 && (
               <Sparkline
@@ -450,7 +459,7 @@ function StakedPositionCard({
                   : "text-[var(--accent-neg)]",
               )}
             >
-              {fmtAmount(earned, unit)}
+              <Sensitive>{fmtAmount(earned, unit)}</Sensitive>
               {earnedPct != null && (
                 <span className="ml-1.5 text-[11px] opacity-85">
                   {pct(earnedPct)}
@@ -459,7 +468,7 @@ function StakedPositionCard({
             </div>
             {earnedThb != null && (
               <div className="num text-[11px] text-[var(--ink-3)]">
-                {thb(earnedThb)}
+                <Sensitive>{thb(earnedThb)}</Sensitive>
               </div>
             )}
           </div>
@@ -519,6 +528,7 @@ function StakedPositionCard({
               prefix=""
               suffix="%"
               decimals={2}
+              sensitive={false}
               onSave={(v) => updateStakedApy(position.id, v / 100)}
               ariaLabel={`Edit projected APY for ${position.name}`}
             />
@@ -546,7 +556,7 @@ function Stat({
   positive,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   sub?: string;
   large?: boolean;
   positive?: boolean;

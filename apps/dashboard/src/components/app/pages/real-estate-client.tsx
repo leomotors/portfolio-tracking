@@ -7,6 +7,7 @@ import { Delta } from "@/components/app/delta";
 import { EditableNumber } from "@/components/app/editable-number";
 import { Kpi, KpiGrid } from "@/components/app/kpi";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import { Stale } from "@/components/app/stale";
 import { Button } from "@/components/ui/button";
 import {
@@ -90,17 +91,27 @@ export function RealEstateClient({ properties }: RealEstateClientProps) {
       ) : (
         <>
           <KpiGrid layout="4up">
-            <Kpi label="Market value" value={thb(totals.value)} />
-            <Kpi label="Purchase cost" value={thb(totals.cost)} />
+            <Kpi
+              label="Market value"
+              value={<Sensitive>{thb(totals.value)}</Sensitive>}
+            />
+            <Kpi
+              label="Purchase cost"
+              value={<Sensitive>{thb(totals.cost)}</Sensitive>}
+            />
             <Kpi
               label="Unrealized P/L"
-              value={thb(totals.delta)}
+              value={<Sensitive>{thb(totals.delta)}</Sensitive>}
               delta={totals.delta}
               pct={totals.deltaPct}
             />
             <Kpi
               label="Average property"
-              value={compactThb(totals.value / properties.length)}
+              value={
+                <Sensitive>
+                  {compactThb(totals.value / properties.length)}
+                </Sensitive>
+              }
               sub={`${properties.length} total`}
             />
           </KpiGrid>
@@ -204,11 +215,13 @@ function PropertyTable({
                     </span>
                   </Td>
                   <Td align="right">
-                    <span className="num">{thb(property.costValue)}</span>
+                    <span className="num">
+                      <Sensitive>{thb(property.costValue)}</Sensitive>
+                    </span>
                   </Td>
                   <Td align="right">
                     <span className="num">
-                      {thb(property.marketValue)}
+                      <Sensitive>{thb(property.marketValue)}</Sensitive>
                       <Stale date={property.valueUpdatedAt} />
                     </span>
                   </Td>
@@ -362,15 +375,15 @@ function ValuationPanel({ properties }: { properties: RealEstateProperty[] }) {
               <div className="grid grid-cols-2 gap-x-6 gap-y-4">
                 <Stat
                   label="Market value (THB)"
-                  value={thb(property.marketValue)}
+                  value={<Sensitive>{thb(property.marketValue)}</Sensitive>}
                 />
                 <Stat
                   label="Purchase cost (THB)"
-                  value={thb(property.costValue)}
+                  value={<Sensitive>{thb(property.costValue)}</Sensitive>}
                 />
                 <Stat
                   label="Unrealized P/L"
-                  value={thb(delta)}
+                  value={<Sensitive>{thb(delta)}</Sensitive>}
                   detail={pct(deltaPct)}
                 />
                 <Stat
@@ -436,7 +449,7 @@ function Stat({
   detail,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   detail?: string;
 }) {
   return (

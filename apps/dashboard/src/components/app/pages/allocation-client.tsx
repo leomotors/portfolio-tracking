@@ -4,6 +4,7 @@ import { Donut } from "@/components/app/donut";
 import { HBars } from "@/components/app/h-bars";
 import { Kpi, KpiGrid } from "@/components/app/kpi";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import { Stale } from "@/components/app/stale";
 import {
   Card,
@@ -52,7 +53,11 @@ export function AllocationClient({
       <PageHeader
         kicker="Allocation"
         title="Where the money lives"
-        sub={`Total portfolio ${thb(total)}`}
+        sub={
+          <>
+            Total portfolio <Sensitive>{thb(total)}</Sensitive>
+          </>
+        }
       />
 
       <Tabs defaultValue="class" className="flex flex-col gap-5">
@@ -99,7 +104,7 @@ export function AllocationClient({
             <KpiGrid layout="4up">
               <Kpi
                 label="Core"
-                value={thb(split.core)}
+                value={<Sensitive>{thb(split.core)}</Sensitive>}
                 sub={
                   totalRisk === 0
                     ? "—"
@@ -108,7 +113,7 @@ export function AllocationClient({
               />
               <Kpi
                 label="Satellite"
-                value={thb(split.satellite)}
+                value={<Sensitive>{thb(split.satellite)}</Sensitive>}
                 sub={
                   totalRisk === 0
                     ? "—"
@@ -118,12 +123,12 @@ export function AllocationClient({
               <Kpi
                 label="Safest sleeve"
                 value={RISK_LABEL.safe_core ?? "—"}
-                sub={thb(safest?.value ?? 0)}
+                sub={<Sensitive>{thb(safest?.value ?? 0)}</Sensitive>}
               />
               <Kpi
                 label="Riskiest sleeve"
                 value={RISK_LABEL.higher_satellite ?? "—"}
-                sub={thb(riskiest?.value ?? 0)}
+                sub={<Sensitive>{thb(riskiest?.value ?? 0)}</Sensitive>}
               />
             </KpiGrid>
             <div className="grid grid-cols-1 gap-3 md:grid-cols-2">

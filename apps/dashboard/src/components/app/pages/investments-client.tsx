@@ -13,6 +13,7 @@ import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import { Sparkline } from "@/components/app/sparkline";
 import { Stale } from "@/components/app/stale";
 import {
@@ -128,7 +129,7 @@ function AccountListButton({
       </div>
       <div className="flex items-baseline justify-between gap-2">
         <span className="num text-[15px] font-medium">
-          {thb(account.currentValue)}
+          <Sensitive>{thb(account.currentValue)}</Sensitive>
         </span>
         <Delta value={pl} pct={plPct} mini />
       </div>
@@ -393,7 +394,7 @@ function AccountDetail({
         </div>
         <div className="flex flex-col items-end gap-1 text-right">
           <div className="num text-[40px] leading-none font-semibold tracking-[-0.02em]">
-            {thb(account.currentValue)}
+            <Sensitive>{thb(account.currentValue)}</Sensitive>
           </div>
           <Delta value={pl} pct={plPct} />
           <div className="text-[11px] text-[var(--ink-3)]">
@@ -466,10 +467,16 @@ function AccountDetail({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-7 gap-y-4">
-              <Stat label="P/L" value={thb(pl)} large />
+              <Stat label="P/L" value={<Sensitive>{thb(pl)}</Sensitive>} large />
               <Stat label="Return" value={pct(plPct)} large />
-              <Stat label="Cost basis" value={thb(account.currentCost)} />
-              <Stat label="Mark" value={thb(account.currentValue)} />
+              <Stat
+                label="Cost basis"
+                value={<Sensitive>{thb(account.currentCost)}</Sensitive>}
+              />
+              <Stat
+                label="Mark"
+                value={<Sensitive>{thb(account.currentValue)}</Sensitive>}
+              />
             </div>
           </CardContent>
         </Card>
@@ -542,6 +549,7 @@ function AccountDetail({
                         value={p.averageCost}
                         prefix=""
                         decimals={2}
+                        sensitive={false}
                         onSave={(v) => updateAssetAverageCost(p.id, v)}
                         ariaLabel={`Edit average cost for ${p.name}`}
                       />
@@ -565,7 +573,9 @@ function AccountDetail({
                       )}
                     </Td>
                     <Td align="right">
-                      <span className="num">{thb(valueThb)}</span>
+                      <span className="num">
+                        <Sensitive>{thb(valueThb)}</Sensitive>
+                      </span>
                     </Td>
                     <Td align="right">
                       <Delta value={aPl} pct={aPlPct} mini />
@@ -653,6 +663,7 @@ function AccountDetail({
                               value={p.averageCost}
                               prefix=""
                               decimals={2}
+                              sensitive={false}
                               onSave={(v) => updateAssetAverageCost(p.id, v)}
                               ariaLabel={`Edit average cost for ${p.name}`}
                             />
@@ -676,7 +687,9 @@ function AccountDetail({
                             )}
                           </Td>
                           <Td align="right">
-                            <span className="num">{thb(valueThb)}</span>
+                            <span className="num">
+                              <Sensitive>{thb(valueThb)}</Sensitive>
+                            </span>
                           </Td>
                           <Td align="right">
                             <Delta value={aPl} pct={aPlPct} mini />
@@ -719,7 +732,7 @@ function Stat({
   large,
 }: {
   label: string;
-  value: string;
+  value: React.ReactNode;
   large?: boolean;
 }) {
   return (

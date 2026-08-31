@@ -9,6 +9,7 @@ import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { Kpi, KpiGrid } from "@/components/app/kpi";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import {
   type Timeframe,
   TimeframeToggle,
@@ -199,7 +200,7 @@ export function OverviewClient({
           <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
             <div className="min-w-0">
               <div className="font-serif text-[46px] leading-none font-light tracking-[-0.01em] md:text-[58px]">
-                {thb(current)}
+                <Sensitive>{thb(current)}</Sensitive>
               </div>
               <div className="mt-2 flex min-h-6 flex-wrap items-center gap-3">
                 {series.length > 1 ? (
@@ -216,10 +217,10 @@ export function OverviewClient({
                 Investment mark
               </div>
               <div className="num text-[18px] font-semibold">
-                {thb(investTotal)}
+                <Sensitive>{thb(investTotal)}</Sensitive>
               </div>
               <div className="text-[11px] text-[var(--ink-3)]">
-                Cash {thb(bankTotal)}
+                Cash <Sensitive>{thb(bankTotal)}</Sensitive>
               </div>
             </div>
           </div>
@@ -274,24 +275,28 @@ export function OverviewClient({
       <KpiGrid layout="4up">
         <Kpi
           label="Investments"
-          value={thb(investTotal)}
+          value={<Sensitive>{thb(investTotal)}</Sensitive>}
           delta={investPL}
           pct={investPLPct}
-          sub={`cost ${thb(investCost)}`}
+          sub={
+            <>
+              cost <Sensitive>{thb(investCost)}</Sensitive>
+            </>
+          }
         />
         <Kpi
           label="Savings (HY)"
-          value={thb(savingsTotal)}
+          value={<Sensitive>{thb(savingsTotal)}</Sensitive>}
           sub={`${savingsCount} ${savingsCount === 1 ? "account" : "accounts"}`}
         />
         <Kpi
           label="Total capital"
-          value={thb(totalCapital)}
+          value={<Sensitive>{thb(totalCapital)}</Sensitive>}
           sub="savings + investment cost"
         />
         <Kpi
           label="All-time P/L"
-          value={thb(investPL)}
+          value={<Sensitive>{thb(investPL)}</Sensitive>}
           sub={investCost === 0 ? "—" : pct(investPLPct)}
         />
       </KpiGrid>
@@ -346,7 +351,9 @@ export function OverviewClient({
                       {m.name}
                     </span>
                     <span className="flex flex-col items-end gap-0.5">
-                      <span className="num text-[13px]">{thb(m.value)}</span>
+                      <span className="num text-[13px]">
+                        <Sensitive>{thb(m.value)}</Sensitive>
+                      </span>
                       <Delta value={m.delta} pct={m.deltaPct} mini />
                     </span>
                   </Link>

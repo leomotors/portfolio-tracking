@@ -3,6 +3,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Crimson_Pro, Geist, Geist_Mono } from "next/font/google";
 
+import { PrivacyScript } from "@/components/app/privacy-script";
 import { ThemeScript } from "@/components/app/theme-script";
 
 const geistSans = Geist({
@@ -36,6 +37,7 @@ export default function RootLayout({
     >
       <head>
         <ThemeScript />
+        <PrivacyScript />
       </head>
       <body className="flex min-h-full">{children}</body>
     </html>

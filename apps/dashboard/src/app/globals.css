@@ -115,3 +115,46 @@ select {
     "ss01";
   letter-spacing: -0.01em;
 }
+
+[data-privacy-mask] {
+  display: none;
+  letter-spacing: 0.12em;
+}
+
+html[data-privacy="hidden"] [data-privacy-value] {
+  display: none;
+}
+
+html[data-privacy="hidden"] [data-privacy-mask] {
+  display: inline;
+}
+
+html[data-privacy="hidden"] [data-privacy-conceal] {
+  visibility: hidden;
+}
+
+html[data-privacy="hidden"] [data-privacy-edit] {
+  pointer-events: none;
+  cursor: default;
+}
+
+html[data-privacy="hidden"] [data-privacy-edit]:hover {
+  background: transparent;
+  color: inherit;
+}
+
+html[data-privacy="hidden"] [data-privacy-edit] svg {
+  display: none;
+}
+
+text[data-privacy-mask] {
+  display: none;
+}
+
+html[data-privacy="hidden"] text[data-privacy-value] {
+  display: none;
+}
+
+html[data-privacy="hidden"] text[data-privacy-mask] {
+  display: block;
+}

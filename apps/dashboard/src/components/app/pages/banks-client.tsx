@@ -6,6 +6,7 @@ import { AreaChart } from "@/components/app/area-chart";
 import { Chip } from "@/components/app/chip";
 import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import { Sensitive } from "@/components/app/sensitive";
 import {
   Card,
   CardContent,
@@ -44,7 +45,12 @@ export function BanksClient({
       <PageHeader
         kicker="Cash on hand"
         title="Bank accounts"
-        sub={`THB ${thb(total)} tracked · ${fcdAccounts.length} FCD records (balances not tracked)`}
+        sub={
+          <>
+            THB <Sensitive>{thb(total)}</Sensitive> tracked ·{" "}
+            {fcdAccounts.length} FCD records (balances not tracked)
+          </>
+        }
       />
 
       <Tabs defaultValue="thb" className="flex flex-col gap-5">
@@ -129,7 +135,7 @@ function ThbView({
             </div>
             <div className="flex items-baseline justify-between gap-2">
               <span className="num text-[15px] font-medium">
-                {thb(a.currentBalance)}
+                <Sensitive>{thb(a.currentBalance)}</Sensitive>
               </span>
               <span className="num text-[12px] text-[var(--ink-3)]">
                 {a.interestRate.toFixed(2)}%

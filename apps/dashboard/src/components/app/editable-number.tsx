@@ -3,6 +3,9 @@
 import { Pencil } from "lucide-react";
 import { useEffect, useRef, useState, useTransition } from "react";
 
+import { Sensitive } from "@/components/app/sensitive";
+import { readPrivacyMode, usePrivacyHidden } from "@/lib/privacy-mode";
+
 const initialDraft = "";
 
 interface EditableNumberProps {
@@ -12,6 +15,8 @@ interface EditableNumberProps {
   prefix?: string;
   suffix?: string;
   ariaLabel?: string;
+  /** When false, the figure stays visible in privacy mode (unit prices, APY). */
+  sensitive?: boolean;
 }
 
 export function EditableNumber({
@@ -21,17 +26,24 @@ export function EditableNumber({
   prefix = "฿",
   suffix = "",
   ariaLabel,
+  sensitive = true,
 }: EditableNumberProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(initialDraft);
   const [pending, startTransition] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  const hidden = usePrivacyHidden();
 
   useEffect(() => {
     if (editing) inputRef.current?.focus();
   }, [editing]);
 
+  useEffect(() => {
+    if (sensitive && hidden) setEditing(false);
+  }, [hidden, sensitive]);
+
   function startEditing() {
+    if (sensitive && readPrivacyMode() === "hidden") return;
     setDraft(String(value));
     setEditing(true);
   }
@@ -62,15 +74,29 @@ export function EditableNumber({
         type="button"
         aria-label={ariaLabel ?? "Edit value"}
         onClick={startEditing}
+        data-privacy-edit={sensitive ? true : undefined}
         className="group inline-flex cursor-pointer items-center gap-1.5 rounded px-1 py-0.5 hover:bg-[var(--hover)] hover:text-[var(--accent-pri)]"
       >
         <span className="num">
-          {prefix}
-          {value.toLocaleString("en-US", {
-            minimumFractionDigits: decimals,
-            maximumFractionDigits: decimals,
-          })}
-          {suffix}
+          {sensitive ? (
+            <Sensitive>
+              {prefix}
+              {value.toLocaleString("en-US", {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
+              })}
+              {suffix}
+            </Sensitive>
+          ) : (
+            <>
+              {prefix}
+              {value.toLocaleString("en-US", {
+                minimumFractionDigits: decimals,
+                maximumFractionDigits: decimals,
+              })}
+              {suffix}
+            </>
+          )}
         </span>
         <Pencil
           size={11}

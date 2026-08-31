@@ -6,8 +6,10 @@ import { Topbar } from "./topbar";
 describe("<Topbar>", () => {
   beforeEach(() => {
     document.documentElement.setAttribute("data-theme", "light");
+    document.documentElement.setAttribute("data-privacy", "visible");
     try {
       localStorage.removeItem("theme");
+      localStorage.removeItem("privacy");
     } catch {
       // ignore
     }
@@ -26,5 +28,21 @@ describe("<Topbar>", () => {
     const screen = await render(<Topbar />);
     await screen.getByRole("button", { name: "Toggle theme" }).click();
     expect(localStorage.getItem("theme")).toBe("dark");
+  });
+
+  it("hides balances and persists the choice", async () => {
+    const screen = await render(<Topbar />);
+    expect(document.documentElement.getAttribute("data-privacy")).toBe(
+      "visible",
+    );
+    await screen.getByRole("button", { name: "Hide balances" }).click();
+    expect(document.documentElement.getAttribute("data-privacy")).toBe(
+      "hidden",
+    );
+    expect(localStorage.getItem("privacy")).toBe("hidden");
+    await screen.getByRole("button", { name: "Show balances" }).click();
+    expect(document.documentElement.getAttribute("data-privacy")).toBe(
+      "visible",
+    );
   });
 });

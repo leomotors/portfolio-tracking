@@ -1,5 +1,6 @@
 import { Search } from "lucide-react";
 
+import { PrivacyToggle } from "./privacy-toggle";
 import { ThemeToggle } from "./theme-toggle";
 
 export function Topbar({
@@ -19,6 +20,7 @@ export function Topbar({
         </kbd>
       </div>
       <div className="ml-auto flex items-center gap-3">
+        <PrivacyToggle />
         <ThemeToggle />
         {profile ?? (
           <div className="grid h-[30px] w-[30px] place-items-center rounded-full bg-[var(--accent-pri)] text-xs font-semibold text-[var(--accent-pri-ink)]">

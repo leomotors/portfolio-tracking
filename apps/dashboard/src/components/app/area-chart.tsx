@@ -2,6 +2,10 @@
 
 import { useId, useMemo, useRef, useState } from "react";
 
+import { Sensitive } from "@/components/app/sensitive";
+import { pct } from "@/lib/portfolio/format";
+import { usePrivacyHidden } from "@/lib/privacy-mode";
+
 export interface AreaChartPoint {
   date: string;
   value: number;
@@ -57,6 +61,7 @@ export function AreaChart({
   const [hover, setHover] = useState<number | null>(null);
   const ref = useRef<SVGSVGElement>(null);
   const gid = useId().replace(/[:]/g, "");
+  const hidden = usePrivacyHidden();
   const hasVolume = volume != null && volume.length > 0;
   const volBlock = hasVolume ? volumeHeight + VOL_GAP : 0;
   const mainHeight = height - volBlock;
@@ -386,6 +391,7 @@ export function AreaChart({
         <div
           key={i}
           className="pointer-events-none absolute whitespace-nowrap pr-1.5 text-right text-[10px] tabular-nums text-[var(--ink-3)]"
+          data-privacy-conceal
           style={{
             left: `${(PAD_L / W) * 100}%`,
             top: y,
@@ -463,7 +469,9 @@ export function AreaChart({
                 {formatX ? formatX(hovered.d) : hovered.d.date}
               </div>
               <div className="num font-medium">
-                {formatY ? formatY(hovered.d.value) : hovered.d.value}
+                <Sensitive>
+                  {formatY ? formatY(hovered.d.value) : hovered.d.value}
+                </Sensitive>
               </div>
               {delta != null && (
                 <div
@@ -474,9 +482,11 @@ export function AreaChart({
                   }}
                 >
                   {baselineLabel}{" "}
-                  {formatDelta
-                    ? formatDelta(delta, deltaPct)
-                    : `${delta >= 0 ? "+" : ""}${formatCompact(delta)}`}
+                  {hidden
+                    ? pct(deltaPct)
+                    : formatDelta
+                      ? formatDelta(delta, deltaPct)
+                      : `${delta >= 0 ? "+" : ""}${formatCompact(delta)}`}
                 </div>
               )}
               {hoveredVolume != null && hoveredVolume !== 0 && (
@@ -490,9 +500,11 @@ export function AreaChart({
                   }}
                 >
                   {volumeLabel}{" "}
-                  {formatVolume
-                    ? formatVolume(hoveredVolume)
-                    : `${hoveredVolume >= 0 ? "+" : ""}${formatCompact(hoveredVolume)}`}
+                  <Sensitive>
+                    {formatVolume
+                      ? formatVolume(hoveredVolume)
+                      : `${hoveredVolume >= 0 ? "+" : ""}${formatCompact(hoveredVolume)}`}
+                  </Sensitive>
                 </div>
               )}
             </div>

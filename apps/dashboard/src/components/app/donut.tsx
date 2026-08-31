@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { Sensitive } from "@/components/app/sensitive";
+import { PRIVACY_MASK } from "@/lib/privacy-mode";
 import { cn } from "@/lib/utils";
 
 interface DonutSegment {
@@ -54,17 +56,12 @@ export function Donut({
 
   const active = hovered != null ? segs[hovered] : undefined;
   const displayLabel = active ? truncate(active.label, 22) : centerLabel;
-  const displayValue = active
+  const hoverAmount = active
     ? valueFormatter
       ? valueFormatter(active.value)
       : formatPercent(active.frac)
-    : centerValue;
-  const centerValueSize = displayValue
-    ? Math.max(
-        12,
-        Math.min(16, size / Math.max(12, displayValue.length * 0.75)),
-      )
-    : 16;
+    : undefined;
+  const hoverShare = active ? formatPercent(active.frac) : undefined;
 
   const description =
     segs.length === 0
@@ -126,19 +123,22 @@ export function Donut({
             {displayLabel}
           </text>
         )}
-        {displayValue && (
-          <text
-            x={c}
-            y={c + 14}
-            textAnchor="middle"
-            fill="var(--ink)"
-            fontSize={centerValueSize}
-            fontWeight="600"
-            fontFamily="var(--font-mono), ui-monospace, monospace"
-            pointerEvents="none"
-          >
-            {displayValue}
-          </text>
+        {active && hoverAmount && hoverShare ? (
+          <CenterFigure
+            c={c}
+            size={size}
+            value={hoverAmount}
+            mask={hoverShare}
+          />
+        ) : (
+          centerValue && (
+            <CenterFigure
+              c={c}
+              size={size}
+              value={centerValue}
+              mask={PRIVACY_MASK}
+            />
+          )
         )}
       </svg>
 
@@ -165,14 +165,14 @@ export function Donut({
             </span>
             <span className="flex items-baseline justify-end gap-2 text-right">
               {valueFormatter && (
-                <span
+                <Sensitive
                   className={cn(
                     "num text-[11px] text-[var(--ink-2)]",
                     stacked ? "inline" : "hidden md:inline",
                   )}
                 >
                   {valueFormatter(s.value)}
-                </span>
+                </Sensitive>
               )}
               <span className="num min-w-[4.8ch] rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-[11px] font-medium text-[var(--ink)]">
                 {formatPercent(s.frac)}
@@ -182,6 +182,43 @@ export function Donut({
         ))}
       </div>
     </div>
+  );
+}
+
+function CenterFigure({
+  c,
+  size,
+  value,
+  mask,
+}: {
+  c: number;
+  size: number;
+  value: string;
+  mask: string;
+}) {
+  const fontSize = Math.max(
+    12,
+    Math.min(16, size / Math.max(12, value.length * 0.75)),
+  );
+  const props = {
+    x: c,
+    y: c + 14,
+    textAnchor: "middle" as const,
+    fill: "var(--ink)",
+    fontSize,
+    fontWeight: 600,
+    fontFamily: "var(--font-mono), ui-monospace, monospace",
+    pointerEvents: "none" as const,
+  };
+  return (
+    <>
+      <text {...props} data-privacy-value>
+        {value}
+      </text>
+      <text {...props} data-privacy-mask>
+        {mask}
+      </text>
+    </>
   );
 }
 

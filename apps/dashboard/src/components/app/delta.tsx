@@ -1,5 +1,6 @@
 import { ArrowDown, ArrowUp } from "lucide-react";
 
+import { Sensitive } from "@/components/app/sensitive";
 import { pct, thb } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 
@@ -31,7 +32,7 @@ export function Delta({
         strokeWidth={2.5}
         className="self-center"
       />
-      <span className="num">{thb(value)}</span>
+      <Sensitive className="num">{thb(value)}</Sensitive>
       {pctVal != null && (
         <span
           className={cn(

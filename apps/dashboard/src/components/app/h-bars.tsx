@@ -1,3 +1,5 @@
+import { Sensitive } from "@/components/app/sensitive";
+
 interface HBarRow {
   label: string;
   value: number;
@@ -34,9 +36,9 @@ export function HBars({
             <div className="mb-1.5 flex justify-between gap-3 text-[13px]">
               <span className="font-medium text-[var(--ink-2)]">{d.label}</span>
               <span className="flex shrink-0 items-baseline justify-end gap-2">
-                <span className="num text-[var(--ink)]">
+                <Sensitive className="num text-[var(--ink)]">
                   {valueFmt ? valueFmt(d.value) : d.value}
-                </span>
+                </Sensitive>
                 {showPercent && (
                   <span className="num min-w-[4.8ch] rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-[11px] font-medium text-[var(--ink)]">
                     {(frac * 100).toFixed(1)}%
