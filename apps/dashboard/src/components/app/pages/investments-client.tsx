@@ -467,7 +467,11 @@ function AccountDetail({
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-7 gap-y-4">
-              <Stat label="P/L" value={<Sensitive>{thb(pl)}</Sensitive>} large />
+              <Stat
+                label="P/L"
+                value={<Sensitive>{thb(pl)}</Sensitive>}
+                large
+              />
               <Stat label="Return" value={pct(plPct)} large />
               <Stat
                 label="Cost basis"
