@@ -1,7 +1,8 @@
 # Changelog
 
-## [minor]
+## [0.11.0] - 2026-09-01
 
+- feat: add a top-bar privacy toggle that hides balances, values, and holding amounts while keeping PnL % and allocation visible
 - chore: update AI chat cost estimates to current OpenAI Luna/Terra and xAI Grok 4.5 cached-input pricing
 
 ## [0.10.0] - 2026-08-01
