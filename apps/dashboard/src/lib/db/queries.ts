@@ -1,12 +1,13 @@
 import "server-only";
 
-import { asc, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, isNull } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
 import {
   assetTable,
   bankAccountTable,
   bankDailyBalanceTable,
+  coingeckoSymbolTable,
   creditCardAccountTable,
   currencyTable,
   fcdAccountTable,
@@ -469,4 +470,48 @@ export async function getRealEstateDaily(): Promise<RealEstateDailyPoint[]> {
     cost: toNum(r.cost),
     value: toNum(r.value),
   }));
+}
+
+export interface CoingeckoSymbol {
+  id: number;
+  symbol: string;
+  coingeckoId: string;
+  updatedAt: Date;
+}
+
+export async function getCoingeckoSymbols(): Promise<CoingeckoSymbol[]> {
+  const rows = await db
+    .select()
+    .from(coingeckoSymbolTable)
+    .orderBy(asc(coingeckoSymbolTable.symbol));
+  return rows.map((r) => ({
+    id: r.id,
+    symbol: r.symbol,
+    coingeckoId: r.coingeckoId,
+    updatedAt: r.updatedAt,
+  }));
+}
+
+/** Held cryptocurrency symbols with no CoinGecko map. The cron skips these. */
+export async function getUnmappedCryptoSymbols(): Promise<string[]> {
+  const [assets, mapped] = await Promise.all([
+    db
+      .select({ symbol: assetTable.symbol })
+      .from(assetTable)
+      .where(
+        and(
+          eq(assetTable.symbolType, "cryptocurrency"),
+          gt(assetTable.amount, "0"),
+        ),
+      ),
+    getCoingeckoSymbols(),
+  ]);
+  const have = new Set(mapped.map((m) => m.symbol));
+  return [
+    ...new Set(
+      assets
+        .map((a) => a.symbol)
+        .filter((s): s is string => s != null && s.length > 0 && !have.has(s)),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
 }

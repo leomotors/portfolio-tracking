@@ -8,6 +8,7 @@ import {
   Home,
   LineChart,
   PieChart,
+  Settings,
   Wallet,
 } from "lucide-react";
 import Link from "next/link";
@@ -23,6 +24,7 @@ const NAV = [
   { href: "/allocation", label: "Allocation", icon: PieChart },
   { href: "/banks", label: "Banks", icon: Wallet },
   { href: "/credit", label: "Credit & Loans", icon: CreditCard },
+  { href: "/settings", label: "Settings", icon: Settings },
 ] as const;
 
 const isActive = (current: string, href: string) =>

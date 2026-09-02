@@ -234,6 +234,11 @@ A single position inside an investment account.
 
 The price-update step in `apps/cron` filters by `amount > 0` so untraded/empty positions are skipped.
 
+#### `coingecko_symbol` — [coingecko.ts](src/schema/coingecko.ts)
+Maps `asset.symbol` to a CoinGecko coin id. Unique on `symbol`. The cron
+loads this table each price run for `symbol_type = cryptocurrency` assets.
+Edit via SQL or the dashboard Settings page. MTS-GOLD is not stored here.
+
 #### `currency` — [currency.ts](src/schema/currency.ts)
 FX table: maps a currency (and optional `variant`) to its current THB value.
 
@@ -380,6 +385,7 @@ server actions in [actions.ts](../../apps/dashboard/src/lib/db/actions.ts):
 - `asset.amount`
 - `asset.average_cost`
 - `investment_account.current_cost`
+- `coingecko_symbol` (CoinGecko id map)
 
 The dashboard also persists AI conversations, messages, tool calls, usage, and
 cost totals through [store.ts](../../apps/dashboard/src/lib/ai/store.ts).

@@ -1,6 +1,7 @@
 export * from "./ai.ts";
 export * from "./assets.ts";
 export * from "./bankAccount.ts";
+export * from "./coingecko.ts";
 export * from "./currency.ts";
 export * from "./investmentAccount.ts";
 export * from "./loanAccount.ts";

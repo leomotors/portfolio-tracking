@@ -1,45 +1,65 @@
 import z from "zod";
 
+import { db } from "@repo/database/client";
+import { coingeckoSymbolTable } from "@repo/database/schema";
+
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
 
 import { ScrapeResult } from "./types";
-
-/** Maps asset table symbols to CoinGecko coin ids (USD prices). */
-export const COINGECKO_IDS: Record<string, string> = {
-  BTC: "bitcoin",
-  WBTC: "wrapped-bitcoin",
-  ETH: "ethereum",
-  SOL: "solana",
-  HYPE: "hyperliquid",
-};
 
 const TETHER_GOLD_ID = "tether-gold";
 const GRAMS_PER_TROY_OZ = 31.1034768;
 
 const apiResultSchema = z.record(z.string(), z.object({ usd: z.number() }));
 
+export async function loadCoingeckoIdMap(): Promise<Record<string, string>> {
+  const rows = await db
+    .select({
+      symbol: coingeckoSymbolTable.symbol,
+      coingeckoId: coingeckoSymbolTable.coingeckoId,
+    })
+    .from(coingeckoSymbolTable);
+  return Object.fromEntries(rows.map((r) => [r.symbol, r.coingeckoId]));
+}
+
+/** Split cryptocurrency symbols into those with a CoinGecko id and those without. */
+export function partitionCoingeckoSymbols(
+  symbols: string[],
+  ids: Record<string, string>,
+): { mapped: string[]; missing: string[] } {
+  const mapped: string[] = [];
+  const missing: string[] = [];
+  for (const symbol of symbols) {
+    if (ids[symbol]) mapped.push(symbol);
+    else missing.push(symbol);
+  }
+  return { mapped, missing };
+}
+
 export async function fetchCoinGeckoPrices(
   symbols: string[],
 ): Promise<ScrapeResult[]> {
   const goldSymbols = symbols.filter((s) => s.startsWith("MTS-GOLD"));
   const cryptoSymbols = symbols.filter((s) => !s.startsWith("MTS-GOLD"));
+  const ids = await loadCoingeckoIdMap();
+  const { mapped: mappedSymbols, missing } = partitionCoingeckoSymbols(
+    cryptoSymbols,
+    ids,
+  );
 
-  for (const symbol of cryptoSymbols) {
-    if (!COINGECKO_IDS[symbol]) {
-      logger.error(`No CoinGecko id mapped for cryptocurrency: ${symbol}`);
-    }
+  for (const symbol of missing) {
+    logger.error(`No CoinGecko id mapped for cryptocurrency: ${symbol}`);
   }
 
-  const mappedSymbols = cryptoSymbols.filter((s) => COINGECKO_IDS[s]);
-  const ids = [
-    ...mappedSymbols.map((s) => COINGECKO_IDS[s]!),
+  const coinIds = [
+    ...new Set(mappedSymbols.map((s) => ids[s]!)),
     ...(goldSymbols.length > 0 ? [TETHER_GOLD_ID] : []),
   ];
-  if (ids.length === 0) return [];
+  if (coinIds.length === 0) return [];
 
   const url = new URL("https://api.coingecko.com/api/v3/simple/price");
-  url.searchParams.set("ids", ids.join(","));
+  url.searchParams.set("ids", coinIds.join(","));
   url.searchParams.set("vs_currencies", "usd");
 
   const res = await fetch(url, {
@@ -62,7 +82,7 @@ export async function fetchCoinGeckoPrices(
   const results: ScrapeResult[] = [];
 
   for (const symbol of mappedSymbols) {
-    const entry = data[COINGECKO_IDS[symbol]!];
+    const entry = data[ids[symbol]!];
     if (!entry) {
       logger.error(`CoinGecko returned no price for: ${symbol}`);
       continue;

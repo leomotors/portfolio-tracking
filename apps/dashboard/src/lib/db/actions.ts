@@ -1,18 +1,20 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@repo/database/client";
 import {
   assetTable,
   bankAccountTable,
+  coingeckoSymbolTable,
   investmentAccountTable,
   realEstatePropertyTable,
   stakedPositionTable,
 } from "@repo/database/schema";
 
 import { requireSession } from "@/lib/auth";
+import { normalizeCoingeckoId, normalizeSymbol } from "@/lib/db/coingecko-map";
 import { rescaleAverageCost } from "@/lib/portfolio/staking";
 
 const assertNonNegative = (n: number, label: string) => {
@@ -185,4 +187,64 @@ export async function updateRealEstatePurchaseCost(
   revalidatePath("/real-estate");
   revalidatePath("/allocation");
   revalidatePath("/");
+}
+
+const revalidatePriceSettings = () => {
+  revalidatePath("/settings");
+};
+
+export async function createCoingeckoSymbol(
+  symbol: string,
+  coingeckoId: string,
+) {
+  await requireSession();
+  const nextSymbol = normalizeSymbol(symbol);
+  const nextId = normalizeCoingeckoId(coingeckoId);
+  const [existing] = await db
+    .select({ id: coingeckoSymbolTable.id })
+    .from(coingeckoSymbolTable)
+    .where(eq(coingeckoSymbolTable.symbol, nextSymbol));
+  if (existing) throw new Error(`Symbol ${nextSymbol} is already mapped`);
+  await db.insert(coingeckoSymbolTable).values({
+    symbol: nextSymbol,
+    coingeckoId: nextId,
+  });
+  revalidatePriceSettings();
+}
+
+export async function updateCoingeckoSymbol(
+  id: number,
+  patch: { symbol?: string; coingeckoId?: string },
+) {
+  await requireSession();
+  const updates: { symbol?: string; coingeckoId?: string } = {};
+  if (patch.symbol != null) {
+    const nextSymbol = normalizeSymbol(patch.symbol);
+    const [existing] = await db
+      .select({ id: coingeckoSymbolTable.id })
+      .from(coingeckoSymbolTable)
+      .where(
+        and(
+          eq(coingeckoSymbolTable.symbol, nextSymbol),
+          ne(coingeckoSymbolTable.id, id),
+        ),
+      );
+    if (existing) throw new Error(`Symbol ${nextSymbol} is already mapped`);
+    updates.symbol = nextSymbol;
+  }
+  if (patch.coingeckoId != null) {
+    updates.coingeckoId = normalizeCoingeckoId(patch.coingeckoId);
+  }
+  if (Object.keys(updates).length === 0) return;
+  await db
+    .update(coingeckoSymbolTable)
+    .set(updates)
+    .where(eq(coingeckoSymbolTable.id, id));
+  revalidatePriceSettings();
+}
+
+export async function deleteCoingeckoSymbol(id: number) {
+  await requireSession();
+  await db.delete(coingeckoSymbolTable).where(eq(coingeckoSymbolTable.id, id));
+  revalidatePriceSettings();
 }

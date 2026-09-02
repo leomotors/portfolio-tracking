@@ -78,18 +78,14 @@ Notes:
 
 ## Prices
 
-Crypto prices come from CoinGecko (one `simple/price` call per run, USD),
-mapped in `apps/cron/src/data/coingecko.ts`:
+Crypto prices come from CoinGecko (one `simple/price` call per run, USD).
+The symbol → CoinGecko id map lives in `coingecko_symbol` (edit via SQL or
+the dashboard Settings page). Migration `0018` seeds the ids that used to be
+hardcoded (`BTC`, `WBTC`, `ETH`, `SOL`, `HYPE`). Add further rows there;
+`symbol_type = cryptocurrency` selects the CoinGecko scraper, and a missing
+map row logs an error and that symbol is skipped.
 
-| asset symbol | CoinGecko id |
-|---|---|
-| `BTC` | `bitcoin` |
-| `WBTC` | `wrapped-bitcoin` |
-| `ETH` | `ethereum` |
-| `SOL` | `solana` |
-| `HYPE` | `hyperliquid` |
-
-Add new coins to `COINGECKO_IDS` there.
+MTS-GOLD is still estimated from Tether Gold in cron code, not this table.
 
 The USD→THB rate for **all** USD currency rows comes from Bitkub's on-shore
 USDC/THB market (`apps/cron/src/data/bitkub.ts`, keyless) — Binance.th is no

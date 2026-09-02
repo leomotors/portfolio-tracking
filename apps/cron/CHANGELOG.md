@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.15.0] - 2026-09-02
+
+- feat: CoinGecko ids for cryptocurrency assets live in `coingecko_symbol` (Settings page / SQL), not a hardcoded map. MTS-GOLD still uses Tether Gold.
+
 ## [0.14.0] - 2026-08-01
 
 - feat: Hyperliquid vault equity pricing — `symbol_type = hyperliquid_vault`, symbol `HLV:<vaultAddress>`, wallet from the investment account; `priceUpdate` sets `current_price` to live USDC equity (no vault allowlist in code)

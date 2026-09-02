@@ -9,6 +9,7 @@ Next.js dashboard for the portfolio tracking database.
 - Allocation page grouped by asset class, risk level, and currency.
 - Banks page with bank and foreign-currency deposit account views plus editable balances.
 - Credit & loans page for active credit card and personal loan records.
+- Settings page for CoinGecko symbol → coin id mappings used by the daily price cron.
 - AI chat panel with persisted conversations, provider/model selection, read-only portfolio tools, and optional web/search tools.
 
 ## Development

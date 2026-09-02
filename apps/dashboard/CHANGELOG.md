@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.12.0] - 2026-09-02
+
+- feat: Settings page to edit CoinGecko symbol → coin id mappings used by the daily price cron
+
 ## [0.11.0] - 2026-09-01
 
 - feat: add a top-bar privacy toggle that hides balances, values, and holding amounts while keeping PnL % and allocation visible
