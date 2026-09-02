@@ -17,7 +17,7 @@
   "dependencies": {
     "drizzle-orm": "^0.45.2",
     "postgres": "^3.4.9",
-    "zod": "^4.4.3"
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "dotenv-cli": "^11.0.0",

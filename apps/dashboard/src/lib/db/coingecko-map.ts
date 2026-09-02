@@ -11,9 +11,7 @@ export function normalizeCoingeckoId(raw: string): string {
   const id = raw.trim().toLowerCase();
   if (!id) throw new Error("CoinGecko id is required");
   if (!COINGECKO_ID_RE.test(id)) {
-    throw new Error(
-      "CoinGecko id must be a slug like wrapped-bitcoin",
-    );
+    throw new Error("CoinGecko id must be a slug like wrapped-bitcoin");
   }
   return id;
 }
