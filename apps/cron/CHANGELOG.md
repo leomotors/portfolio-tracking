@@ -2,8 +2,9 @@
 
 0.1.0 is not noted here
 
-## [0.16.0] - 2026-09-04
+## [0.16.0] - 2026-09-06
 
+- feat: SEC project ids for Thai mutual funds live in `sec_fund_symbol` (Settings page / SQL), not the git-tracked `data/sec-mapping.json`
 - feat: persist daily heatmap cells (`heatmap_daily`) after each cron run so the dashboard can rebuild history; Discord PNG is unchanged. Insert is skipped on dry-run and soft-fails if the table is not migrated yet.
 
 ## [0.15.0] - 2026-09-02
