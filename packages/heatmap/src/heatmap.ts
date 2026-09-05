@@ -1,6 +1,13 @@
 import { hierarchy, treemap, treemapSquarify } from "d3-hierarchy";
 
-import { type AssetSnapshot, dayPnlDelta } from "./dayPerformers";
+export type HeatmapAssetSnapshot = {
+  id: number;
+  name: string;
+  symbol: string | null;
+  assetClass: string;
+  cost: number;
+  value: number;
+};
 
 export type HeatmapCell = {
   id: number;
@@ -22,6 +29,8 @@ export type HeatmapRect = {
   label: string;
   changePct: number | null;
   fill: string;
+  assetClass: string | null;
+  cell: HeatmapCell | null;
 };
 
 export type HeatmapRenderOptions = {
@@ -32,7 +41,9 @@ export type HeatmapRenderOptions = {
   colorScaleMax?: number;
 };
 
-const CLASS_LABEL: Record<string, string> = {
+export type HeatmapLeafLabelMode = "full" | "pct" | "none";
+
+export const HEATMAP_CLASS_LABEL: Record<string, string> = {
   cash: "Cash",
   bond: "Bond",
   stock: "Stock",
@@ -42,17 +53,19 @@ const CLASS_LABEL: Record<string, string> = {
 
 const CLASS_ORDER = ["stock", "digital_asset", "gold", "bond", "cash"] as const;
 
-const DEFAULT_WIDTH = 1200;
-const DEFAULT_HEIGHT = 720;
+export const HEATMAP_WIDTH = 1200;
+export const HEATMAP_HEIGHT = 720;
 const TITLE_BAND = 44;
 const MIN_COLOR_SCALE = 0.5;
 /** Resolves via fontconfig on Alpine (font-dejavu) and system sans elsewhere. */
-const HEATMAP_FONT_FAMILY = "DejaVu Sans, sans-serif";
+export const HEATMAP_FONT_FAMILY = "DejaVu Sans, sans-serif";
 
 type HierarchyDatum = {
   name: string;
   value?: number;
   changePct?: number;
+  assetClass?: string;
+  cell?: HeatmapCell;
   children?: HierarchyDatum[];
 };
 
@@ -66,12 +79,19 @@ export function heatmapLabel(asset: {
   return name.length > 18 ? `${name.slice(0, 16)}…` : name;
 }
 
+function dayPnlDelta(
+  current: { cost: number; value: number },
+  previous: { cost: number; value: number },
+): number {
+  return current.value - current.cost - (previous.value - previous.cost);
+}
+
 /**
  * Builds value-weighted day P/L cells for assets present in both snapshots.
  * `changePct` is day unrealized P/L delta as a percent of previous value.
  */
 export function buildHeatmapCells(
-  current: AssetSnapshot[],
+  current: HeatmapAssetSnapshot[],
   previousById: Map<number, { cost: number; value: number }>,
 ): HeatmapCell[] {
   const cells: HeatmapCell[] = [];
@@ -135,8 +155,8 @@ function toHex(n: number): string {
   return n.toString(16).padStart(2, "0");
 }
 
-function classLabel(assetClass: string): string {
-  return CLASS_LABEL[assetClass] ?? assetClass;
+export function heatmapClassLabel(assetClass: string): string {
+  return HEATMAP_CLASS_LABEL[assetClass] ?? assetClass;
 }
 
 function classSortKey(assetClass: string): number {
@@ -155,11 +175,14 @@ function buildHierarchyData(cells: HeatmapCell[]): HierarchyDatum {
   const children = [...byClass.entries()]
     .sort(([a], [b]) => classSortKey(a) - classSortKey(b))
     .map(([assetClass, classCells]) => ({
-      name: classLabel(assetClass),
+      name: heatmapClassLabel(assetClass),
+      assetClass,
       children: classCells.map((cell) => ({
         name: cell.label,
         value: cell.value,
         changePct: cell.changePct,
+        assetClass: cell.assetClass,
+        cell,
       })),
     }));
 
@@ -172,8 +195,8 @@ export function layoutHeatmap(
 ): HeatmapRect[] {
   if (cells.length === 0) return [];
 
-  const width = options.width ?? DEFAULT_WIDTH;
-  const height = options.height ?? DEFAULT_HEIGHT;
+  const width = options.width ?? HEATMAP_WIDTH;
+  const height = options.height ?? HEATMAP_HEIGHT;
   const scaleMax = options.colorScaleMax ?? colorScaleMax(cells);
 
   const root = treemap<HierarchyDatum>()
@@ -207,6 +230,8 @@ export function layoutHeatmap(
         label: node.data.name,
         changePct: null,
         fill: "#161b22",
+        assetClass: node.data.assetClass ?? null,
+        cell: null,
       });
       continue;
     }
@@ -221,6 +246,8 @@ export function layoutHeatmap(
       label: node.data.name,
       changePct,
       fill: changeToColor(changePct, scaleMax),
+      assetClass: node.data.assetClass ?? node.data.cell?.assetClass ?? null,
+      cell: node.data.cell ?? null,
     });
   }
 
@@ -236,17 +263,38 @@ function escapeXml(text: string): string {
     .replaceAll("'", "&apos;");
 }
 
-function formatChangePct(changePct: number): string {
+export function formatChangePct(changePct: number): string {
   const sign = changePct > 0 ? "+" : changePct < 0 ? "−" : "";
   return `${sign}${Math.abs(changePct).toFixed(2)}%`;
 }
 
-function textColorForFill(fill: string): string {
+export function textColorForFill(fill: string): string {
   const r = parseInt(fill.slice(1, 3), 16);
   const g = parseInt(fill.slice(3, 5), 16);
   const b = parseInt(fill.slice(5, 7), 16);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
   return luminance > 0.55 ? "#0d1117" : "#f0f3f6";
+}
+
+/**
+ * Leaf label density used by the Discord PNG (zoom = 1) and the dashboard
+ * viewer. Zooming in lowers the pixel threshold so small holdings reveal
+ * ticker + % instead of staying blank.
+ */
+export function heatmapLeafLabelMode(
+  w: number,
+  h: number,
+  zoom = 1,
+): HeatmapLeafLabelMode {
+  const z = zoom > 0 ? zoom : 1;
+  if (w * z < 36 || h * z < 28) return "none";
+  if (h * z >= 42 && w * z >= 52) return "full";
+  if (w * z >= 44) return "pct";
+  return "none";
+}
+
+export function heatmapGroupLabelVisible(w: number, zoom = 1): boolean {
+  return w * (zoom > 0 ? zoom : 1) >= 48;
 }
 
 /** Renders a FinViz-style gain/loss treemap as an SVG document string. */
@@ -256,8 +304,8 @@ export function renderHeatmapSvg(
 ): string | null {
   if (cells.length === 0) return null;
 
-  const width = options.width ?? DEFAULT_WIDTH;
-  const height = options.height ?? DEFAULT_HEIGHT;
+  const width = options.width ?? HEATMAP_WIDTH;
+  const height = options.height ?? HEATMAP_HEIGHT;
   const title = options.title ?? "Day Gain / Loss Heatmap";
   const rects = layoutHeatmap(cells, options);
 
@@ -278,7 +326,7 @@ export function renderHeatmapSvg(
     );
 
     if (rect.depth === 1) {
-      if (w >= 48) {
+      if (heatmapGroupLabelVisible(w)) {
         parts.push(
           `<text x="${(rect.x0 + 8).toFixed(2)}" y="${(rect.y0 + 16).toFixed(2)}" fill="#8b949e" font-family="${HEATMAP_FONT_FAMILY}" font-size="12" font-weight="600">${escapeXml(rect.label)}</text>`,
         );
@@ -286,20 +334,22 @@ export function renderHeatmapSvg(
       continue;
     }
 
-    if (w < 36 || h < 28 || rect.changePct == null) continue;
+    if (rect.changePct == null) continue;
+
+    const mode = heatmapLeafLabelMode(w, h);
+    if (mode === "none") continue;
 
     const fillText = textColorForFill(rect.fill);
     const cx = (rect.x0 + rect.x1) / 2;
-    const canShowLabel = h >= 42 && w >= 52;
     const pct = formatChangePct(rect.changePct);
 
-    if (canShowLabel) {
+    if (mode === "full") {
       const fontSize = Math.min(15, Math.max(10, w / 8));
       parts.push(
         `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 - 4).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="${fontSize.toFixed(1)}" font-weight="700" text-anchor="middle">${escapeXml(rect.label)}</text>`,
         `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 14).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="${Math.max(10, fontSize - 1).toFixed(1)}" text-anchor="middle" opacity="0.92">${pct}</text>`,
       );
-    } else if (w >= 44) {
+    } else {
       parts.push(
         `<text x="${cx.toFixed(2)}" y="${(rect.y0 + h / 2 + 4).toFixed(2)}" fill="${fillText}" font-family="${HEATMAP_FONT_FAMILY}" font-size="11" font-weight="600" text-anchor="middle">${pct}</text>`,
       );

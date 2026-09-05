@@ -1,4 +1,5 @@
 import { db } from "@repo/database/client";
+import { buildHeatmapCells, colorScaleMax } from "@repo/heatmap";
 
 import { type DiscordAttachment, sendMessage } from "./core/discord.js";
 import { environment } from "./core/environment.js";
@@ -8,8 +9,10 @@ import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
 import { stakingSyncStep } from "./functions/stakingSync/index.js";
+import { formatDate, getYesterday } from "./lib/date.js";
 import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
-import { renderDayHeatmapPng } from "./lib/heatmapPng.js";
+import { saveHeatmapDaily } from "./lib/heatmapDaily.js";
+import { renderHeatmapPngFromCells } from "./lib/heatmapPng.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
 if (environment.DRY_RUN) {
@@ -42,12 +45,19 @@ const previousById = new Map(
     { cost: asset.cost, value: asset.value },
   ]),
 );
+const heatmapCells = buildHeatmapCells(
+  await loadHeldAssetSnapshots(),
+  previousById,
+);
+const heatmapScaleMax = colorScaleMax(heatmapCells);
+const heatmapDate = formatDate(getYesterday(new Date()));
+await saveHeatmapDaily(heatmapDate, heatmapCells, heatmapScaleMax);
+
 let heatmapPng: Buffer | null = null;
 try {
-  heatmapPng = await renderDayHeatmapPng(
-    await loadHeldAssetSnapshots(),
-    previousById,
-  );
+  heatmapPng = await renderHeatmapPngFromCells(heatmapCells, {
+    colorScaleMax: heatmapScaleMax,
+  });
 } catch (error) {
   logger.error(
     `Failed to render heatmap PNG: ${error instanceof Error ? error.message : String(error)}`,

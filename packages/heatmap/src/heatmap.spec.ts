@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
 
-import { type AssetSnapshot } from "./dayPerformers";
 import {
   buildHeatmapCells,
   changeToColor,
   colorScaleMax,
+  type HeatmapAssetSnapshot,
+  heatmapGroupLabelVisible,
   heatmapLabel,
+  heatmapLeafLabelMode,
   layoutHeatmap,
   renderHeatmapSvg,
 } from "./heatmap";
 
 function asset(
-  partial: Partial<AssetSnapshot> &
-    Pick<AssetSnapshot, "id" | "name" | "cost" | "value">,
-): AssetSnapshot {
+  partial: Partial<HeatmapAssetSnapshot> &
+    Pick<HeatmapAssetSnapshot, "id" | "name" | "cost" | "value">,
+): HeatmapAssetSnapshot {
   return {
     symbol: partial.symbol ?? null,
     assetClass: partial.assetClass ?? "stock",
@@ -114,7 +116,6 @@ describe("changeToColor", () => {
     expect(gain).toMatch(/^#[0-9a-f]{6}$/);
     expect(loss).toMatch(/^#[0-9a-f]{6}$/);
     expect(gain).not.toBe(loss);
-    // Full-scale gain lands on the bright green stop.
     expect(gain).toBe("#2dc653");
     expect(loss).toBe("#e63946");
   });
@@ -160,6 +161,26 @@ describe("colorScaleMax", () => {
   });
 });
 
+describe("heatmapLeafLabelMode", () => {
+  it("matches Discord PNG thresholds at zoom 1", () => {
+    expect(heatmapLeafLabelMode(35, 40)).toBe("none");
+    expect(heatmapLeafLabelMode(44, 30)).toBe("pct");
+    expect(heatmapLeafLabelMode(52, 42)).toBe("full");
+  });
+
+  it("reveals labels on small rects when zoomed in", () => {
+    expect(heatmapLeafLabelMode(20, 16, 1)).toBe("none");
+    expect(heatmapLeafLabelMode(20, 16, 3)).toBe("full");
+  });
+});
+
+describe("heatmapGroupLabelVisible", () => {
+  it("hides class titles on narrow groups until zoomed", () => {
+    expect(heatmapGroupLabelVisible(40)).toBe(false);
+    expect(heatmapGroupLabelVisible(40, 2)).toBe(true);
+  });
+});
+
 describe("layoutHeatmap / renderHeatmapSvg", () => {
   const cells = buildHeatmapCells(
     [
@@ -195,7 +216,7 @@ describe("layoutHeatmap / renderHeatmapSvg", () => {
     ]),
   );
 
-  it("lays out class groups and leaf assets", () => {
+  it("lays out class groups and leaf assets with cell data", () => {
     const rects = layoutHeatmap(cells, { width: 800, height: 500 });
     const groups = rects.filter((r) => r.depth === 1).map((r) => r.label);
     const leaves = rects.filter((r) => r.depth === 2);
@@ -203,11 +224,12 @@ describe("layoutHeatmap / renderHeatmapSvg", () => {
     expect(groups).toEqual(["Stock", "Digital"]);
     expect(leaves.map((r) => r.label).sort()).toEqual(["ALP", "BET", "GAM"]);
     expect(leaves.every((r) => r.x1 > r.x0 && r.y1 > r.y0)).toBe(true);
+    expect(leaves.every((r) => r.cell != null)).toBe(true);
+    expect(leaves.find((r) => r.label === "ALP")?.cell?.id).toBe(1);
 
     const areas = Object.fromEntries(
       leaves.map((r) => [r.label, (r.x1 - r.x0) * (r.y1 - r.y0)]),
     );
-    // BET (180) should be larger than ALP (150) which should be larger than GAM (55).
     expect(areas["BET"]!).toBeGreaterThan(areas["ALP"]!);
     expect(areas["ALP"]!).toBeGreaterThan(areas["GAM"]!);
   });

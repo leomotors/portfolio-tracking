@@ -12,6 +12,7 @@ Tracking my investments.
 ### packages
 
 - database: Database schema with Drizzle ORM on PostgreSQL.
+- heatmap: Shared day-gain/loss treemap layout (cells, colors, squarify) used by cron PNGs and the dashboard history page.
 - api-client: Generated TypeScript types for the SEC Thailand API v2 OpenAPI document.
 
 ## Common Commands

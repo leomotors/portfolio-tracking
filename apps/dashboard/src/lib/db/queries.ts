@@ -11,6 +11,7 @@ import {
   creditCardAccountTable,
   currencyTable,
   fcdAccountTable,
+  heatmapDailyTable,
   investmentAccountTable,
   investmentDailyBalanceTable,
   personalLoanAccountTable,
@@ -19,6 +20,7 @@ import {
   stakedPositionDailyTable,
   stakedPositionTable,
 } from "@repo/database/schema";
+import { type HeatmapCell } from "@repo/heatmap";
 
 import {
   type AssetRow,
@@ -514,4 +516,58 @@ export async function getUnmappedCryptoSymbols(): Promise<string[]> {
         .filter((s): s is string => s != null && s.length > 0 && !have.has(s)),
     ),
   ].sort((a, b) => a.localeCompare(b));
+}
+
+export interface HeatmapDailySnapshot {
+  date: string;
+  cells: HeatmapCell[];
+  colorScaleMax: number;
+  generatedAt: Date;
+}
+
+function isMissingHeatmapTable(error: unknown): boolean {
+  if (typeof error !== "object" || error === null) return false;
+  const code = "code" in error ? String(error.code) : "";
+  const message = "message" in error ? String(error.message) : "";
+  return (
+    code === "42P01" ||
+    (message.includes("heatmap_daily") &&
+      message.toLowerCase().includes("does not exist"))
+  );
+}
+
+/** Newest first. Empty when the table has not been migrated yet. */
+export async function listHeatmapDates(): Promise<string[]> {
+  try {
+    const rows = await db
+      .select({ date: heatmapDailyTable.date })
+      .from(heatmapDailyTable)
+      .orderBy(desc(heatmapDailyTable.date));
+    return rows.map((row) => row.date);
+  } catch (error) {
+    if (isMissingHeatmapTable(error)) return [];
+    throw error;
+  }
+}
+
+export async function getHeatmapByDate(
+  date: string,
+): Promise<HeatmapDailySnapshot | null> {
+  try {
+    const [row] = await db
+      .select()
+      .from(heatmapDailyTable)
+      .where(eq(heatmapDailyTable.date, date))
+      .limit(1);
+    if (!row) return null;
+    return {
+      date: row.date,
+      cells: row.cells ?? [],
+      colorScaleMax: toNum(row.colorScaleMax),
+      generatedAt: row.generatedAt,
+    };
+  } catch (error) {
+    if (isMissingHeatmapTable(error)) return null;
+    throw error;
+  }
 }

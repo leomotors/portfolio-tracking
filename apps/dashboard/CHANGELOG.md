@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.13.0] - 2026-09-04
+
+- feat: Heatmap page to review stored day gain/loss maps with Discord-matching layout, zoom, hover details, and a full holdings table
+
 ## [0.12.0] - 2026-09-02
 
 - feat: Settings page to edit CoinGecko symbol → coin id mappings used by the daily price cron

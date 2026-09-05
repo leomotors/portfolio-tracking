@@ -5,6 +5,7 @@ import type { NextConfig } from "next";
 const nextConfig: NextConfig = {
   output: "standalone",
   outputFileTracingRoot: path.join(import.meta.dirname, "../.."),
+  transpilePackages: ["@repo/heatmap", "@repo/database"],
 };
 
 export default nextConfig;

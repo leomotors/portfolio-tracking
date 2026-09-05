@@ -15,7 +15,7 @@
   "devDependencies": {
     "@repo/api-client": "workspace:*",
     "@repo/database": "workspace:*",
-    "@types/d3-hierarchy": "^3.1.7",
+    "@repo/heatmap": "workspace:*",
     "@vitest/coverage-v8": "^4.1.11",
     "dotenv-cli": "^11.0.0",
     "drizzle-orm": "^0.45.2",
@@ -27,7 +27,6 @@
     "zod": "^4.5.4"
   },
   "dependencies": {
-    "d3-hierarchy": "^3.1.2",
     "sharp": "^0.35.4",
     "yahoo-finance2": "^4.0.2"
   }

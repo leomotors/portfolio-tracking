@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.16.0] - 2026-09-04
+
+- feat: persist daily heatmap cells (`heatmap_daily`) after each cron run so the dashboard can rebuild history; Discord PNG is unchanged. Insert is skipped on dry-run and soft-fails if the table is not migrated yet.
+
 ## [0.15.0] - 2026-09-02
 
 - feat: CoinGecko ids for cryptocurrency assets live in `coingecko_symbol` (Settings page / SQL), not a hardcoded map. MTS-GOLD still uses Tether Gold.
