@@ -1,8 +1,8 @@
-import fs from "node:fs/promises";
-
 import createClient from "openapi-fetch";
 
 import type { SECV2 } from "@repo/api-client";
+import { db } from "@repo/database/client";
+import { secFundSymbolTable } from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
@@ -136,12 +136,20 @@ export async function getSymbolPrice(
   }
 }
 
+export async function loadSecProjectIdMap(): Promise<Record<string, string>> {
+  const rows = await db
+    .select({
+      symbol: secFundSymbolTable.symbol,
+      projectId: secFundSymbolTable.projectId,
+    })
+    .from(secFundSymbolTable);
+  return Object.fromEntries(rows.map((r) => [r.symbol, r.projectId]));
+}
+
 export async function fetchFundPrices(symbols: string[]) {
   const results: ScrapeResult[] = [];
 
-  const symbolMapping = JSON.parse(
-    await fs.readFile("./data/sec-mapping.json", "utf-8"),
-  ) as Record<string, string>;
+  const symbolMapping = await loadSecProjectIdMap();
 
   for (const symbol of symbols) {
     const projectId = symbolMapping[symbol];

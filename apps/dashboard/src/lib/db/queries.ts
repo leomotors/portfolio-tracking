@@ -17,6 +17,7 @@ import {
   personalLoanAccountTable,
   realEstateDailyBalanceTable,
   realEstatePropertyTable,
+  secFundSymbolTable,
   stakedPositionDailyTable,
   stakedPositionTable,
 } from "@repo/database/schema";
@@ -507,6 +508,50 @@ export async function getUnmappedCryptoSymbols(): Promise<string[]> {
         ),
       ),
     getCoingeckoSymbols(),
+  ]);
+  const have = new Set(mapped.map((m) => m.symbol));
+  return [
+    ...new Set(
+      assets
+        .map((a) => a.symbol)
+        .filter((s): s is string => s != null && s.length > 0 && !have.has(s)),
+    ),
+  ].sort((a, b) => a.localeCompare(b));
+}
+
+export interface SecFundSymbol {
+  id: number;
+  symbol: string;
+  projectId: string;
+  updatedAt: Date;
+}
+
+export async function getSecFundSymbols(): Promise<SecFundSymbol[]> {
+  const rows = await db
+    .select()
+    .from(secFundSymbolTable)
+    .orderBy(asc(secFundSymbolTable.symbol));
+  return rows.map((r) => ({
+    id: r.id,
+    symbol: r.symbol,
+    projectId: r.projectId,
+    updatedAt: r.updatedAt,
+  }));
+}
+
+/** Held Thai mutual fund symbols with no SEC map. The cron skips these. */
+export async function getUnmappedThaiFundSymbols(): Promise<string[]> {
+  const [assets, mapped] = await Promise.all([
+    db
+      .select({ symbol: assetTable.symbol })
+      .from(assetTable)
+      .where(
+        and(
+          eq(assetTable.symbolType, "thai_mutual_fund"),
+          gt(assetTable.amount, "0"),
+        ),
+      ),
+    getSecFundSymbols(),
   ]);
   const have = new Set(mapped.map((m) => m.symbol));
   return [

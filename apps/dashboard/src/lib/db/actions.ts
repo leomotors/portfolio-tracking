@@ -10,11 +10,16 @@ import {
   coingeckoSymbolTable,
   investmentAccountTable,
   realEstatePropertyTable,
+  secFundSymbolTable,
   stakedPositionTable,
 } from "@repo/database/schema";
 
 import { requireSession } from "@/lib/auth";
-import { normalizeCoingeckoId, normalizeSymbol } from "@/lib/db/coingecko-map";
+import {
+  normalizeCoingeckoId,
+  normalizeSecProjectId,
+  normalizeSymbol,
+} from "@/lib/db/price-map";
 import { rescaleAverageCost } from "@/lib/portfolio/staking";
 
 const assertNonNegative = (n: number, label: string) => {
@@ -246,5 +251,58 @@ export async function updateCoingeckoSymbol(
 export async function deleteCoingeckoSymbol(id: number) {
   await requireSession();
   await db.delete(coingeckoSymbolTable).where(eq(coingeckoSymbolTable.id, id));
+  revalidatePriceSettings();
+}
+
+export async function createSecFundSymbol(symbol: string, projectId: string) {
+  await requireSession();
+  const nextSymbol = normalizeSymbol(symbol);
+  const nextId = normalizeSecProjectId(projectId);
+  const [existing] = await db
+    .select({ id: secFundSymbolTable.id })
+    .from(secFundSymbolTable)
+    .where(eq(secFundSymbolTable.symbol, nextSymbol));
+  if (existing) throw new Error(`Symbol ${nextSymbol} is already mapped`);
+  await db.insert(secFundSymbolTable).values({
+    symbol: nextSymbol,
+    projectId: nextId,
+  });
+  revalidatePriceSettings();
+}
+
+export async function updateSecFundSymbol(
+  id: number,
+  patch: { symbol?: string; projectId?: string },
+) {
+  await requireSession();
+  const updates: { symbol?: string; projectId?: string } = {};
+  if (patch.symbol != null) {
+    const nextSymbol = normalizeSymbol(patch.symbol);
+    const [existing] = await db
+      .select({ id: secFundSymbolTable.id })
+      .from(secFundSymbolTable)
+      .where(
+        and(
+          eq(secFundSymbolTable.symbol, nextSymbol),
+          ne(secFundSymbolTable.id, id),
+        ),
+      );
+    if (existing) throw new Error(`Symbol ${nextSymbol} is already mapped`);
+    updates.symbol = nextSymbol;
+  }
+  if (patch.projectId != null) {
+    updates.projectId = normalizeSecProjectId(patch.projectId);
+  }
+  if (Object.keys(updates).length === 0) return;
+  await db
+    .update(secFundSymbolTable)
+    .set(updates)
+    .where(eq(secFundSymbolTable.id, id));
+  revalidatePriceSettings();
+}
+
+export async function deleteSecFundSymbol(id: number) {
+  await requireSession();
+  await db.delete(secFundSymbolTable).where(eq(secFundSymbolTable.id, id));
   revalidatePriceSettings();
 }

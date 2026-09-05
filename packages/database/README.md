@@ -239,6 +239,14 @@ Maps `asset.symbol` to a CoinGecko coin id. Unique on `symbol`. The cron
 loads this table each price run for `symbol_type = cryptocurrency` assets.
 Edit via SQL or the dashboard Settings page. MTS-GOLD is not stored here.
 
+#### `sec_fund_symbol` — [secFund.ts](src/schema/secFund.ts)
+Maps `asset.symbol` to a SEC project id (`proj_id`, e.g. `M0311_2564`). Unique
+on `symbol`. The cron loads this table each price run for
+`symbol_type = thai_mutual_fund` assets and uses the symbol as the
+`fund_class_name` filter, so several classes of one project share a project id
+(`SCBNDQ(A)` and `SCBNDQ(E)` are both `M0311_2564`). Edit via SQL or the
+dashboard Settings page.
+
 #### `currency` — [currency.ts](src/schema/currency.ts)
 FX table: maps a currency (and optional `variant`) to its current THB value.
 
@@ -386,6 +394,7 @@ server actions in [actions.ts](../../apps/dashboard/src/lib/db/actions.ts):
 - `asset.average_cost`
 - `investment_account.current_cost`
 - `coingecko_symbol` (CoinGecko id map)
+- `sec_fund_symbol` (SEC project id map)
 
 The dashboard also persists AI conversations, messages, tool calls, usage, and
 cost totals through [store.ts](../../apps/dashboard/src/lib/ai/store.ts).

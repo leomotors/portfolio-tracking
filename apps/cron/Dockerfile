@@ -30,7 +30,6 @@ RUN node tools/patch-pkg.js
 RUN pnpm install --production
 
 COPY --from=base --chown=node:node /app/apps/cron/dist/ ./dist/
-COPY --chown=node:node apps/cron/data/ ./data/
 
 ENV NODE_ENV=production
 
