@@ -29,6 +29,19 @@ Use package filters for focused work, for example `pnpm --filter dashboard test`
 
 Linting is done by ESLint and formatting is done by prettier. No need to do anything to fix format or import sort order, human will run script to fix them manually.
 
+## Database migrations
+
+When you change a table in `packages/database/src/schema`, generate a **named**
+Drizzle migration in the same change. Do not leave schema-only diffs for later,
+and do not accept drizzle-kit's random names (`0018_nice_toad`).
+
+```
+pnpm --filter @repo/database db:generate --name <kebab-case-description>
+```
+
+Examples: `heatmap-daily`, `sec-fund-symbol`, `price-updated-at-nullable`.
+Do not run `db:migrate` unless the user asks.
+
 ## Notes
 
 - The repo uses pnpm (version defined in package.json) and Turbo.
