@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [Unreleased]
+## [0.16.1] - 2026-09-11
 
 - fix: value every investment account, not only those with a cost basis above zero — a withdrawal can take cost to zero while positions are still held, and those accounts silently stopped being marked. Accounts with no holdings are still skipped.
 

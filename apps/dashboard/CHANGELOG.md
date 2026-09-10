@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.14.0] - 2026-09-11
 
 - feat: realized P/L ledger (`pnl_event`) — log in-account rotations, withdrawals that take P/L out of an account (and adjust cost basis), and optional undocumented write-offs
 - feat: events store native `pnl` / `withdraw_amount` with `currency_id` and a snapshotted `value_in_thb` so leftover and lifetime totals stay in THB without FX drift
