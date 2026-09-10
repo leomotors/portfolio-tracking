@@ -7,6 +7,11 @@
 - feat: account detail splits Account P/L into unrealized vs realized, with a realized log, leftover, and rotation/withdraw forms
 - feat: overview All-time P/L is open + taken, with a Taken P/L list of withdrawals
 - fix: theme and privacy blocking scripts use a SSR/client type switch so React 19 does not warn on inline `dangerouslySetInnerHTML` scripts
+- fix: privacy mode masks the cost adjustment shown on a withdrawal row and in the withdraw preview — they were the only amounts in the P/L log rendered unmasked
+- fix: derived realized P/L is FX-contaminated for foreign-currency accounts (it reduces to open cost at today's rate minus cost basis booked at purchase-day rates), so `accountPnlBreakdown` reports `fxBasisExposure`, the copy says the residual carries FX, and booking the leftover is withheld on those accounts instead of writing daily FX drift into the ledger as permanent `undocumented` rows
+- fix: deleting a P/L event takes two clicks — a withdrawal row moves cost basis
+- fix: native `pnl` / `withdraw_amount` keep their entered precision; only THB `cost_delta` and `current_cost` round to 2 dp
+- fix: `getPnlEvents` swallows undefined-table/column errors only when they name `pnl_event`, so a real schema drift is no longer reported as an empty ledger
 
 ## [0.13.0] - 2026-09-06
 

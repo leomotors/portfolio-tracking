@@ -43,7 +43,14 @@ const assertDate = (value: string) => {
   if (!DATE_RE.test(value)) throw new Error("Invalid date");
 };
 
-const asMoney = (n: number) => String(roundThb(n));
+/** THB columns (cost_delta) — matches investment_account.current_cost. */
+const asThb = (n: number) => String(roundThb(n));
+
+/**
+ * Native columns (pnl, withdraw_amount). Rounding these to THB's 2 dp would
+ * flatten a low-unit-value currency, so keep the entered precision.
+ */
+const asNative = (n: number) => String(n);
 
 const cleanNote = (note: string | undefined) => {
   const trimmed = note?.trim() ?? "";
@@ -140,7 +147,7 @@ export async function createInAccountPnlEvent(input: {
     occurredOn: input.occurredOn,
     currencyId: currency.id,
     valueInTHB: String(currency.valueInTHB),
-    pnl: asMoney(input.pnl),
+    pnl: asNative(input.pnl),
     withdrawAmount: null,
     costDelta: "0",
     note: cleanNote(input.note),
@@ -188,14 +195,14 @@ export async function createWithdrawnPnlEvent(input: {
       occurredOn: input.occurredOn,
       currencyId: currency.id,
       valueInTHB: String(currency.valueInTHB),
-      pnl: asMoney(input.pnl),
-      withdrawAmount: asMoney(input.withdrawAmount),
-      costDelta: asMoney(costDelta),
+      pnl: asNative(input.pnl),
+      withdrawAmount: asNative(input.withdrawAmount),
+      costDelta: asThb(costDelta),
       note: cleanNote(input.note),
     });
     await tx
       .update(investmentAccountTable)
-      .set({ currentCost: asMoney(nextCost) })
+      .set({ currentCost: asThb(nextCost) })
       .where(eq(investmentAccountTable.id, input.accountId));
   });
   revalidatePnl();
@@ -221,11 +228,13 @@ export async function deletePnlEvent(id: number) {
         parseFloat(account.currentCost) - parseFloat(event.costDelta),
       );
       if (nextCost < 0) {
-        throw new Error("Deleting this withdrawal would make cost basis negative");
+        throw new Error(
+          "Deleting this withdrawal would make cost basis negative",
+        );
       }
       await tx
         .update(investmentAccountTable)
-        .set({ currentCost: asMoney(nextCost) })
+        .set({ currentCost: asThb(nextCost) })
         .where(eq(investmentAccountTable.id, event.investmentAccountId));
     }
 

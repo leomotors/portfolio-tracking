@@ -18,16 +18,15 @@ export async function calculateBalance() {
   const now = new Date();
   const twentyFourHoursAgo = new Date(now.getTime() - TWENTY_FOUR_HOURS_MS);
 
-  // Get all investment accounts with non-zero current cost
+  // Every account: a withdrawal can take cost basis to zero while positions
+  // are still held, and those must keep being valued. Accounts with no
+  // holdings are skipped below, on the asset lookup.
   const investmentAccounts = await db
     .select()
     .from(investmentAccountTable)
-    .where(gt(investmentAccountTable.currentCost, "0"))
     .execute();
 
-  logger.log(
-    `Found ${investmentAccounts.length} investment accounts with non-zero cost`,
-  );
+  logger.log(`Found ${investmentAccounts.length} investment accounts`);
 
   // Track stale data across all accounts
   const staleAssets = new Set<string>();

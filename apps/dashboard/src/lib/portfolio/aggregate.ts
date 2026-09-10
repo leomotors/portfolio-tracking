@@ -465,6 +465,12 @@ export interface AccountPnlBreakdown {
   accountPnlPct: number;
   unrealizedPnl: number;
   realizedPnl: number;
+  /**
+   * THB cost basis of open positions held in a non-THB currency, at today's
+   * rate. Non-zero means `realizedPnl` also carries FX translation on cost
+   * and is an estimate, not a booked figure.
+   */
+  fxBasisExposure: number;
 }
 
 /**
@@ -472,8 +478,14 @@ export interface AccountPnlBreakdown {
  *
  * Selling one asset to buy another leaves account P/L unchanged (until
  * money leaves) while position P/Ls no longer sum to it. The residual is
- * realized P/L, plus small FX and rounding. `investmentTotals` only rolls
- * up account rows and cannot produce this split.
+ * realized P/L. `investmentTotals` only rolls up account rows and cannot
+ * produce this split.
+ *
+ * The residual reduces to `Σ(amount × averageCost × fx) − currentCost`, so
+ * for a non-THB position it also absorbs FX translation on cost basis:
+ * `currentCost` was booked at the purchase-day rate, the sum uses today's.
+ * That part moves with no trade, which is why `fxBasisExposure` is reported
+ * — callers must not treat the residual as booked when it is non-zero.
  */
 export function accountPnlBreakdown(
   account: InvestmentAccountRow,
@@ -484,17 +496,23 @@ export function accountPnlBreakdown(
   const accountPnlPct =
     account.currentCost === 0 ? 0 : accountPnl / account.currentCost;
   const fx = fxLookup(currencies);
+  const isThb = new Map(currencies.map((c) => [c.id, c.symbol === "THB"]));
   let unrealizedPnl = 0;
+  let fxBasisExposure = 0;
   for (const asset of assets) {
     const rate = fx(asset.currencyId);
     unrealizedPnl +=
       asset.amount * (asset.currentPrice - asset.averageCost) * rate;
+    if (!isThb.get(asset.currencyId)) {
+      fxBasisExposure += asset.amount * asset.averageCost * rate;
+    }
   }
   return {
     accountPnl,
     accountPnlPct,
     unrealizedPnl,
     realizedPnl: accountPnl - unrealizedPnl,
+    fxBasisExposure,
   };
 }
 

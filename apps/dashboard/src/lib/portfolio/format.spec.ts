@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { isStale, nativeAmount, ordinal, pct, signedNative, thb } from "./format";
+import {
+  isStale,
+  nativeAmount,
+  ordinal,
+  pct,
+  signedNative,
+  thb,
+} from "./format";
 
 describe("thb", () => {
   it("formats positive integers with the baht symbol", () => {

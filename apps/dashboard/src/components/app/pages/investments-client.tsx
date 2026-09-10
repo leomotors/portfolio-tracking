@@ -344,11 +344,17 @@ function AccountDetail({
     () => sliceTimeframe(fullSeries, tf),
     [fullSeries, tf],
   );
-  const { accountPnl: pl, accountPnlPct: plPct, unrealizedPnl, realizedPnl } =
-    useMemo(
-      () => accountPnlBreakdown(account, assets, currencies),
-      [account, assets, currencies],
-    );
+  const {
+    accountPnl: pl,
+    accountPnlPct: plPct,
+    unrealizedPnl,
+    realizedPnl,
+    fxBasisExposure,
+  } = useMemo(
+    () => accountPnlBreakdown(account, assets, currencies),
+    [account, assets, currencies],
+  );
+  const fxSensitive = fxBasisExposure !== 0;
   const chartBaseline = series[0]?.value;
   const classBreak = useMemo(
     () => byAssetClass(assets, currencies),
@@ -479,8 +485,10 @@ function AccountDetail({
             <div>
               <CardTitle>Performance</CardTitle>
               <CardDescription>
-                Open positions plus realized sells. Small leftovers are FX and
-                rounding.
+                Open positions plus realized sells.
+                {fxSensitive
+                  ? " Realized is derived, so it also carries FX translation on this account's foreign-currency cost basis."
+                  : " Realized is the residual, so it also carries rounding."}
               </CardDescription>
             </div>
           </CardHeader>
@@ -501,7 +509,11 @@ function AccountDetail({
               />
               <Stat
                 label="Realized"
-                hint="Sells kept in this account"
+                hint={
+                  fxSensitive
+                    ? "Sells kept here, plus FX on cost"
+                    : "Sells kept in this account"
+                }
                 value={<Delta value={realizedPnl} large />}
               />
             </div>
@@ -525,6 +537,7 @@ function AccountDetail({
         currentCost={account.currentCost}
         accountPnl={pl}
         computedRealized={realizedPnl}
+        fxSensitive={fxSensitive}
         events={pnlEvents}
         currencies={currencies}
       />

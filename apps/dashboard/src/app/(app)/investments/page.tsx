@@ -14,14 +14,15 @@ interface PageProps {
 }
 
 export default async function InvestmentsPage({ searchParams }: PageProps) {
-  const [accounts, daily, assets, currencies, pnlEvents, sp] = await Promise.all([
-    getInvestmentAccounts(),
-    getInvestmentDaily(),
-    getAssets(),
-    getCurrencies(),
-    getPnlEvents(),
-    searchParams,
-  ]);
+  const [accounts, daily, assets, currencies, pnlEvents, sp] =
+    await Promise.all([
+      getInvestmentAccounts(),
+      getInvestmentDaily(),
+      getAssets(),
+      getCurrencies(),
+      getPnlEvents(),
+      searchParams,
+    ]);
 
   const accountParam = sp.account;
   const initialAccountId =

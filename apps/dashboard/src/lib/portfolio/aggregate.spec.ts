@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  accountPnlBreakdown,
   type AssetRow,
   byAssetClass,
   byCurrency,
@@ -13,9 +14,8 @@ import {
   type CurrencyRow,
   dayDelta,
   dayMovers,
-  investmentTotals,
-  accountPnlBreakdown,
   inAccountLoggedPnl,
+  investmentTotals,
   isCapitalBankAccount,
   savingsFlowSeries,
   sliceTimeframe,
@@ -487,6 +487,50 @@ describe("accountPnlBreakdown", () => {
     expect(out.realizedPnl).toBeCloseTo(0);
   });
 
+  it("reports no FX exposure when every position is priced in THB", () => {
+    const out = accountPnlBreakdown(
+      account,
+      [asset({ id: 1, amount: 50, averageCost: 100, currentPrice: 140 })],
+      [thb],
+    );
+    expect(out.fxBasisExposure).toBe(0);
+  });
+
+  it("reports the THB cost basis of foreign positions as FX exposure", () => {
+    const out = accountPnlBreakdown(
+      { id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 },
+      [
+        asset({
+          id: 1,
+          currencyId: 2,
+          amount: 10,
+          averageCost: 100,
+          currentPrice: 120,
+        }),
+      ],
+      [thb, usd],
+    );
+    expect(out.fxBasisExposure).toBeCloseTo(10 * 100 * 33.42);
+  });
+
+  it("counts only the foreign leg when a mixed account holds both", () => {
+    const out = accountPnlBreakdown(
+      { id: 1, name: "Mixed", currentCost: 43_420, currentValue: 52_104 },
+      [
+        asset({ id: 1, amount: 100, averageCost: 100, currentPrice: 120 }),
+        asset({
+          id: 2,
+          currencyId: 2,
+          amount: 10,
+          averageCost: 100,
+          currentPrice: 120,
+        }),
+      ],
+      [thb, usd],
+    );
+    expect(out.fxBasisExposure).toBeCloseTo(10 * 100 * 33.42);
+  });
+
   it("calls the whole account P/L realized when there are no positions", () => {
     const out = accountPnlBreakdown(account, [], [thb]);
     expect(out.unrealizedPnl).toBe(0);
@@ -505,6 +549,7 @@ describe("accountPnlBreakdown", () => {
       accountPnlPct: 0,
       unrealizedPnl: 0,
       realizedPnl: 0,
+      fxBasisExposure: 0,
     });
   });
 });

@@ -345,17 +345,21 @@ export async function getInvestmentDaily(): Promise<InvestmentDailyPoint[]> {
   }));
 }
 
+/**
+ * True only for "pnl_event has not been migrated yet". Undefined-table /
+ * undefined-column on their own are also how a genuine schema drift shows
+ * up, so the error has to name this table before we swallow it.
+ */
 function isPnlEventUnavailable(error: unknown): boolean {
   let current: unknown = error;
   while (typeof current === "object" && current !== null) {
     const code = "code" in current ? String(current.code) : "";
     const message = "message" in current ? String(current.message) : "";
-    if (
-      code === "42P01" ||
-      code === "42703" ||
-      (message.includes("pnl_event") &&
-        message.toLowerCase().includes("does not exist"))
-    ) {
+    const namesTable =
+      message.includes("pnl_event") ||
+      ("table" in current && String(current.table) === "pnl_event");
+    if (namesTable && (code === "42P01" || code === "42703")) return true;
+    if (namesTable && message.toLowerCase().includes("does not exist")) {
       return true;
     }
     current = "cause" in current ? current.cause : null;
@@ -377,7 +381,8 @@ function mapPnlEvent(
     currencyVariant: currency.variant,
     valueInTHB: toNum(row.valueInTHB, 1),
     pnl: toNum(row.pnl),
-    withdrawAmount: row.withdrawAmount == null ? null : toNum(row.withdrawAmount),
+    withdrawAmount:
+      row.withdrawAmount == null ? null : toNum(row.withdrawAmount),
     costDelta: toNum(row.costDelta),
     note: row.note,
     createdAt: row.createdAt,
@@ -394,10 +399,7 @@ export async function getPnlEvents(): Promise<PnlEvent[]> {
         currencyVariant: currencyTable.variant,
       })
       .from(pnlEventTable)
-      .innerJoin(
-        currencyTable,
-        eq(pnlEventTable.currencyId, currencyTable.id),
-      )
+      .innerJoin(currencyTable, eq(pnlEventTable.currencyId, currencyTable.id))
       .orderBy(desc(pnlEventTable.occurredOn), desc(pnlEventTable.id));
     return rows.map((row) =>
       mapPnlEvent(row.event, {

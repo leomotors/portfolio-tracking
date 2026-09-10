@@ -22,12 +22,12 @@ import {
 } from "@/lib/db/actions";
 import { type PnlEvent } from "@/lib/db/queries";
 import {
+  type CurrencyRow,
   eventPnlThb,
   inAccountLoggedPnl,
   takenPnl,
   undocumentedLeftover,
   withdrawCostDelta,
-  type CurrencyRow,
 } from "@/lib/portfolio/aggregate";
 import { nativeAmount, pct, signedNative, thb } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
@@ -37,19 +37,20 @@ const SELECT_CLASS =
 
 const LEFTOVER_BOOK_FLOOR = 1;
 
-function currencyLabel(currency: {
-  symbol: string;
-  variant: string | null;
-}) {
+function currencyLabel(currency: { symbol: string; variant: string | null }) {
   return currency.variant
     ? `${currency.symbol} (${currency.variant})`
     : currency.symbol;
 }
 
+/** THB only. Leftover is a THB figure and must never be booked as anything else. */
+function thbCurrencyId(currencies: CurrencyRow[]) {
+  return currencies.find((c) => c.symbol === "THB")?.id ?? 0;
+}
+
+/** Form default: THB when present, otherwise whatever exists. */
 function defaultCurrencyId(currencies: CurrencyRow[]) {
-  return (
-    currencies.find((c) => c.symbol === "THB")?.id ?? currencies[0]?.id ?? 0
-  );
+  return thbCurrencyId(currencies) || (currencies[0]?.id ?? 0);
 }
 
 function thbFx(currencies: CurrencyRow[], currencyId: number) {
@@ -83,6 +84,7 @@ export function AccountPnlLog({
   currentCost,
   accountPnl,
   computedRealized,
+  fxSensitive,
   events,
   currencies,
 }: {
@@ -91,6 +93,8 @@ export function AccountPnlLog({
   currentCost: number;
   accountPnl: number;
   computedRealized: number;
+  /** Account holds non-THB positions, so the leftover drifts with FX. */
+  fxSensitive: boolean;
   events: PnlEvent[];
   currencies: CurrencyRow[];
 }) {
@@ -119,7 +123,11 @@ export function AccountPnlLog({
           />
           <LogStat
             label="Leftover"
-            hint="Computed minus logged"
+            hint={
+              fxSensitive
+                ? "Computed minus logged · moves with FX"
+                : "Computed minus logged"
+            }
             value={<Delta value={leftover} />}
           />
           <LogStat
@@ -134,7 +142,9 @@ export function AccountPnlLog({
             type="button"
             size="sm"
             variant={form === "rotation" ? "default" : "outline"}
-            onClick={() => setForm((v) => (v === "rotation" ? null : "rotation"))}
+            onClick={() =>
+              setForm((v) => (v === "rotation" ? null : "rotation"))
+            }
           >
             Log rotation
           </Button>
@@ -148,14 +158,22 @@ export function AccountPnlLog({
           >
             Withdraw / take P/L
           </Button>
-          {Math.abs(leftover) >= LEFTOVER_BOOK_FLOOR && (
+          {!fxSensitive && Math.abs(leftover) >= LEFTOVER_BOOK_FLOOR && (
             <BookLeftoverButton
               accountId={accountId}
               leftover={leftover}
-              thbCurrencyId={defaultCurrencyId(currencies)}
+              thbCurrencyId={thbCurrencyId(currencies)}
             />
           )}
         </div>
+
+        {fxSensitive && Math.abs(leftover) >= LEFTOVER_BOOK_FLOOR && (
+          <p className="text-[12px] text-[var(--ink-3)]">
+            Leftover is not bookable here: this account holds foreign-currency
+            positions, so it also carries FX translation on cost basis and
+            re-appears as the rate moves. Log the rotations instead.
+          </p>
+        )}
 
         {form === "rotation" && (
           <RotationForm
@@ -203,33 +221,34 @@ export function AccountPnlLog({
                       {event.note}
                     </p>
                   )}
-                  {event.kind === "withdrawn" && event.withdrawAmount != null && (
-                    <p className="mt-0.5 text-[11px] text-[var(--ink-3)]">
-                      withdrew{" "}
-                      <Sensitive>
-                        {nativeAmount(event.withdrawAmount, event.currency)}
-                      </Sensitive>
-                      {event.currency !== "THB" && (
-                        <>
-                          {" "}
-                          (
-                          <Sensitive>
-                            {thb(event.withdrawAmount * event.valueInTHB)}
-                          </Sensitive>
-                          )
-                        </>
-                      )}
-                      {" · "}
-                      cost {thb(event.costDelta, { sign: true })}
-                    </p>
-                  )}
+                  {event.kind === "withdrawn" &&
+                    event.withdrawAmount != null && (
+                      <p className="mt-0.5 text-[11px] text-[var(--ink-3)]">
+                        withdrew{" "}
+                        <Sensitive>
+                          {nativeAmount(event.withdrawAmount, event.currency)}
+                        </Sensitive>
+                        {event.currency !== "THB" && (
+                          <>
+                            {" "}
+                            (
+                            <Sensitive>
+                              {thb(event.withdrawAmount * event.valueInTHB)}
+                            </Sensitive>
+                            )
+                          </>
+                        )}
+                        {" · "}
+                        cost{" "}
+                        <Sensitive>
+                          {thb(event.costDelta, { sign: true })}
+                        </Sensitive>
+                      </p>
+                    )}
                 </div>
                 <div className="flex shrink-0 items-center gap-1">
                   <EventPnlAmount event={event} />
-                  <DeleteEventButton
-                    eventId={event.id}
-                    kind={event.kind}
-                  />
+                  <DeleteEventButton eventId={event.id} kind={event.kind} />
                 </div>
               </li>
             ))}
@@ -258,13 +277,7 @@ function LogStat({
   );
 }
 
-function Field({
-  label,
-  children,
-}: {
-  label: string;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
     <label className="flex min-w-0 flex-col gap-1">
       <span className="text-[12px] text-[var(--ink-3)]">{label}</span>
@@ -283,7 +296,9 @@ function EventPnlAmount({ event }: { event: PnlEvent }) {
       <span
         className={cn(
           "num text-[12px] font-medium",
-          thbValue >= 0 ? "text-[var(--accent-pos)]" : "text-[var(--accent-neg)]",
+          thbValue >= 0
+            ? "text-[var(--accent-pos)]"
+            : "text-[var(--accent-neg)]",
         )}
       >
         <Sensitive>{signedNative(event.pnl, event.currency)}</Sensitive>
@@ -412,9 +427,7 @@ function RotationForm({
           onChange={(e) => setNote(e.target.value)}
         />
       </Field>
-      {error && (
-        <p className="text-[12px] text-[var(--accent-neg)]">{error}</p>
-      )}
+      {error && <p className="text-[12px] text-[var(--accent-neg)]">{error}</p>}
       <div className="flex gap-2">
         <Button type="submit" size="sm" disabled={pending}>
           {pending ? "Saving…" : "Save rotation"}
@@ -461,7 +474,8 @@ function WithdrawForm({
     const costDelta = withdrawCostDelta(w, p, fx);
     const nextCost = currentCost + costDelta;
     const pnlThb = p * fx;
-    if (nextCost < 0) return { invalid: "Cost basis would go negative." as const };
+    if (nextCost < 0)
+      return { invalid: "Cost basis would go negative." as const };
     return {
       invalid: null,
       costDelta,
@@ -514,8 +528,8 @@ function WithdrawForm({
     >
       <p className="text-[12px] text-[var(--ink-2)]">
         Cost becomes cost − (withdraw − P/L) in THB. Reduce positions so mark
-        falls by about the withdraw. Cron updates value. {accountName} stays
-        the source account.
+        falls by about the withdraw. Cron updates value. {accountName} stays the
+        source account.
       </p>
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <Field label="Date">
@@ -569,10 +583,15 @@ function WithdrawForm({
           {" → "}
           <Sensitive>{thb(preview.nextCost)}</Sensitive>
           {" ("}
-          {thb(preview.costDelta, { sign: true })}
+          <Sensitive>{thb(preview.costDelta, { sign: true })}</Sensitive>
           {"). Account P/L falls by "}
-          <Sensitive>{thb(preview.pnlThb, { sign: true, decimals: 2 })}</Sensitive>
-          {preview.nextCost > 0 ? ` · remaining return ${pct(preview.nextPct)}` : ""}.
+          <Sensitive>
+            {thb(preview.pnlThb, { sign: true, decimals: 2 })}
+          </Sensitive>
+          {preview.nextCost > 0
+            ? ` · remaining return ${pct(preview.nextPct)}`
+            : ""}
+          .
         </p>
       )}
       {(error || preview?.invalid) && (
@@ -632,10 +651,11 @@ function BookLeftoverButton({
           });
         }}
       >
-        {pending ? "Booking…" : (
+        {pending ? (
+          "Booking…"
+        ) : (
           <>
-            Book leftover{" "}
-            <Sensitive>{thb(leftover, { sign: true })}</Sensitive>
+            Book leftover <Sensitive>{thb(leftover, { sign: true })}</Sensitive>
           </>
         )}
       </Button>
@@ -646,6 +666,8 @@ function BookLeftoverButton({
   );
 }
 
+/** Two-step: the first click arms, the second deletes. A withdrawal row also
+ *  moves cost basis, so a stray click must not be enough. */
 function DeleteEventButton({
   eventId,
   kind,
@@ -654,23 +676,51 @@ function DeleteEventButton({
   kind: PnlEvent["kind"];
 }) {
   const [pending, startTransition] = useTransition();
+  const [armed, setArmed] = useState(false);
   const label =
     kind === "withdrawn"
       ? "Delete withdrawal and restore cost"
       : "Delete log row";
+
+  if (armed) {
+    return (
+      <span className="inline-flex items-center gap-1">
+        <Button
+          type="button"
+          size="sm"
+          variant="outline"
+          disabled={pending}
+          className="h-7 px-2 text-[11px] text-[var(--accent-neg)]"
+          onClick={() => {
+            startTransition(async () => {
+              await deletePnlEvent(eventId);
+              setArmed(false);
+            });
+          }}
+        >
+          {pending ? "Deleting…" : "Confirm"}
+        </Button>
+        <Button
+          type="button"
+          size="sm"
+          variant="ghost"
+          disabled={pending}
+          className="h-7 px-2 text-[11px]"
+          onClick={() => setArmed(false)}
+        >
+          Cancel
+        </Button>
+      </span>
+    );
+  }
 
   return (
     <button
       type="button"
       aria-label={label}
       title={label}
-      disabled={pending}
-      onClick={() => {
-        startTransition(async () => {
-          await deletePnlEvent(eventId);
-        });
-      }}
-      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-[var(--radius)] text-[var(--ink-3)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--accent-neg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)] disabled:opacity-50"
+      onClick={() => setArmed(true)}
+      className="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-[var(--radius)] text-[var(--ink-3)] transition-colors hover:bg-[var(--hover)] hover:text-[var(--accent-neg)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]"
     >
       <Trash2 size={13} strokeWidth={2} />
     </button>

@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [Unreleased]
+
+- fix: value every investment account, not only those with a cost basis above zero — a withdrawal can take cost to zero while positions are still held, and those accounts silently stopped being marked. Accounts with no holdings are still skipped.
+
 ## [0.16.0] - 2026-09-06
 
 - feat: SEC project ids for Thai mutual funds live in `sec_fund_symbol` (Settings page / SQL), not the git-tracked `data/sec-mapping.json`
