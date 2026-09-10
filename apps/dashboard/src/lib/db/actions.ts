@@ -8,7 +8,9 @@ import {
   assetTable,
   bankAccountTable,
   coingeckoSymbolTable,
+  currencyTable,
   investmentAccountTable,
+  pnlEventTable,
   realEstatePropertyTable,
   secFundSymbolTable,
   stakedPositionTable,
@@ -20,12 +22,56 @@ import {
   normalizeSecProjectId,
   normalizeSymbol,
 } from "@/lib/db/price-map";
+import { roundThb, withdrawCostDelta } from "@/lib/portfolio/aggregate";
 import { rescaleAverageCost } from "@/lib/portfolio/staking";
 
 const assertNonNegative = (n: number, label: string) => {
   if (!Number.isFinite(n) || n < 0) {
     throw new Error(`Invalid ${label}: must be a non-negative finite number`);
   }
+};
+
+const assertFinite = (n: number, label: string) => {
+  if (!Number.isFinite(n)) {
+    throw new Error(`Invalid ${label}: must be a finite number`);
+  }
+};
+
+const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+const assertDate = (value: string) => {
+  if (!DATE_RE.test(value)) throw new Error("Invalid date");
+};
+
+const asMoney = (n: number) => String(roundThb(n));
+
+const cleanNote = (note: string | undefined) => {
+  const trimmed = note?.trim() ?? "";
+  return trimmed.length === 0 ? null : trimmed;
+};
+
+async function loadCurrencyFx(currencyId: number) {
+  if (!Number.isInteger(currencyId) || currencyId <= 0) {
+    throw new Error("Invalid currency");
+  }
+  const [row] = await db
+    .select({
+      id: currencyTable.id,
+      valueInTHB: currencyTable.valueInTHB,
+    })
+    .from(currencyTable)
+    .where(eq(currencyTable.id, currencyId));
+  if (!row) throw new Error("Currency not found");
+  const valueInTHB = parseFloat(row.valueInTHB);
+  if (!Number.isFinite(valueInTHB) || valueInTHB <= 0) {
+    throw new Error("Currency FX is missing");
+  }
+  return { id: row.id, valueInTHB };
+}
+
+const revalidatePnl = () => {
+  revalidatePath("/investments");
+  revalidatePath("/");
 };
 
 export async function updateBankBalance(id: number, balance: number) {
@@ -74,6 +120,118 @@ export async function updateInvestmentAccountCost(
     .where(eq(investmentAccountTable.id, id));
   revalidatePath("/investments");
   revalidatePath("/");
+}
+
+export async function createInAccountPnlEvent(input: {
+  accountId: number;
+  occurredOn: string;
+  currencyId: number;
+  pnl: number;
+  note?: string;
+  undocumented?: boolean;
+}) {
+  await requireSession();
+  assertDate(input.occurredOn);
+  assertFinite(input.pnl, "pnl");
+  const currency = await loadCurrencyFx(input.currencyId);
+  await db.insert(pnlEventTable).values({
+    investmentAccountId: input.accountId,
+    kind: input.undocumented ? "undocumented" : "in_account",
+    occurredOn: input.occurredOn,
+    currencyId: currency.id,
+    valueInTHB: String(currency.valueInTHB),
+    pnl: asMoney(input.pnl),
+    withdrawAmount: null,
+    costDelta: "0",
+    note: cleanNote(input.note),
+  });
+  revalidatePnl();
+}
+
+export async function createWithdrawnPnlEvent(input: {
+  accountId: number;
+  occurredOn: string;
+  currencyId: number;
+  pnl: number;
+  withdrawAmount: number;
+  note?: string;
+}) {
+  await requireSession();
+  assertDate(input.occurredOn);
+  assertFinite(input.pnl, "pnl");
+  if (!Number.isFinite(input.withdrawAmount) || input.withdrawAmount <= 0) {
+    throw new Error("Withdraw amount must be a positive number");
+  }
+
+  const currency = await loadCurrencyFx(input.currencyId);
+  const costDelta = withdrawCostDelta(
+    input.withdrawAmount,
+    input.pnl,
+    currency.valueInTHB,
+  );
+
+  await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({ currentCost: investmentAccountTable.currentCost })
+      .from(investmentAccountTable)
+      .where(eq(investmentAccountTable.id, input.accountId));
+    if (!account) throw new Error("Investment account not found");
+
+    const nextCost = roundThb(parseFloat(account.currentCost) + costDelta);
+    if (nextCost < 0) {
+      throw new Error("Withdrawal would make cost basis negative");
+    }
+
+    await tx.insert(pnlEventTable).values({
+      investmentAccountId: input.accountId,
+      kind: "withdrawn",
+      occurredOn: input.occurredOn,
+      currencyId: currency.id,
+      valueInTHB: String(currency.valueInTHB),
+      pnl: asMoney(input.pnl),
+      withdrawAmount: asMoney(input.withdrawAmount),
+      costDelta: asMoney(costDelta),
+      note: cleanNote(input.note),
+    });
+    await tx
+      .update(investmentAccountTable)
+      .set({ currentCost: asMoney(nextCost) })
+      .where(eq(investmentAccountTable.id, input.accountId));
+  });
+  revalidatePnl();
+}
+
+export async function deletePnlEvent(id: number) {
+  await requireSession();
+
+  await db.transaction(async (tx) => {
+    const [event] = await tx
+      .select()
+      .from(pnlEventTable)
+      .where(eq(pnlEventTable.id, id));
+    if (!event) throw new Error("P/L event not found");
+
+    if (event.kind === "withdrawn") {
+      const [account] = await tx
+        .select({ currentCost: investmentAccountTable.currentCost })
+        .from(investmentAccountTable)
+        .where(eq(investmentAccountTable.id, event.investmentAccountId));
+      if (!account) throw new Error("Investment account not found");
+      const nextCost = roundThb(
+        parseFloat(account.currentCost) - parseFloat(event.costDelta),
+      );
+      if (nextCost < 0) {
+        throw new Error("Deleting this withdrawal would make cost basis negative");
+      }
+      await tx
+        .update(investmentAccountTable)
+        .set({ currentCost: asMoney(nextCost) })
+        .where(eq(investmentAccountTable.id, event.investmentAccountId));
+    }
+
+    await tx.delete(pnlEventTable).where(eq(pnlEventTable.id, id));
+  });
+  revalidatePnl();
 }
 
 export async function updateStakedDeposited(id: number, deposited: number) {

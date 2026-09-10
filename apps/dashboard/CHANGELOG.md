@@ -1,5 +1,13 @@
 # Changelog
 
+## [Unreleased]
+
+- feat: realized P/L ledger (`pnl_event`) — log in-account rotations, withdrawals that take P/L out of an account (and adjust cost basis), and optional undocumented write-offs
+- feat: events store native `pnl` / `withdraw_amount` with `currency_id` and a snapshotted `value_in_thb` so leftover and lifetime totals stay in THB without FX drift
+- feat: account detail splits Account P/L into unrealized vs realized, with a realized log, leftover, and rotation/withdraw forms
+- feat: overview All-time P/L is open + taken, with a Taken P/L list of withdrawals
+- fix: theme and privacy blocking scripts use a SSR/client type switch so React 19 does not warn on inline `dangerouslySetInnerHTML` scripts
+
 ## [0.13.0] - 2026-09-06
 
 - feat: Settings page edits SEC symbol → project id mappings alongside the CoinGecko map, flagging held funds that have none

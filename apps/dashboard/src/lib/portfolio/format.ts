@@ -32,6 +32,7 @@ export function pct(value: number, decimals = 2) {
 
 export function nativeAmount(value: number, code: string, decimals?: number) {
   const d = decimals ?? (code === "JPY" ? 0 : 2);
+  if (!Number.isFinite(value)) return "—";
   return (
     value.toLocaleString("en-US", {
       minimumFractionDigits: d,
@@ -40,6 +41,12 @@ export function nativeAmount(value: number, code: string, decimals?: number) {
     " " +
     code
   );
+}
+
+export function signedNative(value: number, code: string, decimals?: number) {
+  if (!Number.isFinite(value)) return "—";
+  const body = nativeAmount(Math.abs(value), code, decimals);
+  return (value >= 0 ? "+" : "−") + body;
 }
 
 const STALE_THRESHOLD_HOURS = 24;

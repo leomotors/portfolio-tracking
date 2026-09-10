@@ -6,6 +6,7 @@ import {
   getCurrencies,
   getInvestmentAccounts,
   getInvestmentDaily,
+  getPnlEvents,
 } from "@/lib/db/queries";
 
 interface PageProps {
@@ -13,11 +14,12 @@ interface PageProps {
 }
 
 export default async function InvestmentsPage({ searchParams }: PageProps) {
-  const [accounts, daily, assets, currencies, sp] = await Promise.all([
+  const [accounts, daily, assets, currencies, pnlEvents, sp] = await Promise.all([
     getInvestmentAccounts(),
     getInvestmentDaily(),
     getAssets(),
     getCurrencies(),
+    getPnlEvents(),
     searchParams,
   ]);
 
@@ -33,6 +35,7 @@ export default async function InvestmentsPage({ searchParams }: PageProps) {
       daily={daily}
       assets={assets}
       currencies={currencies}
+      pnlEvents={pnlEvents}
       initialAccountId={
         Number.isFinite(initialAccountId) ? initialAccountId : undefined
       }

@@ -13,6 +13,7 @@ import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import { AccountPnlLog } from "@/components/app/pages/investments-pnl";
 import { Sensitive } from "@/components/app/sensitive";
 import { Sparkline } from "@/components/app/sparkline";
 import { Stale } from "@/components/app/stale";
@@ -36,8 +37,10 @@ import {
   type Asset,
   type InvestmentAccount,
   type InvestmentDailyPoint,
+  type PnlEvent,
 } from "@/lib/db/queries";
 import {
+  accountPnlBreakdown,
   byAssetClass,
   type CurrencyRow,
   sliceTimeframe,
@@ -56,6 +59,7 @@ interface InvestmentsClientProps {
   daily: InvestmentDailyPoint[];
   assets: Asset[];
   currencies: CurrencyRow[];
+  pnlEvents: PnlEvent[];
   initialAccountId?: number;
 }
 
@@ -183,6 +187,7 @@ export function InvestmentsClient({
   daily,
   assets,
   currencies,
+  pnlEvents,
   initialAccountId,
 }: InvestmentsClientProps) {
   const [selectedId, setSelectedId] = useState<number | null>(() =>
@@ -294,6 +299,9 @@ export function InvestmentsClient({
           daily={daily.filter((d) => d.accountId === focused.id)}
           assets={assets.filter((a) => a.investmentAccountId === focused.id)}
           currencies={currencies}
+          pnlEvents={pnlEvents.filter(
+            (event) => event.investmentAccountId === focused.id,
+          )}
           topRef={detailTopRef}
         />
       </div>
@@ -306,12 +314,14 @@ function AccountDetail({
   daily,
   assets,
   currencies,
+  pnlEvents,
   topRef,
 }: {
   account: InvestmentAccount;
   daily: InvestmentDailyPoint[];
   assets: Asset[];
   currencies: CurrencyRow[];
+  pnlEvents: PnlEvent[];
   topRef?: React.Ref<HTMLDivElement>;
 }) {
   const [chartMetric, setChartMetric] =
@@ -334,8 +344,11 @@ function AccountDetail({
     () => sliceTimeframe(fullSeries, tf),
     [fullSeries, tf],
   );
-  const pl = account.currentValue - account.currentCost;
-  const plPct = account.currentCost === 0 ? 0 : pl / account.currentCost;
+  const { accountPnl: pl, accountPnlPct: plPct, unrealizedPnl, realizedPnl } =
+    useMemo(
+      () => accountPnlBreakdown(account, assets, currencies),
+      [account, assets, currencies],
+    );
   const chartBaseline = series[0]?.value;
   const classBreak = useMemo(
     () => byAssetClass(assets, currencies),
@@ -463,16 +476,36 @@ function AccountDetail({
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Performance</CardTitle>
+            <div>
+              <CardTitle>Performance</CardTitle>
+              <CardDescription>
+                Open positions plus realized sells. Small leftovers are FX and
+                rounding.
+              </CardDescription>
+            </div>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-2 gap-x-7 gap-y-4">
               <Stat
-                label="P/L"
+                label="Account P/L"
                 value={<Sensitive>{thb(pl)}</Sensitive>}
                 large
               />
               <Stat label="Return" value={pct(plPct)} large />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-7 gap-y-4 border-t border-[var(--hairline)] pt-4">
+              <Stat
+                label="Unrealized"
+                hint="Sum of open positions"
+                value={<Delta value={unrealizedPnl} large />}
+              />
+              <Stat
+                label="Realized"
+                hint="Sells kept in this account"
+                value={<Delta value={realizedPnl} large />}
+              />
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-x-7 gap-y-4 border-t border-[var(--hairline)] pt-4">
               <Stat
                 label="Cost basis"
                 value={<Sensitive>{thb(account.currentCost)}</Sensitive>}
@@ -485,6 +518,16 @@ function AccountDetail({
           </CardContent>
         </Card>
       </div>
+
+      <AccountPnlLog
+        accountId={account.id}
+        accountName={account.name}
+        currentCost={account.currentCost}
+        accountPnl={pl}
+        computedRealized={realizedPnl}
+        events={pnlEvents}
+        currencies={currencies}
+      />
 
       <Card>
         <CardHeader>
@@ -734,10 +777,12 @@ function Stat({
   label,
   value,
   large,
+  hint,
 }: {
   label: string;
   value: React.ReactNode;
   large?: boolean;
+  hint?: string;
 }) {
   return (
     <div className="flex flex-col gap-1">
@@ -750,6 +795,9 @@ function Stat({
       >
         {value}
       </div>
+      {hint && (
+        <div className="text-[11px] leading-4 text-[var(--ink-3)]">{hint}</div>
+      )}
     </div>
   );
 }

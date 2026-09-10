@@ -15,6 +15,7 @@ import {
   investmentAccountTable,
   investmentDailyBalanceTable,
   personalLoanAccountTable,
+  pnlEventTable,
   realEstateDailyBalanceTable,
   realEstatePropertyTable,
   secFundSymbolTable,
@@ -162,6 +163,24 @@ export interface InvestmentDailyPoint {
   date: string;
   cost: number;
   value: number;
+}
+
+export type PnlEventKind = "in_account" | "withdrawn" | "undocumented";
+
+export interface PnlEvent {
+  id: number;
+  investmentAccountId: number;
+  kind: PnlEventKind;
+  occurredOn: string;
+  currencyId: number;
+  currency: string;
+  currencyVariant: string | null;
+  valueInTHB: number;
+  pnl: number;
+  withdrawAmount: number | null;
+  costDelta: number;
+  note: string | null;
+  createdAt: Date;
 }
 
 export interface BankDailyPoint {
@@ -324,6 +343,72 @@ export async function getInvestmentDaily(): Promise<InvestmentDailyPoint[]> {
     cost: toNum(r.cost),
     value: toNum(r.value),
   }));
+}
+
+function isPnlEventUnavailable(error: unknown): boolean {
+  let current: unknown = error;
+  while (typeof current === "object" && current !== null) {
+    const code = "code" in current ? String(current.code) : "";
+    const message = "message" in current ? String(current.message) : "";
+    if (
+      code === "42P01" ||
+      code === "42703" ||
+      (message.includes("pnl_event") &&
+        message.toLowerCase().includes("does not exist"))
+    ) {
+      return true;
+    }
+    current = "cause" in current ? current.cause : null;
+  }
+  return false;
+}
+
+function mapPnlEvent(
+  row: typeof pnlEventTable.$inferSelect,
+  currency: { symbol: string; variant: string | null },
+): PnlEvent {
+  return {
+    id: row.id,
+    investmentAccountId: row.investmentAccountId,
+    kind: row.kind,
+    occurredOn: row.occurredOn,
+    currencyId: row.currencyId,
+    currency: currency.symbol,
+    currencyVariant: currency.variant,
+    valueInTHB: toNum(row.valueInTHB, 1),
+    pnl: toNum(row.pnl),
+    withdrawAmount: row.withdrawAmount == null ? null : toNum(row.withdrawAmount),
+    costDelta: toNum(row.costDelta),
+    note: row.note,
+    createdAt: row.createdAt,
+  };
+}
+
+/** Newest first. Empty when the table has not been migrated yet. */
+export async function getPnlEvents(): Promise<PnlEvent[]> {
+  try {
+    const rows = await db
+      .select({
+        event: pnlEventTable,
+        currency: currencyTable.symbol,
+        currencyVariant: currencyTable.variant,
+      })
+      .from(pnlEventTable)
+      .innerJoin(
+        currencyTable,
+        eq(pnlEventTable.currencyId, currencyTable.id),
+      )
+      .orderBy(desc(pnlEventTable.occurredOn), desc(pnlEventTable.id));
+    return rows.map((row) =>
+      mapPnlEvent(row.event, {
+        symbol: row.currency,
+        variant: row.currencyVariant,
+      }),
+    );
+  } catch (error) {
+    if (isPnlEventUnavailable(error)) return [];
+    throw error;
+  }
 }
 
 export async function getBankDaily(): Promise<BankDailyPoint[]> {

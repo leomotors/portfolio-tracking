@@ -14,10 +14,15 @@ import {
   dayDelta,
   dayMovers,
   investmentTotals,
+  accountPnlBreakdown,
+  inAccountLoggedPnl,
   isCapitalBankAccount,
   savingsFlowSeries,
   sliceTimeframe,
+  takenPnl,
+  undocumentedLeftover,
   valueFlowSeries,
+  withdrawCostDelta,
 } from "./aggregate";
 
 const thb: CurrencyRow = {
@@ -414,5 +419,140 @@ describe("investmentTotals", () => {
   it("returns zeros and avoids div-by-zero on empty input", () => {
     const out = investmentTotals([]);
     expect(out).toEqual({ total: 0, cost: 0, pl: 0, plPct: 0 });
+  });
+});
+
+describe("accountPnlBreakdown", () => {
+  const account = {
+    id: 1,
+    name: "Broker",
+    currentCost: 10_000,
+    currentValue: 12_000,
+  };
+
+  it("treats the gap between account P/L and position P/Ls as realized", () => {
+    const out = accountPnlBreakdown(
+      account,
+      [
+        asset({
+          id: 1,
+          amount: 50,
+          averageCost: 100,
+          currentPrice: 140,
+        }),
+      ],
+      [thb],
+    );
+    expect(out.accountPnl).toBe(2_000);
+    expect(out.unrealizedPnl).toBe(2_000);
+    expect(out.realizedPnl).toBe(0);
+    expect(out.accountPnlPct).toBeCloseTo(0.2);
+  });
+
+  it("keeps account P/L after a rotation and assigns the sold gain to realized", () => {
+    // Sold a 10k-cost lot for 12k and bought a new lot at 12k. Account
+    // cost/value stay 10k/12k; the open position now has zero unrealized.
+    const out = accountPnlBreakdown(
+      account,
+      [
+        asset({
+          id: 2,
+          amount: 100,
+          averageCost: 120,
+          currentPrice: 120,
+        }),
+      ],
+      [thb],
+    );
+    expect(out.accountPnl).toBe(2_000);
+    expect(out.unrealizedPnl).toBe(0);
+    expect(out.realizedPnl).toBe(2_000);
+  });
+
+  it("applies FX to open-position P/L before taking the residual", () => {
+    const out = accountPnlBreakdown(
+      { id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 },
+      [
+        asset({
+          id: 1,
+          currencyId: 2,
+          amount: 10,
+          averageCost: 100,
+          currentPrice: 120,
+        }),
+      ],
+      [thb, usd],
+    );
+    expect(out.unrealizedPnl).toBeCloseTo(10 * 20 * 33.42);
+    expect(out.realizedPnl).toBeCloseTo(0);
+  });
+
+  it("calls the whole account P/L realized when there are no positions", () => {
+    const out = accountPnlBreakdown(account, [], [thb]);
+    expect(out.unrealizedPnl).toBe(0);
+    expect(out.realizedPnl).toBe(2_000);
+    expect(out.accountPnlPct).toBeCloseTo(0.2);
+  });
+
+  it("returns a zero percent when account cost is zero", () => {
+    const out = accountPnlBreakdown(
+      { id: 1, name: "Empty", currentCost: 0, currentValue: 0 },
+      [],
+      [thb],
+    );
+    expect(out).toEqual({
+      accountPnl: 0,
+      accountPnlPct: 0,
+      unrealizedPnl: 0,
+      realizedPnl: 0,
+    });
+  });
+});
+
+describe("withdrawCostDelta", () => {
+  it("removes cost equal to withdraw minus the P/L taken out", () => {
+    expect(withdrawCostDelta(50, 20)).toBe(-30);
+    expect(withdrawCostDelta(50, 50)).toBe(0);
+    expect(withdrawCostDelta(50, 0)).toBe(-50);
+  });
+
+  it("increases the cost reduction when the taken P/L is a loss", () => {
+    expect(withdrawCostDelta(80, -20)).toBe(-100);
+  });
+
+  it("converts native withdraw and P/L through the snapshotted FX", () => {
+    expect(withdrawCostDelta(2071.7, 726.19, 32.9)).toBe(-44267.28);
+  });
+});
+
+describe("in-account vs taken P/L logs", () => {
+  const events = [
+    { kind: "in_account" as const, pnl: 12_000, valueInTHB: 1 },
+    { kind: "undocumented" as const, pnl: 8_000, valueInTHB: 1 },
+    { kind: "withdrawn" as const, pnl: 5_000, valueInTHB: 1 },
+  ];
+
+  it("sums only in-account explanations toward the residual log", () => {
+    expect(inAccountLoggedPnl(events)).toBe(20_000);
+  });
+
+  it("sums only withdrawn rows as taken P/L", () => {
+    expect(takenPnl(events)).toBe(5_000);
+  });
+
+  it("treats leftover as computed realized minus logged in-account rows", () => {
+    expect(undocumentedLeftover(22_000, events)).toBe(2_000);
+  });
+
+  it("leaves leftover equal to computed realized when the log is empty", () => {
+    expect(undocumentedLeftover(20_000, [])).toBe(20_000);
+  });
+
+  it("converts native in-account P/L to THB with the snapshotted FX", () => {
+    expect(
+      inAccountLoggedPnl([
+        { kind: "in_account", pnl: 726.19, valueInTHB: 32.9 },
+      ]),
+    ).toBeCloseTo(23_891.651);
   });
 });

@@ -8,6 +8,7 @@ import {
   getCurrencies,
   getInvestmentAccounts,
   getInvestmentDaily,
+  getPnlEvents,
   getRealEstateDaily,
   getRealEstateProperties,
 } from "@/lib/db/queries";
@@ -16,10 +17,12 @@ import {
   combineNetWorthSeries,
   dayDelta,
   dayMovers,
+  eventPnlThb,
   investmentTotals,
   isCapitalBankAccount,
   type MoverInput,
   realEstateTotals,
+  takenPnl,
 } from "@/lib/portfolio/aggregate";
 
 export default async function OverviewPage() {
@@ -32,6 +35,7 @@ export default async function OverviewPage() {
     assets,
     currencies,
     realEstateProperties,
+    pnlEvents,
   ] = await Promise.all([
     getInvestmentAccounts(),
     getBankAccounts(),
@@ -41,6 +45,7 @@ export default async function OverviewPage() {
     getAssets(),
     getCurrencies(),
     getRealEstateProperties(),
+    getPnlEvents(),
   ]);
 
   const series = combineNetWorthSeries(
@@ -116,6 +121,25 @@ export default async function OverviewPage() {
     .filter((m): m is MoverInput => m !== null);
   const movers = dayMovers(moverInputs).filter((m) => m.delta !== 0);
 
+  const accountName = new Map(investAccts.map((a) => [a.id, a.name]));
+  const taken = takenPnl(pnlEvents);
+  const takenEvents = pnlEvents
+    .filter(
+      (event): event is typeof event & { withdrawAmount: number } =>
+        event.kind === "withdrawn" && event.withdrawAmount != null,
+    )
+    .map((event) => ({
+      id: event.id,
+      accountId: event.investmentAccountId,
+      accountName: accountName.get(event.investmentAccountId) ?? "Account",
+      occurredOn: event.occurredOn,
+      currency: event.currency,
+      pnl: event.pnl,
+      pnlThb: eventPnlThb(event),
+      withdrawAmount: event.withdrawAmount,
+      note: event.note,
+    }));
+
   return (
     <OverviewClient
       series={series}
@@ -133,6 +157,8 @@ export default async function OverviewPage() {
       bankTotal={bankTotal}
       allocation={allocation}
       movers={movers.slice(0, 8)}
+      takenPnlTotal={taken}
+      takenEvents={takenEvents}
       asOf={series.at(-1)?.date ?? null}
     />
   );

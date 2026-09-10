@@ -1,3 +1,5 @@
+import { InlineScript } from "./inline-script";
+
 const SCRIPT = `
 (function () {
   try {
@@ -11,5 +13,5 @@ const SCRIPT = `
 `;
 
 export function PrivacyScript() {
-  return <script dangerouslySetInnerHTML={{ __html: SCRIPT }} />;
+  return <InlineScript html={SCRIPT} />;
 }

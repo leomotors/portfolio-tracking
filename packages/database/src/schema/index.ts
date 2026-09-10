@@ -6,6 +6,7 @@ export * from "./currency.ts";
 export * from "./heatmap.ts";
 export * from "./investmentAccount.ts";
 export * from "./loanAccount.ts";
+export * from "./pnlEvent.ts";
 export * from "./realEstate.ts";
 export * from "./secFund.ts";
 export * from "./staking.ts";

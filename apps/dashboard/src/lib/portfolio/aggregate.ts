@@ -459,3 +459,91 @@ export function investmentTotals(
   const plPct = cost === 0 ? 0 : pl / cost;
   return { total, cost, pl, plPct };
 }
+
+export interface AccountPnlBreakdown {
+  accountPnl: number;
+  accountPnlPct: number;
+  unrealizedPnl: number;
+  realizedPnl: number;
+}
+
+/**
+ * Account P/L minus the sum of open-position P/Ls.
+ *
+ * Selling one asset to buy another leaves account P/L unchanged (until
+ * money leaves) while position P/Ls no longer sum to it. The residual is
+ * realized P/L, plus small FX and rounding. `investmentTotals` only rolls
+ * up account rows and cannot produce this split.
+ */
+export function accountPnlBreakdown(
+  account: InvestmentAccountRow,
+  assets: AssetRow[],
+  currencies: CurrencyRow[],
+): AccountPnlBreakdown {
+  const accountPnl = account.currentValue - account.currentCost;
+  const accountPnlPct =
+    account.currentCost === 0 ? 0 : accountPnl / account.currentCost;
+  const fx = fxLookup(currencies);
+  let unrealizedPnl = 0;
+  for (const asset of assets) {
+    const rate = fx(asset.currencyId);
+    unrealizedPnl +=
+      asset.amount * (asset.currentPrice - asset.averageCost) * rate;
+  }
+  return {
+    accountPnl,
+    accountPnlPct,
+    unrealizedPnl,
+    realizedPnl: accountPnl - unrealizedPnl,
+  };
+}
+
+export type PnlEventKind = "in_account" | "withdrawn" | "undocumented";
+
+export interface PnlEventAmounts {
+  kind: PnlEventKind;
+  pnl: number;
+  valueInTHB: number;
+}
+
+export function roundThb(value: number) {
+  return Math.round(value * 100) / 100;
+}
+
+export function eventPnlThb(event: PnlEventAmounts) {
+  return event.pnl * event.valueInTHB;
+}
+
+/** Cost change for a withdrawal: remove (W − P) from cost basis, in THB. */
+export function withdrawCostDelta(
+  withdrawAmount: number,
+  pnl: number,
+  valueInTHB = 1,
+) {
+  const delta = roundThb(-(withdrawAmount - pnl) * valueInTHB);
+  return delta === 0 ? 0 : delta;
+}
+
+export function inAccountLoggedPnl(events: readonly PnlEventAmounts[]) {
+  return events.reduce((sum, event) => {
+    if (event.kind === "in_account" || event.kind === "undocumented") {
+      return sum + eventPnlThb(event);
+    }
+    return sum;
+  }, 0);
+}
+
+export function takenPnl(events: readonly PnlEventAmounts[]) {
+  return events.reduce((sum, event) => {
+    if (event.kind === "withdrawn") return sum + eventPnlThb(event);
+    return sum;
+  }, 0);
+}
+
+/** Computed in-account realized minus logged rotations / write-offs. */
+export function undocumentedLeftover(
+  computedRealized: number,
+  events: readonly PnlEventAmounts[],
+) {
+  return computedRealized - inAccountLoggedPnl(events);
+}

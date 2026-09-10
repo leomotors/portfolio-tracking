@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { isStale, nativeAmount, ordinal, pct, thb } from "./format";
+import { isStale, nativeAmount, ordinal, pct, signedNative, thb } from "./format";
 
 describe("thb", () => {
   it("formats positive integers with the baht symbol", () => {
@@ -52,6 +52,13 @@ describe("nativeAmount", () => {
 
   it("respects an explicit decimals override", () => {
     expect(nativeAmount(0.082, "BTC", 4)).toBe("0.0820 BTC");
+  });
+});
+
+describe("signedNative", () => {
+  it("prefixes an explicit sign and keeps the currency code", () => {
+    expect(signedNative(726.19, "USD")).toBe("+726.19 USD");
+    expect(signedNative(-50, "USD")).toBe("−50.00 USD");
   });
 });
 

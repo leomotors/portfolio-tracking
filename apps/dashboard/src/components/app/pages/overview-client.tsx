@@ -29,7 +29,7 @@ import {
   savingsFlowSeries,
   sliceTimeframe,
 } from "@/lib/portfolio/aggregate";
-import { compactThb, pct, thb } from "@/lib/portfolio/format";
+import { compactThb, nativeAmount, pct, thb } from "@/lib/portfolio/format";
 
 interface Mover {
   accountId: number;
@@ -77,6 +77,18 @@ const CHART_SUBTITLES: Record<OverviewChartMetric, string> = {
   savings: "High-yield savings only · bars show balance flow",
 };
 
+interface TakenPnlRow {
+  id: number;
+  accountId: number;
+  accountName: string;
+  occurredOn: string;
+  currency: string;
+  pnl: number;
+  pnlThb: number;
+  withdrawAmount: number;
+  note: string | null;
+}
+
 interface OverviewClientProps {
   series: AreaChartPoint[];
   investmentDaily: InvestmentDailyPoint[];
@@ -93,6 +105,8 @@ interface OverviewClientProps {
   bankTotal: number;
   allocation: AllocationBucket[];
   movers: Mover[];
+  takenPnlTotal: number;
+  takenEvents: TakenPnlRow[];
   asOf: string | null;
 }
 
@@ -111,6 +125,8 @@ export function OverviewClient({
   bankTotal,
   allocation,
   movers,
+  takenPnlTotal,
+  takenEvents,
   asOf,
 }: OverviewClientProps) {
   const [tf, setTf] = useState<Timeframe>("1Y");
@@ -179,6 +195,7 @@ export function OverviewClient({
 
   const investPL = investTotal - investCost;
   const investPLPct = investCost === 0 ? 0 : investPL / investCost;
+  const lifetimePL = investPL + takenPnlTotal;
   const chartBaseline = sliced[0]?.value;
   const splitAtZero =
     chartMetric === "investments" && investmentSubview === "pnl";
@@ -296,10 +313,70 @@ export function OverviewClient({
         />
         <Kpi
           label="All-time P/L"
-          value={<Sensitive>{thb(investPL)}</Sensitive>}
-          sub={investCost === 0 ? "—" : pct(investPLPct)}
+          value={<Sensitive>{thb(lifetimePL)}</Sensitive>}
+          sub={
+            <>
+              open <Sensitive>{thb(investPL)}</Sensitive>
+              {" · taken "}
+              <Sensitive>{thb(takenPnlTotal)}</Sensitive>
+            </>
+          }
         />
       </KpiGrid>
+
+      {takenEvents.length > 0 && (
+        <Card>
+          <CardHeader>
+            <div>
+              <CardTitle>Taken P/L</CardTitle>
+              <CardDescription>
+                Withdrawals that removed profit from investment accounts. Added
+                back into all-time P/L.
+              </CardDescription>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-col">
+              {takenEvents.map((event, idx) => (
+                <Link
+                  key={event.id}
+                  href={`/investments?account=${event.accountId}`}
+                  className={`-mx-3 flex items-start justify-between gap-3 rounded-lg px-3 py-3 hover:bg-[var(--hover)] ${
+                    idx < takenEvents.length - 1
+                      ? "border-b border-[var(--hairline-2)]"
+                      : ""
+                  }`}
+                >
+                  <span className="min-w-0">
+                    <span className="flex flex-wrap items-center gap-2">
+                      <span className="text-[13px] font-medium">
+                        {event.accountName}
+                      </span>
+                      <span className="num text-[11px] text-[var(--ink-3)]">
+                        {new Date(
+                          event.occurredOn + "T00:00:00",
+                        ).toLocaleDateString("en-US", {
+                          year: "numeric",
+                          month: "short",
+                          day: "numeric",
+                        })}
+                      </span>
+                    </span>
+                    <span className="mt-0.5 block text-[12px] text-[var(--ink-3)]">
+                      withdrew{" "}
+                      <Sensitive>
+                        {nativeAmount(event.withdrawAmount, event.currency)}
+                      </Sensitive>
+                      {event.note ? ` · ${event.note}` : ""}
+                    </span>
+                  </span>
+                  <Delta value={event.pnlThb} mini />
+                </Link>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         <Card>
