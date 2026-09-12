@@ -18,6 +18,7 @@ import {
   loadHeldAssetSnapshots,
 } from "@/lib/dayPerformers";
 import { circleEmojiSuffix } from "@/lib/summaryCircles";
+import { loadTakenPnlThb } from "@/lib/takenPnl";
 
 export type PreviousDailySnapshot = {
   date: string;
@@ -25,6 +26,8 @@ export type PreviousDailySnapshot = {
   totalCost: number;
   totalValue: number;
   totalRealEstate: number;
+  /** Cumulative withdrawn P/L as of `date`, in THB. */
+  takenPnl: number;
 };
 
 export type SummaryResult = {
@@ -47,6 +50,40 @@ function formatSignedThbDelta(delta: number): string {
 function formatPerformerThb(delta: number): string {
   const sign = delta >= 0 ? "+" : "-";
   return ` (${sign}${f.format(Math.abs(delta))} THB)`;
+}
+
+/**
+ * The P/L line(s).
+ *
+ * A `withdrawn` pnl_event drops `current_value` by the withdrawal and
+ * `current_cost` by (withdrawal − profit), so account P/L falls by exactly
+ * the profit taken. Reporting `value − cost` alone would post that as a
+ * day's loss and then understate P/L forever after. Adding the ledger's
+ * taken total back gives the dashboard's All-time P/L (`open + taken`),
+ * and its day-over-day delta carries no withdrawal artifact.
+ *
+ * With no withdrawals ever booked the two are identical, so the original
+ * single `Current P/L` line is kept.
+ */
+export function pnlLines(
+  current: { openPnl: number; cost: number; taken: number },
+  previous: { openPnl: number; taken: number } | null,
+): string {
+  const pct = current.cost === 0 ? 0 : (current.openPnl / current.cost) * 100;
+  const pctStr = `${pct.toFixed(2)}%`;
+
+  if (current.taken === 0 && (previous?.taken ?? 0) === 0) {
+    const delta = previous ? current.openPnl - previous.openPnl : 0;
+    return `Current P/L: ${pctStr}${previous ? formatSignedThbDelta(delta) : ""}`;
+  }
+
+  const allTime = current.openPnl + current.taken;
+  const delta = previous ? allTime - (previous.openPnl + previous.taken) : 0;
+
+  return (
+    `All-time P/L: ${f.format(allTime)} THB${previous ? formatSignedThbDelta(delta) : ""}` +
+    `\n  open ${f.format(current.openPnl)} THB (${pctStr}) · taken ${f.format(current.taken)} THB`
+  );
 }
 
 async function loadDayPerformerLines(
@@ -162,6 +199,7 @@ async function getTotalsForDate(
     totalCost: Number(tc),
     totalValue: Number(tv),
     totalRealEstate: Number(reRow?.total ?? 0),
+    takenPnl: await loadTakenPnlThb(dateStr),
   };
 }
 
@@ -227,9 +265,16 @@ export async function buildSummary(
     return sum + value * fx;
   }, 0);
 
-  const pnl =
-    totalCost === 0 ? 0 : ((totalValue - totalCost) / totalCost) * 100;
-  const pnlStr = `${pnl.toFixed(2)}%`;
+  const takenPnl = await loadTakenPnlThb(null);
+  const pnlLine = pnlLines(
+    { openPnl: totalValue - totalCost, cost: totalCost, taken: takenPnl },
+    previous
+      ? {
+          openPnl: previous.totalValue - previous.totalCost,
+          taken: previous.takenPnl,
+        }
+      : null,
+  );
 
   const currentNetWorth = totalBalance + totalValue + totalRealEstate;
   const performerLines = await loadDayPerformerLines(previousAssets);
@@ -243,7 +288,7 @@ export async function buildSummary(
       `\nTotal Investment Cost: ${f.format(totalCost)} THB` +
       `\nTotal Investment Value: ${f.format(totalValue)} THB` +
       `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB` +
-      `\nCurrent P/L: ${pnlStr}` +
+      `\n${pnlLine}` +
       performerLines +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB**` +
       `\n_No prior daily snapshot for day-over-day comparison._`;
@@ -261,16 +306,12 @@ export async function buildSummary(
     const dValue = totalValue - previous.totalValue;
     const dRealEstate = totalRealEstate - previous.totalRealEstate;
 
-    const prevUnrealized = previous.totalValue - previous.totalCost;
-    const unrealized = totalValue - totalCost;
-    const dUnrealized = unrealized - prevUnrealized;
-
     body =
       `Total Bank Balance: ${f.format(totalBalance)} THB${formatSignedThbDelta(dBank)}` +
       `\nTotal Investment Cost: ${f.format(totalCost)} THB${formatSignedThbDelta(dCost)}` +
       `\nTotal Investment Value: ${f.format(totalValue)} THB${formatSignedThbDelta(dValue)}` +
       `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB${formatSignedThbDelta(dRealEstate)}` +
-      `\nCurrent P/L: ${pnlStr}${formatSignedThbDelta(dUnrealized)}` +
+      `\n${pnlLine}` +
       performerLines +
       `\n**Total Net Worth: ${f.format(currentNetWorth)} THB${formatSignedThbDelta(netDeltaThb)}**`;
   }

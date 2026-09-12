@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [Unreleased]
+
+- fix: the Discord summary is aware of the `pnl_event` ledger. A `withdrawn` event drops `current_value` by the withdrawal and `current_cost` by (withdrawal − profit), so account P/L fell by exactly the profit taken — the summary posted that as a day's loss and understated P/L on every run after. Withdrawn P/L is now added back (native `pnl` × the event's FX snapshot), and the line becomes `All-time P/L` with open/taken broken out, matching the dashboard's All-time P/L KPI. Accounts with no withdrawals keep the original `Current P/L` line. Soft-fails to 0 if `pnl_event` is not migrated yet.
+
 ## [0.16.1] - 2026-09-11
 
 - fix: value every investment account, not only those with a cost basis above zero — a withdrawal can take cost to zero while positions are still held, and those accounts silently stopped being marked. Accounts with no holdings are still skipped.
