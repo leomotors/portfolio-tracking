@@ -5,6 +5,7 @@ import {
   type AssetRow,
   byAssetClass,
   byCurrency,
+  byInvestmentAccount,
   byRiskLevel,
   capitalFlowSeries,
   combineCapitalSeries,
@@ -189,6 +190,27 @@ describe("byCurrency", () => {
   it("excludes zero-value buckets", () => {
     const buckets = byCurrency([], [thb, usd, eur], []);
     expect(buckets).toEqual([]);
+  });
+});
+
+describe("byInvestmentAccount", () => {
+  it("buckets accounts by name, descending by current value", () => {
+    const buckets = byInvestmentAccount([
+      { id: 2, name: "Small", currentCost: 1, currentValue: 100 },
+      { id: 1, name: "Large", currentCost: 1, currentValue: 900 },
+      { id: 3, name: "Empty", currentCost: 0, currentValue: 0 },
+    ]);
+    expect(buckets.map((b) => b.label)).toEqual(["Large", "Small"]);
+    expect(buckets.map((b) => b.key)).toEqual(["1", "2"]);
+    expect(buckets[0]!.value).toBe(900);
+  });
+
+  it("returns empty array when every account is zero", () => {
+    expect(
+      byInvestmentAccount([
+        { id: 1, name: "Closed", currentCost: 0, currentValue: 0 },
+      ]),
+    ).toEqual([]);
   });
 });
 

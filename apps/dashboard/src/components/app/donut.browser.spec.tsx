@@ -21,6 +21,23 @@ describe("<Donut>", () => {
     await expect.element(screen.getByText("60.0%")).toBeInTheDocument();
   });
 
+  it("lists outside amounts without turning them into slices", async () => {
+    const screen = await render(
+      <Donut
+        data={[{ label: "Broker", value: 80, color: "green" }]}
+        valueFormatter={(value) => `฿${value}`}
+        outside={[{ label: "Banks", value: 20, color: "blue" }]}
+      />,
+    );
+
+    await expect.element(screen.getByText("Broker")).toBeInTheDocument();
+    await expect.element(screen.getByText("100.0%")).toBeInTheDocument();
+    await expect.element(screen.getByText("Not in chart")).toBeInTheDocument();
+    await expect.element(screen.getByText("Banks")).toBeInTheDocument();
+    await expect.element(screen.getByText("฿20")).toBeInTheDocument();
+    expect(screen.container.querySelectorAll("svg path")).toHaveLength(1);
+  });
+
   it("shows an empty label when there is no data", async () => {
     const screen = await render(<Donut data={[]} emptyLabel="No slices" />);
     await expect.element(screen.getByText("No slices")).toBeInTheDocument();

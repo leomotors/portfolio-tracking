@@ -24,6 +24,7 @@ import {
 import {
   byAssetClass,
   byCurrency,
+  byInvestmentAccount,
   byRiskLevel,
   combineNetWorthSeries,
   dayDelta,
@@ -210,6 +211,7 @@ export function createPortfolioTools(context: ToolContext) {
               banks,
               realEstateProperties,
             ),
+            byInvestmentAccount: byInvestmentAccount(investments),
           },
         });
       },

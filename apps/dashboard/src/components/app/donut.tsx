@@ -24,6 +24,9 @@ interface DonutProps {
   /** Always render the legend below the chart — for narrow containers
    * where the viewport-based two-column layout would overflow. */
   stacked?: boolean;
+  /** Amounts listed beside the chart that are not slices. */
+  outside?: DonutSegment[];
+  outsideLabel?: string;
 }
 
 export function Donut({
@@ -36,6 +39,8 @@ export function Donut({
   valueFormatter,
   ariaLabel,
   stacked = false,
+  outside = [],
+  outsideLabel = "Not in chart",
 }: DonutProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -147,40 +152,97 @@ export function Donut({
           <span className="text-[12px] text-[var(--ink-2)]">{emptyLabel}</span>
         )}
         {segs.map((s, i) => (
-          <div
+          <LegendRow
             key={i}
+            label={s.label}
+            color={s.color}
+            stacked={stacked}
+            amount={valueFormatter ? valueFormatter(s.value) : undefined}
+            trailing={formatPercent(s.frac)}
+            active={hovered === i}
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
+          />
+        ))}
+        {outside.length > 0 && (
+          <div className="mt-1.5 grid gap-1.5 border-t border-[var(--hairline)] pt-2.5">
+            <span className="px-2 text-[11px] font-medium tracking-[0.04em] text-[var(--ink-3)] uppercase">
+              {outsideLabel}
+            </span>
+            {outside.map((s, i) => (
+              <LegendRow
+                key={`outside-${s.label}-${i}`}
+                label={s.label}
+                color={s.color}
+                swatch="square"
+                stacked
+                amount={
+                  valueFormatter ? valueFormatter(s.value) : String(s.value)
+                }
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function LegendRow({
+  label,
+  color,
+  amount,
+  trailing,
+  stacked = false,
+  swatch = "circle",
+  active = false,
+  onMouseEnter,
+  onMouseLeave,
+}: {
+  label: string;
+  color: string;
+  amount?: string;
+  trailing?: string;
+  stacked?: boolean;
+  swatch?: "circle" | "square";
+  active?: boolean;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}) {
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={cn(
+        "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-150",
+        active && "bg-[var(--surface-2)]",
+      )}
+    >
+      <span
+        className={cn(
+          "h-2.5 w-2.5 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]",
+          swatch === "circle" ? "rounded-full" : "rounded-[2px]",
+        )}
+        style={{ background: color }}
+      />
+      <span className="min-w-0 truncate text-[var(--ink-2)]">{label}</span>
+      <span className="flex items-baseline justify-end gap-2 text-right">
+        {amount && (
+          <Sensitive
             className={cn(
-              "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-150",
-              hovered === i && "bg-[var(--surface-2)]",
+              "num text-[11px] text-[var(--ink-2)]",
+              stacked ? "inline" : "hidden md:inline",
             )}
           >
-            <span
-              className="h-2.5 w-2.5 rounded-full shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]"
-              style={{ background: s.color }}
-            />
-            <span className="min-w-0 truncate text-[var(--ink-2)]">
-              {s.label}
-            </span>
-            <span className="flex items-baseline justify-end gap-2 text-right">
-              {valueFormatter && (
-                <Sensitive
-                  className={cn(
-                    "num text-[11px] text-[var(--ink-2)]",
-                    stacked ? "inline" : "hidden md:inline",
-                  )}
-                >
-                  {valueFormatter(s.value)}
-                </Sensitive>
-              )}
-              <span className="num min-w-[4.8ch] rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-[11px] font-medium text-[var(--ink)]">
-                {formatPercent(s.frac)}
-              </span>
-            </span>
-          </div>
-        ))}
-      </div>
+            {amount}
+          </Sensitive>
+        )}
+        {trailing && (
+          <span className="num min-w-[4.8ch] rounded-full bg-[var(--surface-2)] px-1.5 py-0.5 text-right text-[11px] font-medium text-[var(--ink)]">
+            {trailing}
+          </span>
+        )}
+      </span>
     </div>
   );
 }

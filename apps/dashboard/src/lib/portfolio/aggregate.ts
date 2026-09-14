@@ -196,6 +196,23 @@ export function byCurrency(
     .sort((a, b) => b.value - a.value);
 }
 
+export function byInvestmentAccount(
+  accounts: InvestmentAccountRow[],
+): AllocationBucket[] {
+  return accounts
+    .filter((account) => account.currentValue > 0)
+    .map((account) => ({
+      key: String(account.id),
+      label: account.name,
+      value: account.currentValue,
+    }))
+    .sort((a, b) => b.value - a.value)
+    .map((bucket, i) => ({
+      ...bucket,
+      color: CURRENCY_PALETTE[i % CURRENCY_PALETTE.length]!,
+    }));
+}
+
 export interface DailyBalanceRow {
   accountId: number;
   date: string;

@@ -18,7 +18,7 @@ import {
   type AllocationBucket,
   coreSatelliteSplit,
 } from "@/lib/portfolio/aggregate";
-import { RISK_LABEL } from "@/lib/portfolio/colors";
+import { CLASS_COLOR, RISK_LABEL } from "@/lib/portfolio/colors";
 import { num, thb } from "@/lib/portfolio/format";
 
 interface CurrencyDisplayRow {
@@ -33,6 +33,9 @@ interface AllocationClientProps {
   byClass: AllocationBucket[];
   byRisk: AllocationBucket[];
   byCurrency: AllocationBucket[];
+  byAccount: AllocationBucket[];
+  bankTotal: number;
+  realEstateTotal: number;
   currencies: CurrencyDisplayRow[];
 }
 
@@ -40,13 +43,18 @@ export function AllocationClient({
   byClass,
   byRisk,
   byCurrency,
+  byAccount,
+  bankTotal,
+  realEstateTotal,
   currencies,
 }: AllocationClientProps) {
   const total = byClass.reduce((s, d) => s + d.value, 0);
+  const accountTotal = byAccount.reduce((s, d) => s + d.value, 0);
   const split = coreSatelliteSplit(byRisk);
   const totalRisk = split.core + split.satellite;
   const safest = byRisk.find((r) => r.key === "safe_core");
   const riskiest = byRisk.find((r) => r.key === "higher_satellite");
+  const currencyTotal = byCurrency.reduce((s, d) => s + d.value, 0);
 
   return (
     <div className="flex flex-col gap-5">
@@ -63,6 +71,7 @@ export function AllocationClient({
       <Tabs defaultValue="class" className="flex flex-col gap-5">
         <TabsList>
           <TabsTrigger value="class">By class</TabsTrigger>
+          <TabsTrigger value="account">By account</TabsTrigger>
           <TabsTrigger value="risk">Core · Satellite</TabsTrigger>
           <TabsTrigger value="currency">Currency exposure</TabsTrigger>
         </TabsList>
@@ -94,6 +103,56 @@ export function AllocationClient({
               </CardHeader>
               <CardContent>
                 <HBars data={byClass} valueFmt={(v) => thb(v)} showPercent />
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="account">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Investment account</CardTitle>
+                  <CardDescription>
+                    Slices are brokerage accounts. Banks and real estate are
+                    listed beside the chart.
+                  </CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <Donut
+                  data={byAccount}
+                  size={220}
+                  thickness={26}
+                  centerLabel="Investments"
+                  centerValue={thb(accountTotal)}
+                  valueFormatter={thb}
+                  ariaLabel="Allocation by investment account"
+                  outside={[
+                    {
+                      label: "Banks",
+                      value: bankTotal,
+                      color: CLASS_COLOR.cash ?? "oklch(0.72 0.10 235)",
+                    },
+                    {
+                      label: "Real Estate",
+                      value: realEstateTotal,
+                      color: CLASS_COLOR.real_estate ?? "oklch(0.62 0.10 40)",
+                    },
+                  ]}
+                />
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <div>
+                  <CardTitle>Drilldown</CardTitle>
+                  <CardDescription>By value</CardDescription>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <HBars data={byAccount} valueFmt={(v) => thb(v)} showPercent />
               </CardContent>
             </Card>
           </div>
@@ -186,7 +245,7 @@ export function AllocationClient({
                   size={220}
                   thickness={26}
                   centerLabel="Total"
-                  centerValue={thb(byCurrency.reduce((s, d) => s + d.value, 0))}
+                  centerValue={thb(currencyTotal)}
                   valueFormatter={thb}
                   ariaLabel="Currency exposure allocation"
                 />
