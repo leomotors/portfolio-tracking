@@ -16,8 +16,10 @@ import {
   getInvestmentDaily,
   getInvestmentDailyForAccount,
   getPersonalLoans,
+  getPnlEvents,
   getRealEstateDaily,
   getRealEstateProperties,
+  getStakedPositions,
 } from "@/lib/db/queries";
 import {
   byAssetClass,
@@ -34,11 +36,14 @@ import {
   estimateToolCostMicroUsd,
   usageToRecord,
 } from "./cost";
+import { createChangeProposal } from "./proposal";
+import { proposePortfolioChangeInputSchema } from "./proposal-ops";
 import type { ToolCallInsert } from "./store";
 
 interface ToolContext {
   conversationId: number;
   toolLogs: ToolCallInsert[];
+  proposalIds: number[];
 }
 
 const round = (value: number) => Math.round(value * 100) / 100;
@@ -266,6 +271,61 @@ export function createPortfolioTools(context: ToolContext) {
           getPersonalLoans(),
         ]);
         return toJson({ creditCards, personalLoans });
+      },
+    }),
+    listRealEstate: tool({
+      description:
+        "List real-estate properties with purchase cost and current value.",
+      inputSchema: z.object({}),
+      execute: async () => toJson(await getRealEstateProperties()),
+    }),
+    listStakedPositions: tool({
+      description:
+        "List staking positions with deposited, current, receipt, and APY fields.",
+      inputSchema: z.object({}),
+      execute: async () => toJson(await getStakedPositions()),
+    }),
+    listPnlEvents: tool({
+      description:
+        "List realized P/L ledger events (in-account, withdrawn, undocumented).",
+      inputSchema: z.object({}),
+      execute: async () => toJson(await getPnlEvents()),
+    }),
+    listCurrencies: tool({
+      description:
+        "List currencies with ids and THB FX. Use currencyId from this list when proposing P/L events.",
+      inputSchema: z.object({}),
+      execute: async () => toJson(await getCurrencies()),
+    }),
+    proposePortfolioChange: tool({
+      description:
+        "Propose a portfolio database change for the user to review. Does not write portfolio rows. The user must approve, reject, or request changes in the chat UI. Look up ids with the read tools first. Batch related edits into one proposal.",
+      inputSchema: proposePortfolioChangeInputSchema,
+      execute: async ({ summary, operations }) => {
+        try {
+          const proposal = await createChangeProposal({
+            conversationId: context.conversationId,
+            summary,
+            operations,
+          });
+          context.proposalIds.push(proposal.id);
+          return toJson({
+            proposalId: proposal.id,
+            status: proposal.status,
+            summary: proposal.summary,
+            preview: proposal.preview,
+            applied: false,
+            notice:
+              "Queued for user approval. Not written to the database. Never claim this change was saved or applied.",
+          });
+        } catch (error) {
+          return {
+            applied: false,
+            error: error instanceof Error ? error.message : "Invalid proposal",
+            notice:
+              "Proposal was not created. Fix the operations and call proposePortfolioChange again.",
+          };
+        }
       },
     }),
     searchWeb: tool({

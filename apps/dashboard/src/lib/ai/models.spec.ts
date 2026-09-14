@@ -40,23 +40,45 @@ describe("AI model registry", () => {
     );
     expect(isRetiredModel("gpt-5.4")).toBe(true);
     expect(isRetiredModel("claude-sonnet-4-6")).toBe(true);
+    expect(isRetiredModel("claude-fable-5")).toBe(true);
+    expect(isRetiredModel("claude-opus-4-8")).toBe(true);
+    expect(isRetiredModel("grok-4.5")).toBe(true);
+    expect(isRetiredModel("claude-fable-5-1")).toBe(false);
+    expect(isRetiredModel("claude-opus-5")).toBe(false);
+    expect(availableModelOptions().some((m) => m.id === "gpt-6-astra")).toBe(
+      true,
+    );
+    expect(availableModelOptions().some((m) => m.id === "claude-opus-5")).toBe(
+      true,
+    );
+    expect(availableModelOptions().some((m) => m.id === "grok-4.6")).toBe(true);
   });
 
   it("rejects retired models for new selections", () => {
-    expect(normalizeModelSelection("anthropic", "claude-opus-4-7")).toEqual({
+    expect(normalizeModelSelection("anthropic", "claude-opus-4-8")).toEqual({
       provider: "anthropic",
       model: "claude-haiku-4-5",
+    });
+    expect(normalizeModelSelection("xai", "grok-4.5")).toEqual({
+      provider: "xai",
+      model: "grok-4.3",
     });
   });
 
   it("keeps retired models when continuing an existing conversation", () => {
     expect(
-      normalizeModelSelection("anthropic", "claude-opus-4-7", {
+      normalizeModelSelection("anthropic", "claude-opus-4-8", {
         allowRetired: true,
       }),
     ).toEqual({
       provider: "anthropic",
-      model: "claude-opus-4-7",
+      model: "claude-opus-4-8",
+    });
+    expect(
+      normalizeModelSelection("xai", "grok-4.5", { allowRetired: true }),
+    ).toEqual({
+      provider: "xai",
+      model: "grok-4.5",
     });
   });
 });

@@ -9,6 +9,11 @@ import {
   normalizeModelSelection,
 } from "./models";
 import {
+  applyChangeProposalRecord,
+  listChangeProposals,
+  reviewChangeProposalRecord,
+} from "./proposal";
+import {
   createConversation,
   deleteConversation,
   getAllConversationCost,
@@ -50,11 +55,26 @@ export async function createChatConversation(provider: string, model: string) {
 
 export async function loadChatMessages(conversationId: number) {
   const userId = await requireUserId();
-  const [messages, toolCalls] = await Promise.all([
+  const [messages, toolCalls, proposals] = await Promise.all([
     listMessages(userId, conversationId),
     listToolCalls(userId, conversationId),
+    listChangeProposals(userId, conversationId),
   ]);
-  return { messages, toolCalls };
+  return { messages, toolCalls, proposals };
+}
+
+export async function applyChatProposal(proposalId: number) {
+  const userId = await requireUserId();
+  return applyChangeProposalRecord(userId, proposalId);
+}
+
+export async function reviewChatProposal(
+  proposalId: number,
+  action: "rejected" | "revision_requested",
+  note: string,
+) {
+  const userId = await requireUserId();
+  return reviewChangeProposalRecord(userId, proposalId, action, note);
 }
 
 export async function renameChatConversation(id: number, title: string) {

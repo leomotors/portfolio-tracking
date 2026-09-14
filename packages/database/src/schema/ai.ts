@@ -1,4 +1,5 @@
 import {
+  index,
   integer,
   jsonb,
   pgEnum,
@@ -63,3 +64,31 @@ export const aiToolCallTable = pgTable("ai_tool_call", {
   rawUsage: jsonb("raw_usage"),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
+
+export const aiProposalStatus = pgEnum("ai_proposal_status", [
+  "pending",
+  "applied",
+  "rejected",
+  "revision_requested",
+]);
+
+export const aiChangeProposalTable = pgTable(
+  "ai_change_proposal",
+  {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    conversationId: integer("conversation_id")
+      .references(() => aiConversationTable.id, { onDelete: "cascade" })
+      .notNull(),
+    messageId: integer("message_id").references(() => aiMessageTable.id, {
+      onDelete: "set null",
+    }),
+    status: aiProposalStatus().notNull().default("pending"),
+    summary: text().notNull(),
+    operations: jsonb().notNull(),
+    preview: jsonb().notNull(),
+    userNote: text("user_note"),
+    resolvedAt: timestamp("resolved_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+  },
+  (t) => [index("ai_change_proposal_conversation_id_idx").on(t.conversationId)],
+);

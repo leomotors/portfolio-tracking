@@ -13,13 +13,24 @@ import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 
+import {
+  ProposalCard,
+  type ProposalCardModel,
+} from "@/components/app/proposal-card";
 import { Button } from "@/components/ui/button";
 import {
+  applyChatProposal,
   deleteChatConversation,
   getChatBootstrap,
   loadChatMessages,
+  reviewChatProposal,
   updateChatConversationModel,
 } from "@/lib/ai/actions";
+import {
+  type ChangeProposal,
+  proposalFromToolOutput,
+  proposalReviewUserMessage,
+} from "@/lib/ai/proposal-ops";
 import { cn } from "@/lib/utils";
 
 type Bootstrap = Awaited<ReturnType<typeof getChatBootstrap>>;
@@ -240,10 +251,13 @@ export function AiChat({
   const [activeId, setActiveId] = useState<number | null>(null);
   const [messages, setMessages] = useState<Message[]>([]);
   const [toolCalls, setToolCalls] = useState<ToolCall[]>([]);
+  const [proposals, setProposals] = useState<ChangeProposal[]>([]);
   const [draft, setDraft] = useState("");
   const [streamingText, setStreamingText] = useState("");
   const [streamingStatus, setStreamingStatus] = useState("");
   const [liveToolCalls, setLiveToolCalls] = useState<LiveToolCall[]>([]);
+  const [liveProposals, setLiveProposals] = useState<ProposalCardModel[]>([]);
+  const [proposalBusyId, setProposalBusyId] = useState<number | null>(null);
   const [streamingSources, setStreamingSources] = useState<unknown[]>([]);
   const [view, setView] = useState<"chat" | "history">("chat");
   const [error, setError] = useState<string | null>(null);
@@ -282,6 +296,22 @@ export function AiChat({
     return map;
   }, [toolCalls]);
 
+  const proposalsByMessage = useMemo(() => {
+    const map = new Map<number, ChangeProposal[]>();
+    const orphans: ChangeProposal[] = [];
+    for (const proposal of proposals) {
+      if (proposal.messageId) {
+        map.set(proposal.messageId, [
+          ...(map.get(proposal.messageId) ?? []),
+          proposal,
+        ]);
+      } else if (proposal.status === "pending") {
+        orphans.push(proposal);
+      }
+    }
+    return { map, orphans };
+  }, [proposals]);
+
   const refreshBootstrap = () => {
     startTransition(async () => {
       const next = await getChatBootstrap();
@@ -299,12 +329,20 @@ export function AiChat({
       const thread = await loadChatMessages(activeId);
       setMessages(thread.messages as Message[]);
       setToolCalls(thread.toolCalls as ToolCall[]);
+      setProposals(thread.proposals);
     });
   }, [activeId]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: "end" });
-  }, [messages, streamingText, liveToolCalls, streamingStatus, open]);
+  }, [
+    messages,
+    streamingText,
+    liveToolCalls,
+    liveProposals,
+    streamingStatus,
+    open,
+  ]);
 
   if (!open) return null;
 
@@ -312,10 +350,12 @@ export function AiChat({
     setActiveId(null);
     setMessages([]);
     setToolCalls([]);
+    setProposals([]);
     setDraft("");
     setStreamingText("");
     setStreamingStatus("");
     setLiveToolCalls([]);
+    setLiveProposals([]);
     setStreamingSources([]);
     setError(null);
     setView("chat");
@@ -331,11 +371,13 @@ export function AiChat({
     if (!fallback) {
       setMessages([]);
       setToolCalls([]);
+      setProposals([]);
       return;
     }
     const thread = await loadChatMessages(fallback);
     setMessages(thread.messages as Message[]);
     setToolCalls(thread.toolCalls as ToolCall[]);
+    setProposals(thread.proposals);
   };
 
   const openConversation = async (id: number) => {
@@ -345,6 +387,7 @@ export function AiChat({
     const thread = await loadChatMessages(id);
     setMessages(thread.messages as Message[]);
     setToolCalls(thread.toolCalls as ToolCall[]);
+    setProposals(thread.proposals);
   };
 
   const changeModel = async (value: string) => {
@@ -373,11 +416,13 @@ export function AiChat({
     if (!id) {
       setMessages([]);
       setToolCalls([]);
+      setProposals([]);
       return;
     }
     const thread = await loadChatMessages(id);
     setMessages(thread.messages as Message[]);
     setToolCalls(thread.toolCalls as ToolCall[]);
+    setProposals(thread.proposals);
   };
 
   const applyStreamEvent = (event: StreamEvent) => {
@@ -408,6 +453,18 @@ export function AiChat({
             index === existing ? { ...call, ...nextCall } : call,
           );
         });
+        if (event.status === "done") {
+          const parsed = proposalFromToolOutput(event.output);
+          if (parsed) {
+            setLiveProposals((current) =>
+              current.some((proposal) => proposal.id === parsed.id)
+                ? current.map((proposal) =>
+                    proposal.id === parsed.id ? parsed : proposal,
+                  )
+                : [...current, parsed],
+            );
+          }
+        }
         setStreamingStatus(
           event.status === "done"
             ? `${event.toolName} finished`
@@ -431,14 +488,13 @@ export function AiChat({
     applyStreamEvent(event);
   };
 
-  const send = async () => {
-    const text = draft.trim();
+  const sendMessage = async (text: string) => {
     if (!text || isSending) return;
-    setDraft("");
     setError(null);
     setStreamingText("");
     setStreamingStatus("Starting agent");
     setLiveToolCalls([]);
+    setLiveProposals([]);
     setStreamingSources([]);
     setIsSending(true);
 
@@ -510,14 +566,105 @@ export function AiChat({
       );
     } catch (err) {
       setError(err instanceof Error ? err.message : "AI request failed");
+      if (activeId) {
+        try {
+          const thread = await loadChatMessages(activeId);
+          setProposals(thread.proposals);
+        } catch {
+          // Keep the local error; proposal reload is best-effort.
+        }
+      }
     } finally {
       setIsSending(false);
       setStreamingText("");
       setStreamingStatus("");
       setLiveToolCalls([]);
+      setLiveProposals([]);
       setStreamingSources([]);
     }
   };
+
+  const send = async () => {
+    const text = draft.trim();
+    if (!text || isSending) return;
+    setDraft("");
+    await sendMessage(text);
+  };
+
+  const patchProposal = (
+    id: number,
+    patch: Partial<ProposalCardModel> & Partial<ChangeProposal>,
+  ) => {
+    setProposals((current) =>
+      current.map((proposal) =>
+        proposal.id === id ? { ...proposal, ...patch } : proposal,
+      ),
+    );
+    setLiveProposals((current) =>
+      current.map((proposal) =>
+        proposal.id === id ? { ...proposal, ...patch } : proposal,
+      ),
+    );
+  };
+
+  const handleApprove = async (id: number) => {
+    setProposalBusyId(id);
+    setError(null);
+    try {
+      const updated = await applyChatProposal(id);
+      patchProposal(id, updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not apply proposal");
+    } finally {
+      setProposalBusyId(null);
+    }
+  };
+
+  const handleReview = async (
+    id: number,
+    action: "rejected" | "revision_requested",
+    note: string,
+  ) => {
+    setProposalBusyId(id);
+    setError(null);
+    try {
+      const updated = await reviewChatProposal(id, action, note);
+      patchProposal(id, updated);
+      if (action === "revision_requested" || note.trim()) {
+        await sendMessage(proposalReviewUserMessage(id, action, note));
+      }
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Could not update proposal",
+      );
+    } finally {
+      setProposalBusyId(null);
+    }
+  };
+
+  const renderProposal = (proposal: ProposalCardModel) => (
+    <ProposalCard
+      key={proposal.id}
+      proposal={proposal}
+      busy={proposalBusyId === proposal.id}
+      chatBusy={isSending}
+      onApprove={
+        proposal.status === "pending"
+          ? () => void handleApprove(proposal.id)
+          : undefined
+      }
+      onReject={
+        proposal.status === "pending"
+          ? (note) => void handleReview(proposal.id, "rejected", note)
+          : undefined
+      }
+      onRequestChanges={
+        proposal.status === "pending"
+          ? (note) => void handleReview(proposal.id, "revision_requested", note)
+          : undefined
+      }
+    />
+  );
 
   return (
     <aside className="flex h-dvh min-h-0 flex-col bg-[var(--bg)] shadow-[-12px_0_30px_rgba(0,0,0,0.06)]">
@@ -692,85 +839,102 @@ export function AiChat({
           <div className="min-h-0 flex-1 overflow-y-scroll overscroll-contain px-4 py-3">
             {!boot || isPending ? (
               <div className="text-xs text-[var(--ink-3)]">Loading...</div>
-            ) : messages.length === 0 && !streamingText ? (
+            ) : messages.length === 0 &&
+              !streamingText &&
+              liveProposals.length === 0 ? (
               <div className="pt-10 text-center text-sm text-[var(--ink-3)]">
-                Ask about your portfolio, markets, or current context.
+                Ask about your portfolio, or describe a change to propose.
               </div>
             ) : (
               <div className="flex flex-col gap-3">
                 {messages.map((message) => {
-                  const calls = toolCallsByMessage.get(message.id) ?? [];
+                  const calls = (
+                    toolCallsByMessage.get(message.id) ?? []
+                  ).filter(
+                    (call) => call.toolName !== "proposePortfolioChange",
+                  );
+                  const messageProposals =
+                    proposalsByMessage.map.get(message.id) ?? [];
                   return (
-                    <div
-                      key={message.id}
-                      className={cn(
-                        "max-w-[92%] rounded-lg px-3 py-2 text-sm",
-                        message.role === "user"
-                          ? "ml-auto bg-[var(--ink)] text-[var(--bg)]"
-                          : "bg-[var(--surface)] text-[var(--ink)]",
-                      )}
-                    >
-                      {message.role === "assistant" ? (
-                        <MarkdownContent content={message.content} />
-                      ) : (
-                        <div className="whitespace-pre-wrap">
-                          {message.content}
-                        </div>
-                      )}
-
-                      {message.role === "assistant" && (
-                        <>
-                          {calls.length > 0 && (
-                            <details className="mt-2 rounded border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-1 text-[11px]">
-                              <summary className="cursor-pointer text-[var(--ink-2)]">
-                                Tools used ({calls.length})
-                              </summary>
-                              <div className="mt-2 flex flex-col gap-2">
-                                {calls.map((call) => (
-                                  <div
-                                    key={call.id}
-                                    className="border-t border-[var(--hairline)] pt-2"
-                                  >
-                                    <div className="font-medium">
-                                      {call.toolName}{" "}
-                                      <span className="font-normal text-[var(--ink-3)]">
-                                        {call.model ?? call.provider ?? ""}
-                                      </span>
-                                    </div>
-                                    <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap rounded bg-[var(--surface)] p-2 font-mono text-[10px]">
-                                      {summarize(call.output)}
-                                    </pre>
-                                  </div>
-                                ))}
-                              </div>
-                            </details>
-                          )}
-                          {messageSources(message.sources).length > 0 && (
-                            <div className="mt-2 flex flex-wrap gap-1">
-                              {messageSources(message.sources).map(
-                                (source, index) => (
-                                  <a
-                                    key={`${source.url}-${index}`}
-                                    href={source.url}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    className="max-w-full truncate rounded border border-[var(--hairline)] px-1.5 py-0.5 text-[10px] text-[var(--ink-2)] hover:bg-[var(--hover)]"
-                                  >
-                                    {source.title}
-                                  </a>
-                                ),
-                              )}
-                            </div>
-                          )}
-                          <div className="mt-1 text-[10px] text-[var(--ink-3)]">
-                            {message.model ?? "AI"} ·{" "}
-                            {fmtCost(message.costMicroUsd)}
+                    <div key={message.id} className="flex flex-col">
+                      <div
+                        className={cn(
+                          "max-w-[92%] rounded-lg px-3 py-2 text-sm",
+                          message.role === "user"
+                            ? "ml-auto bg-[var(--ink)] text-[var(--bg)]"
+                            : "bg-[var(--surface)] text-[var(--ink)]",
+                        )}
+                      >
+                        {message.role === "assistant" ? (
+                          <MarkdownContent content={message.content} />
+                        ) : (
+                          <div className="whitespace-pre-wrap">
+                            {message.content}
                           </div>
-                        </>
+                        )}
+
+                        {message.role === "assistant" && (
+                          <>
+                            {calls.length > 0 && (
+                              <details className="mt-2 rounded border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-1 text-[11px]">
+                                <summary className="cursor-pointer text-[var(--ink-2)]">
+                                  Tools used ({calls.length})
+                                </summary>
+                                <div className="mt-2 flex flex-col gap-2">
+                                  {calls.map((call) => (
+                                    <div
+                                      key={call.id}
+                                      className="border-t border-[var(--hairline)] pt-2"
+                                    >
+                                      <div className="font-medium">
+                                        {call.toolName}{" "}
+                                        <span className="font-normal text-[var(--ink-3)]">
+                                          {call.model ?? call.provider ?? ""}
+                                        </span>
+                                      </div>
+                                      <pre className="mt-1 max-h-28 overflow-auto whitespace-pre-wrap rounded bg-[var(--surface)] p-2 font-mono text-[10px]">
+                                        {summarize(call.output)}
+                                      </pre>
+                                    </div>
+                                  ))}
+                                </div>
+                              </details>
+                            )}
+                            {messageSources(message.sources).length > 0 && (
+                              <div className="mt-2 flex flex-wrap gap-1">
+                                {messageSources(message.sources).map(
+                                  (source, index) => (
+                                    <a
+                                      key={`${source.url}-${index}`}
+                                      href={source.url}
+                                      target="_blank"
+                                      rel="noreferrer"
+                                      className="max-w-full truncate rounded border border-[var(--hairline)] px-1.5 py-0.5 text-[10px] text-[var(--ink-2)] hover:bg-[var(--hover)]"
+                                    >
+                                      {source.title}
+                                    </a>
+                                  ),
+                                )}
+                              </div>
+                            )}
+                            <div className="mt-1 text-[10px] text-[var(--ink-3)]">
+                              {message.model ?? "AI"} ·{" "}
+                              {fmtCost(message.costMicroUsd)}
+                            </div>
+                          </>
+                        )}
+                      </div>
+                      {messageProposals.length > 0 && (
+                        <div className="max-w-[92%]">
+                          {messageProposals.map(renderProposal)}
+                        </div>
                       )}
                     </div>
                   );
                 })}
+                <div className="max-w-[92%]">
+                  {proposalsByMessage.orphans.map(renderProposal)}
+                </div>
                 {(streamingStatus || liveToolCalls.length > 0) && (
                   <div className="max-w-[92%] rounded-lg border border-[var(--hairline)] bg-[var(--surface-2)] px-3 py-2 text-xs text-[var(--ink-2)]">
                     {streamingStatus && (
@@ -794,17 +958,20 @@ export function AiChat({
                                 {call.status}
                               </span>
                             </div>
-                            {call.status === "running" &&
+                            {call.toolName !== "proposePortfolioChange" &&
+                              call.status === "running" &&
                               call.input != null && (
                                 <pre className="mt-1 max-h-20 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-[var(--ink-3)]">
                                   {summarize(call.input)}
                                 </pre>
                               )}
-                            {call.status === "done" && call.output != null && (
-                              <pre className="mt-1 max-h-20 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-[var(--ink-3)]">
-                                {summarize(call.output)}
-                              </pre>
-                            )}
+                            {call.toolName !== "proposePortfolioChange" &&
+                              call.status === "done" &&
+                              call.output != null && (
+                                <pre className="mt-1 max-h-20 overflow-auto whitespace-pre-wrap font-mono text-[10px] text-[var(--ink-3)]">
+                                  {summarize(call.output)}
+                                </pre>
+                              )}
                             {call.status === "error" && call.error && (
                               <div className="mt-1 text-[10px] text-[var(--accent-neg)]">
                                 {call.error}
@@ -816,6 +983,9 @@ export function AiChat({
                     )}
                   </div>
                 )}
+                <div className="max-w-[92%]">
+                  {liveProposals.map(renderProposal)}
+                </div>
                 {streamingText && (
                   <div className="max-w-[92%] rounded-lg bg-[var(--surface)] px-3 py-2 text-sm">
                     <MarkdownContent content={streamingText} />
@@ -866,7 +1036,7 @@ export function AiChat({
                   }
                 }}
                 className="max-h-32 min-h-10 flex-1 resize-none rounded-md border border-[var(--hairline)] bg-[var(--surface)] px-3 py-2 text-sm outline-none focus:ring-2 focus:ring-[var(--accent-pri)]"
-                placeholder="Ask anything..."
+                placeholder="Ask about the portfolio, or describe a change..."
                 rows={1}
               />
               <Button
