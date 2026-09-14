@@ -27,7 +27,17 @@ Use package filters for focused work, for example `pnpm --filter dashboard test`
 
 ## Linting
 
-Linting is done by ESLint and formatting is done by prettier. No need to do anything to fix format or import sort order, human will run script to fix them manually.
+Linting is ESLint; formatting is Prettier (including import sort). Before
+every commit, run format on each package you changed, then lint, and do not
+commit if either fails:
+
+```
+pnpm --filter dashboard format && pnpm --filter dashboard lint
+pnpm --filter @app/cron format && pnpm --filter @app/cron lint
+```
+
+Do not leave prettier or `simple-import-sort` failures for a human. `pnpm lint`
+in CI will fail the push.
 
 ## Database migrations
 

@@ -236,12 +236,7 @@ export async function createWithdrawnPnlEvent(input: {
       .update(investmentAccountTable)
       .set({ currentCost: asThb(nextCost) })
       .where(eq(investmentAccountTable.id, input.accountId));
-    await applyDailyCostDelta(
-      tx,
-      input.accountId,
-      input.occurredOn,
-      costDelta,
-    );
+    await applyDailyCostDelta(tx, input.accountId, input.occurredOn, costDelta);
   });
   revalidatePnl();
 }

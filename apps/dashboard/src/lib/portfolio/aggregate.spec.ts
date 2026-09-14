@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   accountPnlBreakdown,
-  type AssetRow,
   allTimePnlSeries,
+  type AssetRow,
   byAssetClass,
   byCurrency,
   byInvestmentAccount,

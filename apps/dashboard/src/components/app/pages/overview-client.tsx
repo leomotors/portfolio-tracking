@@ -23,12 +23,12 @@ import {
 } from "@/components/ui/card";
 import {
   type AllocationBucket,
+  allTimePnlSeries,
   capitalFlowSeries,
   combineCapitalSeries,
   costBasisFlowSeries,
   savingsFlowSeries,
   sliceTimeframe,
-  allTimePnlSeries,
 } from "@/lib/portfolio/aggregate";
 import { compactThb, nativeAmount, pct, thb } from "@/lib/portfolio/format";
 

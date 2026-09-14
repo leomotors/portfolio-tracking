@@ -662,11 +662,7 @@ export function snapshotCostShifts(
     });
   }
   return shifts.sort((a, b) =>
-    a.date < b.date
-      ? -1
-      : a.date > b.date
-        ? 1
-        : a.accountId - b.accountId,
+    a.date < b.date ? -1 : a.date > b.date ? 1 : a.accountId - b.accountId,
   );
 }
 
