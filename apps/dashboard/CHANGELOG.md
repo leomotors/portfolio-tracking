@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.15.0] - 2026-09-14
 
 - feat: Allocation page has a By account tab that charts investment accounts by current value, with bank and real estate totals listed beside the pie
 - fix: home and account PnL charts add taken P/L back so a withdrawal is not a cliff; new withdrawn events also rewrite daily cost snapshots from `occurred_on`
