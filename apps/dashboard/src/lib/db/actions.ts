@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, gte, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 import { db } from "@repo/database/client";
@@ -10,6 +10,7 @@ import {
   coingeckoSymbolTable,
   currencyTable,
   investmentAccountTable,
+  investmentDailyBalanceTable,
   pnlEventTable,
   realEstatePropertyTable,
   secFundSymbolTable,
@@ -80,6 +81,37 @@ const revalidatePnl = () => {
   revalidatePath("/investments");
   revalidatePath("/");
 };
+
+async function applyDailyCostDelta(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  accountId: number,
+  occurredOn: string,
+  costDelta: number,
+) {
+  if (costDelta === 0) return;
+  const rows = await tx
+    .select({
+      id: investmentDailyBalanceTable.id,
+      cost: investmentDailyBalanceTable.cost,
+    })
+    .from(investmentDailyBalanceTable)
+    .where(
+      and(
+        eq(investmentDailyBalanceTable.investmentAccountId, accountId),
+        gte(investmentDailyBalanceTable.date, occurredOn),
+      ),
+    );
+  for (const row of rows) {
+    const next = roundThb(parseFloat(row.cost) + costDelta);
+    if (next < 0) {
+      throw new Error("Would make a daily cost snapshot negative");
+    }
+    await tx
+      .update(investmentDailyBalanceTable)
+      .set({ cost: asThb(next) })
+      .where(eq(investmentDailyBalanceTable.id, row.id));
+  }
+}
 
 export async function updateBankBalance(id: number, balance: number) {
   await requireSession();
@@ -204,6 +236,12 @@ export async function createWithdrawnPnlEvent(input: {
       .update(investmentAccountTable)
       .set({ currentCost: asThb(nextCost) })
       .where(eq(investmentAccountTable.id, input.accountId));
+    await applyDailyCostDelta(
+      tx,
+      input.accountId,
+      input.occurredOn,
+      costDelta,
+    );
   });
   revalidatePnl();
 }
@@ -236,6 +274,12 @@ export async function deletePnlEvent(id: number) {
         .update(investmentAccountTable)
         .set({ currentCost: asThb(nextCost) })
         .where(eq(investmentAccountTable.id, event.investmentAccountId));
+      await applyDailyCostDelta(
+        tx,
+        event.investmentAccountId,
+        event.occurredOn,
+        -parseFloat(event.costDelta),
+      );
     }
 
     await tx.delete(pnlEventTable).where(eq(pnlEventTable.id, id));

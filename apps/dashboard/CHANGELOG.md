@@ -3,6 +3,7 @@
 ## [Unreleased]
 
 - feat: Allocation page has a By account tab that charts investment accounts by current value, with bank and real estate totals listed beside the pie
+- fix: home and account PnL charts add taken P/L back so a withdrawal is not a cliff; new withdrawn events also rewrite daily cost snapshots from `occurred_on`
 - feat: AI agent can propose typed portfolio database changes; nothing is written until the user approves, rejects, or requests changes with a reason
 - feat: `ai_change_proposal` stores pending/applied/rejected proposals with a before/after preview (migration `0023_ai-change-proposal`)
 - chore: refresh AI chat models — add GPT-6 Astra, Claude Opus 5, Claude Fable 5.1, and Grok 4.6; retire Opus 4.8, Fable 5, and Grok 4.5

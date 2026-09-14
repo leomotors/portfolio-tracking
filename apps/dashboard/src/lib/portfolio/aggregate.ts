@@ -575,6 +575,101 @@ export function takenPnl(events: readonly PnlEventAmounts[]) {
   }, 0);
 }
 
+export interface DatedTakenPnl {
+  occurredOn: string;
+  pnlThb: number;
+}
+
+/** Cumulative withdrawn P/L booked on or before `asOf`. */
+export function takenPnlAsOf(
+  events: readonly DatedTakenPnl[],
+  asOf: string,
+): number {
+  return events.reduce((sum, event) => {
+    if (event.occurredOn <= asOf) return sum + event.pnlThb;
+    return sum;
+  }, 0);
+}
+
+/**
+ * Daily all-time P/L: open (`value − cost`) plus taken P/L booked on or
+ * before that day. A withdrawal drops open P/L by exactly the profit taken;
+ * adding the ledger back removes that cliff, matching the All-time P/L KPI.
+ */
+export function allTimePnlSeries(
+  daily: readonly { date: string; value: number; cost: number }[],
+  takenEvents: readonly DatedTakenPnl[],
+): DailySnapshotPoint[] {
+  const byDate = new Map<string, { value: number; cost: number }>();
+  for (const row of daily) {
+    const prev = byDate.get(row.date) ?? { value: 0, cost: 0 };
+    byDate.set(row.date, {
+      value: prev.value + row.value,
+      cost: prev.cost + row.cost,
+    });
+  }
+  return Array.from(byDate.entries())
+    .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+    .map(([date, { value, cost }]) => ({
+      date,
+      value: value - cost + takenPnlAsOf(takenEvents, date),
+    }));
+}
+
+export interface SnapshotCostShift {
+  accountId: number;
+  date: string;
+  oldCost: number;
+  newCost: number;
+  value: number;
+}
+
+/**
+ * Proposed `investment_daily_balance.cost` updates after withdrawn events.
+ * Snapshots on/after `occurredOn` pick up each event's THB `costDelta`.
+ */
+export function snapshotCostShifts(
+  snapshots: readonly {
+    accountId: number;
+    date: string;
+    cost: number;
+    value: number;
+  }[],
+  events: readonly {
+    accountId: number;
+    occurredOn: string;
+    costDelta: number;
+  }[],
+): SnapshotCostShift[] {
+  const shifts: SnapshotCostShift[] = [];
+  for (const snapshot of snapshots) {
+    let delta = 0;
+    for (const event of events) {
+      if (
+        event.accountId === snapshot.accountId &&
+        snapshot.date >= event.occurredOn
+      ) {
+        delta += event.costDelta;
+      }
+    }
+    if (delta === 0) continue;
+    shifts.push({
+      accountId: snapshot.accountId,
+      date: snapshot.date,
+      oldCost: snapshot.cost,
+      newCost: roundThb(snapshot.cost + delta),
+      value: snapshot.value,
+    });
+  }
+  return shifts.sort((a, b) =>
+    a.date < b.date
+      ? -1
+      : a.date > b.date
+        ? 1
+        : a.accountId - b.accountId,
+  );
+}
+
 /** Computed in-account realized minus logged rotations / write-offs. */
 export function undocumentedLeftover(
   computedRealized: number,

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   accountPnlBreakdown,
   type AssetRow,
+  allTimePnlSeries,
   byAssetClass,
   byCurrency,
   byInvestmentAccount,
@@ -20,7 +21,9 @@ import {
   isCapitalBankAccount,
   savingsFlowSeries,
   sliceTimeframe,
+  snapshotCostShifts,
   takenPnl,
+  takenPnlAsOf,
   undocumentedLeftover,
   valueFlowSeries,
   withdrawCostDelta,
@@ -621,5 +624,103 @@ describe("in-account vs taken P/L logs", () => {
         { kind: "in_account", pnl: 726.19, valueInTHB: 32.9 },
       ]),
     ).toBeCloseTo(23_891.651);
+  });
+});
+
+describe("allTimePnlSeries", () => {
+  it("equals open P/L when nothing has been withdrawn", () => {
+    expect(
+      allTimePnlSeries(
+        [
+          { date: "2026-09-10", value: 130, cost: 100 },
+          { date: "2026-09-11", value: 140, cost: 100 },
+        ],
+        [],
+      ),
+    ).toEqual([
+      { date: "2026-09-10", value: 30 },
+      { date: "2026-09-11", value: 40 },
+    ]);
+  });
+
+  it("adds taken P/L from the occurred-on date so a withdrawal is not a loss", () => {
+    expect(
+      allTimePnlSeries(
+        [
+          { date: "2026-09-10", value: 130_000, cost: 100_000 },
+          { date: "2026-09-11", value: 30_000, cost: 30_000 },
+        ],
+        [{ occurredOn: "2026-09-11", pnlThb: 30_000 }],
+      ),
+    ).toEqual([
+      { date: "2026-09-10", value: 30_000 },
+      { date: "2026-09-11", value: 30_000 },
+    ]);
+  });
+
+  it("keeps a same-day market move after adding taken P/L back", () => {
+    const series = allTimePnlSeries(
+      [
+        { date: "2026-09-10", value: 130_000, cost: 100_000 },
+        { date: "2026-09-11", value: 30_500, cost: 30_000 },
+      ],
+      [{ occurredOn: "2026-09-11", pnlThb: 30_000 }],
+    );
+    expect(series[1]!.value).toBe(30_500);
+  });
+
+  it("sums open P/L across accounts before adding taken", () => {
+    expect(
+      allTimePnlSeries(
+        [
+          { date: "2026-09-11", value: 10, cost: 8 },
+          { date: "2026-09-11", value: 20, cost: 20 },
+        ],
+        [{ occurredOn: "2026-09-11", pnlThb: 5 }],
+      ),
+    ).toEqual([{ date: "2026-09-11", value: 7 }]);
+  });
+});
+
+describe("takenPnlAsOf", () => {
+  it("includes only events on or before the as-of date", () => {
+    const events = [
+      { occurredOn: "2026-09-10", pnlThb: 10 },
+      { occurredOn: "2026-09-12", pnlThb: 7 },
+    ];
+    expect(takenPnlAsOf(events, "2026-09-09")).toBe(0);
+    expect(takenPnlAsOf(events, "2026-09-10")).toBe(10);
+    expect(takenPnlAsOf(events, "2026-09-12")).toBe(17);
+  });
+});
+
+describe("snapshotCostShifts", () => {
+  it("applies cost_delta to snapshots on or after occurredOn", () => {
+    expect(
+      snapshotCostShifts(
+        [
+          { accountId: 1, date: "2026-09-09", cost: 100, value: 130 },
+          { accountId: 1, date: "2026-09-10", cost: 100, value: 40 },
+          { accountId: 1, date: "2026-09-11", cost: 100, value: 42 },
+          { accountId: 2, date: "2026-09-10", cost: 50, value: 50 },
+        ],
+        [{ accountId: 1, occurredOn: "2026-09-10", costDelta: -70 }],
+      ),
+    ).toEqual([
+      {
+        accountId: 1,
+        date: "2026-09-10",
+        oldCost: 100,
+        newCost: 30,
+        value: 40,
+      },
+      {
+        accountId: 1,
+        date: "2026-09-11",
+        oldCost: 100,
+        newCost: 30,
+        value: 42,
+      },
+    ]);
   });
 });

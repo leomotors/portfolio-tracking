@@ -28,6 +28,7 @@ import {
   costBasisFlowSeries,
   savingsFlowSeries,
   sliceTimeframe,
+  allTimePnlSeries,
 } from "@/lib/portfolio/aggregate";
 import { compactThb, nativeAmount, pct, thb } from "@/lib/portfolio/format";
 
@@ -152,8 +153,15 @@ export function OverviewClient({
     [investmentDaily],
   );
   const investmentPnlSeries = useMemo(
-    () => aggregateSeries(investmentDaily, (point) => point.value - point.cost),
-    [investmentDaily],
+    () =>
+      allTimePnlSeries(
+        investmentDaily,
+        takenEvents.map((event) => ({
+          occurredOn: event.occurredOn,
+          pnlThb: event.pnlThb,
+        })),
+      ),
+    [investmentDaily, takenEvents],
   );
 
   const selectedSeries = useMemo(() => {
@@ -249,7 +257,9 @@ export function OverviewClient({
                 Trend
               </div>
               <div className="text-[11px] text-[var(--ink-3)]">
-                {CHART_SUBTITLES[chartMetric]}
+                {chartMetric === "investments" && investmentSubview === "pnl"
+                  ? "Line is all-time P/L (open + taken)"
+                  : CHART_SUBTITLES[chartMetric]}
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">

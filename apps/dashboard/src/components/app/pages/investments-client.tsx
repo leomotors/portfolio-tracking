@@ -41,8 +41,10 @@ import {
 } from "@/lib/db/queries";
 import {
   accountPnlBreakdown,
+  allTimePnlSeries,
   byAssetClass,
   type CurrencyRow,
+  eventPnlThb,
   sliceTimeframe,
 } from "@/lib/portfolio/aggregate";
 import {
@@ -329,16 +331,21 @@ function AccountDetail({
   const [tf, setTf] = useState<Timeframe>("6M");
   const fullSeries = useMemo(
     () =>
-      daily.map((d) => ({
-        date: d.date,
-        value:
-          chartMetric === "cost"
-            ? d.cost
-            : chartMetric === "pnl"
-              ? d.value - d.cost
-              : d.value,
-      })),
-    [chartMetric, daily],
+      chartMetric === "pnl"
+        ? allTimePnlSeries(
+            daily,
+            pnlEvents
+              .filter((event) => event.kind === "withdrawn")
+              .map((event) => ({
+                occurredOn: event.occurredOn,
+                pnlThb: eventPnlThb(event),
+              })),
+          )
+        : daily.map((d) => ({
+            date: d.date,
+            value: chartMetric === "cost" ? d.cost : d.value,
+          })),
+    [chartMetric, daily, pnlEvents],
   );
   const series = useMemo(
     () => sliceTimeframe(fullSeries, tf),
