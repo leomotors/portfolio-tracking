@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [Unreleased]
+## [0.17.0] - 2026-09-17
 
 - feat: Ether.fi Liquid can read share balances from an Aave v4 LendGateway (`shareSource: "aave_v4"` plus `lendGateway` in `sync_config`) instead of ERC-20 `balanceOf`. Accountant `getRate()` (WBTC mapping) and CoinGecko prices are unchanged.
 - feat: optional `lending_monitor` rows (provider `etherfi_cash`) append leftover cash vs borrow to the Discord summary as one USD net line. Empty table skips the check. Contract addresses live in the row, not in code.
