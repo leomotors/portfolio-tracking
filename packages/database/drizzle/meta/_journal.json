@@ -169,6 +169,13 @@
       "when": 1789384284654,
       "tag": "0023_ai-change-proposal",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1789579077684,
+      "tag": "0024_lending-monitor",
+      "breakpoints": true
     }
   ]
 }

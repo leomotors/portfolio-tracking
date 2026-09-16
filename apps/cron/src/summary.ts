@@ -80,10 +80,7 @@ export function pnlLines(
   const allTime = current.openPnl + current.taken;
   const delta = previous ? allTime - (previous.openPnl + previous.taken) : 0;
 
-  return (
-    `All-time P/L: ${f.format(allTime)} THB${previous ? formatSignedThbDelta(delta) : ""}` +
-    `\n  open ${f.format(current.openPnl)} THB (${pctStr}) · taken ${f.format(current.taken)} THB`
-  );
+  return `All-time P/L: ${f.format(allTime)} THB${previous ? formatSignedThbDelta(delta) : ""}`;
 }
 
 async function loadDayPerformerLines(

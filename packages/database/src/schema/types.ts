@@ -63,3 +63,7 @@ export const stakingSyncSourceType = pgEnum("staking_sync_source_type", [
   "apy_projection",
   "manual",
 ]);
+
+export const lendingProviderType = pgEnum("lending_provider_type", [
+  "etherfi_cash",
+]);

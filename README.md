@@ -40,7 +40,7 @@ The dashboard uses Discord OAuth and allow-listing through `AUTH_SECRET`, `ALLOW
 - [x] Thai stocks via Yahoo Finance
 - [x] US Stocks
 - [x] Cryptocurrencies via CoinGecko (USD-denominated)
-- [x] Staked balances via Solana RPC, Hyperliquid API, and Ether.fi vault reads (see `docs/staking-tracking.md`)
+- [x] Staked balances via Solana RPC, Hyperliquid API, and on-chain vault reads (see `docs/staking-tracking.md`)
 - [x] Thai mutual funds via SEC API v2
 - [ ] Gold (currently estimated via XAUT)
 - [ ] Currency exchange (currently estimates USD/THB via Bitkub USDC/THB)

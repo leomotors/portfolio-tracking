@@ -24,16 +24,13 @@ describe("pnlLines", () => {
     );
   });
 
-  it("adds taken P/L back and breaks open / taken out", () => {
+  it("adds taken P/L back onto one All-time line", () => {
     expect(
       pnlLines(
         { openPnl: 10_000, cost: 81_000, taken: 50_000 },
         { openPnl: 8_766, taken: 50_000 },
       ),
-    ).toBe(
-      "All-time P/L: 60,000 THB (+1,234 THB)\n" +
-        "  open 10,000 THB (12.35%) · taken 50,000 THB",
-    );
+    ).toBe("All-time P/L: 60,000 THB (+1,234 THB)");
   });
 
   // The regression: withdrawing 100,000 that held 30,000 of profit drops
@@ -44,9 +41,7 @@ describe("pnlLines", () => {
     const current = { openPnl: 0, cost: 100_000, taken: 30_000 };
 
     expect(current.openPnl - previous.openPnl).toBe(-30_000);
-    expect(pnlLines(current, previous)).toBe(
-      "All-time P/L: 30,000 THB\n  open 0 THB (0.00%) · taken 30,000 THB",
-    );
+    expect(pnlLines(current, previous)).toBe("All-time P/L: 30,000 THB");
   });
 
   // A withdrawal booked today is in the live total but not in yesterday's
@@ -57,10 +52,7 @@ describe("pnlLines", () => {
         { openPnl: 500, cost: 100_000, taken: 30_000 },
         { openPnl: 30_000, taken: 0 },
       ),
-    ).toBe(
-      "All-time P/L: 30,500 THB (+500 THB)\n" +
-        "  open 500 THB (0.50%) · taken 30,000 THB",
-    );
+    ).toBe("All-time P/L: 30,500 THB (+500 THB)");
   });
 
   it("switches to the all-time line for a prior-only taken total", () => {
@@ -69,17 +61,12 @@ describe("pnlLines", () => {
         { openPnl: 1_000, cost: 10_000, taken: 0 },
         { openPnl: 1_000, taken: 5_000 },
       ),
-    ).toBe(
-      "All-time P/L: 1,000 THB (-5,000 THB)\n" +
-        "  open 1,000 THB (10.00%) · taken 0 THB",
-    );
+    ).toBe("All-time P/L: 1,000 THB (-5,000 THB)");
   });
 
   it("reports a negative all-time total", () => {
     expect(
       pnlLines({ openPnl: -12_000, cost: 100_000, taken: 2_000 }, null),
-    ).toBe(
-      "All-time P/L: -10,000 THB\n  open -12,000 THB (-12.00%) · taken 2,000 THB",
-    );
+    ).toBe("All-time P/L: -10,000 THB");
   });
 });

@@ -60,7 +60,7 @@ rescale happens when you manually edit "Current" on the Crypto tab.
 |---|---|---|
 | `solana_native` | Solana JSON-RPC: auto-discovers stake accounts by withdraw authority (`getProgramAccounts`) and sums total balances (rewards land in the account each epoch). New delegations create new stake accounts, so discovery needs no config edits. | `{"withdrawAuthority": "<wallet>"}` — or `{"stakeAccounts": ["<pubkey>", ...]}` if the RPC blocks discovery |
 | `hyperliquid` | `POST https://api.hyperliquid.xyz/info` `{"type":"delegatorSummary"}` (delegated + undelegated + pending withdrawal) | `{"user": "0x..."}` |
-| `etherfi_liquid` | raw `eth_call`: `balanceOf(wallet)` on the vault share token × `getRate()` on the accountant | `{"chain": "ethereum", "wallet": "0x...", "vault": "0x...", "accountant": "0x...", "rateDecimals": 8, "quote": "base", "vaultSymbol": "liquidBTC"}` |
+| `etherfi_liquid` | raw `eth_call`: vault share count × `getRate()` on the accountant. Share count is `balanceOf(wallet)` by default, or LendGateway `suppliedOf(wallet, vault)` when `shareSource` is `aave_v4` (vault tokens supplied as Aave v4 / Ether.fi Cash collateral). | `{"chain": "optimism", "wallet": "0x...", "vault": "0x...", "accountant": "0x...", "rateDecimals": 8, "quote": "base", "vaultSymbol": "liquidBTC", "shareSource": "aave_v4", "lendGateway": "0x..."}` |
 | `manual` | none — APY projection between manual edits | `null` |
 
 Notes:
@@ -75,6 +75,50 @@ Notes:
   `getRateInQuoteSafe(address)` instead.
 - `rateDecimals` is the quote asset's decimals: 8 for the BTC vault (WBTC),
   18 for the ETH vault.
+- `shareSource` defaults to `"wallet"`. Set `"aave_v4"` when the vault token
+  is supplied as Aave v4 collateral (no longer an ERC-20 balance on the
+  wallet). `lendGateway` is then required — there is no code default.
+  Wallet is only used to read the share count, not to price WBTC.
+
+### Optional lending leftover (`lending_monitor`)
+
+An empty `lending_monitor` table skips this step. Configured rows append
+leftover cash vs borrow to the Discord summary as one USD net line.
+Negative leftover is a warning. This is **not** Aave's health factor and
+is **not** booked into net worth.
+
+#### `etherfi_cash`
+
+`leftover = USD(cashSymbols supplied) − USD(borrowed)`
+
+Prices come from the configured PriceProvider (not 1:1 token amounts —
+liquidUSD is a yield vault). Addresses live on the row:
+
+| column | example |
+|---|---|
+| `name` | Discord label, e.g. `Ether.fi Cash` |
+| `provider` | `etherfi_cash` |
+| `wallet` | the account / Safe to query |
+| `sync_config` | `{"chain": "optimism", "lendGateway": "0x...", "priceProvider": "0x...", "cashSymbols": ["liquidUSD", "liquidRWA"]}` |
+
+Example:
+
+```sql
+INSERT INTO lending_monitor (name, provider, wallet, sync_config)
+VALUES (
+  'Ether.fi Cash',
+  'etherfi_cash',
+  '<your 0x wallet or Safe>',
+  '{"chain": "optimism",
+    "lendGateway": "<LendGateway>",
+    "priceProvider": "<PriceProvider>",
+    "cashSymbols": ["liquidUSD", "liquidRWA"]}'
+);
+```
+
+`shareSource: "aave_v4"` on an `etherfi_liquid` staked position is
+independent: that is how vault shares supplied as collateral are counted.
+Put `lendGateway` on that position's `sync_config` as well.
 
 ## Prices
 
@@ -100,8 +144,8 @@ that row and converts the pre-existing `BTCTHB`/`ETHTHB`/`SOLTHB` rows —
 |---|---|---|
 | `COINGECKO_API_KEY` | none (keyless) | optional free Demo key for stable rate limits |
 | `SOLANA_RPC_URL` | `https://api.mainnet-beta.solana.com` | stake account balances |
-| `ETH_RPC_URL` | `https://ethereum-rpc.publicnode.com` | Ether.fi vault reads (`chain: "ethereum"`) |
-| `OP_RPC_URL` | `https://optimism-rpc.publicnode.com` | Ether.fi vault reads (`chain: "optimism"`) |
+| `ETH_RPC_URL` | `https://ethereum-rpc.publicnode.com` | EVM vault reads (`chain: "ethereum"`) |
+| `OP_RPC_URL` | `https://optimism-rpc.publicnode.com` | EVM vault / LendGateway reads (`chain: "optimism"`) |
 
 ## Seeding positions
 
@@ -127,7 +171,8 @@ VALUES
    '150', '150', '0.024', '2025-06-10',
    '{"user": "<your 0x address>"}'),
 
-  -- Ether.fi Liquid BTC (addresses verified on-chain 2026-07-17)
+  -- Ether.fi Liquid BTC. Wallet ERC-20 by default; for Aave v4 collateral
+  -- add "shareSource": "aave_v4" and "lendGateway": "<LendGateway>".
   (43, 'Ether.fi Liquid BTC', 'etherfi_liquid', 'BTC',
    '0.5', '0.5', '0.03', '2025-09-20',
    '{"chain": "ethereum",

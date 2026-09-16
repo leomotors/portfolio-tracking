@@ -6,6 +6,7 @@ import { assetTable, stakedPositionTable } from "@repo/database/schema";
 
 import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
+import { etherfiLiquidConfigSchema } from "@/data/etherfiCash";
 import { fetchBoringVaultUnderlying } from "@/data/evm";
 import { fetchHyperliquidStake } from "@/data/hyperliquid";
 import {
@@ -35,19 +36,6 @@ const solanaConfigSchema = z
 const hyperliquidConfigSchema = z.object({
   user: z.string(),
 });
-
-const etherfiConfigSchema = z
-  .object({
-    chain: z.enum(["ethereum", "optimism"]),
-    wallet: z.string(),
-    vault: z.string(),
-    accountant: z.string(),
-    rateDecimals: z.number().int(),
-    quote: z.string().optional(),
-    vaultSymbol: z.string().optional(),
-  })
-  // RPC URL comes from ETH_RPC_URL / OP_RPC_URL env — never from syncConfig.
-  .strict();
 
 type StakedPositionRow = typeof stakedPositionTable.$inferSelect;
 
@@ -81,7 +69,7 @@ async function fetchLiveUnderlying(
         ),
       };
     case "etherfi_liquid": {
-      const config = etherfiConfigSchema.parse(position.syncConfig);
+      const config = etherfiLiquidConfigSchema.parse(position.syncConfig);
       const { shares, rate, underlying } =
         await fetchBoringVaultUnderlying(config);
       return {

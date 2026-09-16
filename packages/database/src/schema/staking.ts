@@ -21,9 +21,12 @@ import { stakingProviderType, stakingSyncSourceType } from "./types.ts";
  *   (delegatorSummary: delegated + undelegated + pending withdrawal).
  * - etherfi_liquid: `{ chain: "ethereum" | "optimism"; wallet, vault,
  *   accountant: string; rateDecimals: number; quote?: "base" | <ERC20 address>;
- *   vaultSymbol?: string }` — share balance times the accountant rate;
- *   vaultSymbol guards against a typo'd address. RPC is selected from env by
- *   chain (ETH_RPC_URL / OP_RPC_URL); per-row rpcUrl overrides are rejected.
+ *   vaultSymbol?: string; shareSource?: "wallet" | "aave_v4";
+ *   lendGateway?: string }` — share balance times the accountant rate.
+ *   `shareSource: "aave_v4"` reads LendGateway `suppliedOf` instead of
+ *   ERC-20 `balanceOf` (vault tokens supplied as lending collateral).
+ *   `lendGateway` is required with `aave_v4`. vaultSymbol guards against a
+ *   typo'd address. RPC is selected from env by chain.
  * - manual: null — kept current by hand or by APY projection.
  */
 export type StakingSyncConfig = Record<string, unknown>;

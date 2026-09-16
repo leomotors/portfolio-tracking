@@ -7,12 +7,14 @@ import { logger } from "./core/logger.js";
 import { calculateBalance } from "./functions/calculateBalance/index.js";
 import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
+import { lendingHealthStep } from "./functions/lendingHealth/index.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
 import { stakingSyncStep } from "./functions/stakingSync/index.js";
 import { formatDate, getYesterday } from "./lib/date.js";
 import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
 import { saveHeatmapDaily } from "./lib/heatmapDaily.js";
 import { renderHeatmapPngFromCells } from "./lib/heatmapPng.js";
+import { formatLendingDiscordLines } from "./lib/lendingHealth.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
 if (environment.DRY_RUN) {
@@ -25,6 +27,9 @@ const previousAssets = await loadHeldAssetSnapshots();
 
 logger.log("\n--- Functions: Staking Sync ---");
 await stakingSyncStep();
+
+logger.log("\n--- Functions: Lending Health ---");
+const lendingHealth = await lendingHealthStep();
 
 logger.log("\n--- Functions: Scraping Prices ---");
 await priceUpdateStep();
@@ -79,10 +84,12 @@ if (heatmapPng) {
   });
 }
 
+const lendingLines = formatLendingDiscordLines(lendingHealth);
+
 await sendMessage(
   `## Portfolio Daily Cron: Run Completed${summary.circleSuffix}
 App Version: ${APP_VERSION} ${environment.DRY_RUN ? "**(Dry Run: Data is not saved)**" : ""}
-${summary.body}${
+${summary.body}${lendingLines ? `\n${lendingLines}` : ""}${
     logger.hasEstimation
       ? "\n📐 Estimations were made on some asset/currency price."
       : ""

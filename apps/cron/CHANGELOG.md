@@ -2,6 +2,12 @@
 
 0.1.0 is not noted here
 
+## [Unreleased]
+
+- feat: Ether.fi Liquid can read share balances from an Aave v4 LendGateway (`shareSource: "aave_v4"` plus `lendGateway` in `sync_config`) instead of ERC-20 `balanceOf`. Accountant `getRate()` (WBTC mapping) and CoinGecko prices are unchanged.
+- feat: optional `lending_monitor` rows (provider `etherfi_cash`) append leftover cash vs borrow to the Discord summary as one USD net line. Empty table skips the check. Contract addresses live in the row, not in code.
+- fix: Discord All-time P/L is a single line (open + taken); no open/taken split.
+
 ## [0.16.2] - 2026-09-13
 
 - fix: the Discord summary is aware of the `pnl_event` ledger. A `withdrawn` event drops `current_value` by the withdrawal and `current_cost` by (withdrawal − profit), so account P/L fell by exactly the profit taken — the summary posted that as a day's loss and understated P/L on every run after. Withdrawn P/L is now added back (native `pnl` × the event's FX snapshot), and the line becomes `All-time P/L` with open/taken broken out, matching the dashboard's All-time P/L KPI. Accounts with no withdrawals keep the original `Current P/L` line. Soft-fails to 0 if `pnl_event` is not migrated yet.

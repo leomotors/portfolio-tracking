@@ -304,6 +304,20 @@ Personal loan / revolving line. Unique `(issued_by, account_no)` (account_no is 
 
 These two tables exist for record-keeping; they aren't read or written by the cron.
 
+### Lending monitors
+
+#### `lending_monitor` — [lending.ts](src/schema/lending.ts)
+Optional leftover-cash check. An empty table (or a missing table before
+migration `0024`) skips the cron step. Rows are not booked into net worth.
+
+| Column | Notes |
+| --- | --- |
+| `id` | identity PK |
+| `name` | Discord / log label |
+| `provider` | `lending_provider_type` (`etherfi_cash`) |
+| `wallet` | account to query (e.g. a Safe) |
+| `sync_config` | provider JSON. For `etherfi_cash`: `{ chain, lendGateway, priceProvider, cashSymbols }` |
+
 ### AI chat domain
 
 #### `ai_conversation` — [ai.ts](src/schema/ai.ts)
@@ -347,27 +361,30 @@ Enum types defined in Postgres via `pgEnum`:
 | `bank_account_type` | `savings`, `e_savings`, `fixed` | `bank_account.account_type` |
 | `credit_card_type` | `visa`, `mastercard`, `american_express`, `jcb`, `unionpay` | `credit_card_account.card_type` |
 | `ai_message_role` | `user`, `assistant`, `system`, `tool` | `ai_message.role` |
+| `lending_provider_type` | `etherfi_cash` | `lending_monitor.provider` |
 
 Note: `coperate_bond` is a typo of `corporate_bond` preserved across the schema for backward compatibility.
 
 ## How the cron writes this database
 
-[`apps/cron`](../../apps/cron/) runs four steps in order ([apps/cron/src/index.ts](../../apps/cron/src/index.ts)):
+[`apps/cron`](../../apps/cron/) runs these steps in order ([apps/cron/src/index.ts](../../apps/cron/src/index.ts)):
 
-1. **`priceUpdateStep`** ([priceUpdate/index.ts](../../apps/cron/src/functions/priceUpdate/index.ts))
+1. **`stakingSyncStep`** — live staking balances, then write-back to `asset.amount`.
+2. **`lendingHealthStep`** — optional leftover check from `lending_monitor` (read-only; skipped when the table is empty or not migrated).
+3. **`priceUpdateStep`** ([priceUpdate/index.ts](../../apps/cron/src/functions/priceUpdate/index.ts))
    Reads `asset` rows with `amount > 0`, groups by `symbol_type`, fetches prices from
    Yahoo Finance / SEC Fund API / Binance.th / CoinGecko, and writes back
    `asset.current_price` (which auto-updates `price_updated_at`). It also
    updates `currency.value_in_thb` for `USD` from the Binance `USDTTHB` price.
 
-2. **`calculateBalance`** ([calculateBalance/index.ts](../../apps/cron/src/functions/calculateBalance/index.ts))
+4. **`calculateBalance`** ([calculateBalance/index.ts](../../apps/cron/src/functions/calculateBalance/index.ts))
    For each `investment_account` with `current_cost > 0`, joins its `asset` rows
    to `currency`, computes `Σ amount * current_price * value_in_thb`, and writes
    the result into `investment_account.current_value`. Also reports any asset
    with `price_updated_at` older than 24h, or any non-THB currency with
    `updated_at` older than 24h, as stale.
 
-3. **`dailyBalance`** ([daily/dailyBalance.ts](../../apps/cron/src/functions/daily/dailyBalance.ts))
+5. **`dailyBalance`** ([daily/dailyBalance.ts](../../apps/cron/src/functions/daily/dailyBalance.ts))
    For yesterday's date, inserts one row per active `bank_account` into
    `bank_daily_balance` (snapshotting `current_balance`) and one row per
    `investment_account` into `investment_daily_balance` (snapshotting
@@ -375,14 +392,15 @@ Note: `coperate_bond` is a typo of `corporate_bond` preserved across the schema 
    `onConflictDoNothing()` against the `(account_id, date)` unique index, so
    re-running the cron is safe.
 
-4. **`fillMissingData`** ([daily/fillMissingData.ts](../../apps/cron/src/functions/daily/fillMissingData.ts))
+6. **`fillMissingData`** ([daily/fillMissingData.ts](../../apps/cron/src/functions/daily/fillMissingData.ts))
    Scans each daily balance table per account, sorts by date, and forward-fills
    any missing day with the previous day's values. Used to recover from days
    when the cron didn't run.
 
 After those steps, [summary.ts](../../apps/cron/src/summary.ts) computes
 day-over-day deltas using yesterday's snapshot (or, if missing, the latest date
-that exists in **both** daily balance tables) and posts a Discord summary.
+that exists in **both** daily balance tables). Discord gets one summary
+(totals, optional lending leftover lines, heatmap, `run.log`).
 
 ## How the dashboard writes this database
 
