@@ -15,6 +15,7 @@ import {
 } from "@repo/database/schema";
 
 import {
+  createAsset,
   createInAccountPnlEvent,
   createWithdrawnPnlEvent,
   deletePnlEvent,
@@ -338,6 +339,11 @@ async function dispatchOperation(operation: PortfolioOperation) {
     case "update_asset_average_cost":
       await updateAssetAverageCost(operation.id, operation.averageCost);
       return;
+    case "create_asset": {
+      const { op: _op, ...fields } = operation;
+      await createAsset(fields);
+      return;
+    }
     case "update_investment_account_cost":
       await updateInvestmentAccountCost(operation.id, operation.currentCost);
       return;

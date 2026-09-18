@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased]
+
+- feat: add a position to an investment account from the Positions card, with optional cost-basis bump
+- feat: AI agent can propose `create_asset` for a holding that does not exist yet
+- feat: approving a proposal sends an applied receipt into the chat so the agent can name what landed
+
 ## [0.15.0] - 2026-09-14
 
 - feat: Allocation page has a By account tab that charts investment accounts by current value, with bank and real estate totals listed beside the pie

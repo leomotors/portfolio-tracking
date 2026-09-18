@@ -28,6 +28,7 @@ import {
 } from "@/lib/ai/actions";
 import {
   type ChangeProposal,
+  proposalAppliedUserMessage,
   proposalFromToolOutput,
   proposalReviewUserMessage,
 } from "@/lib/ai/proposal-ops";
@@ -613,6 +614,7 @@ export function AiChat({
     try {
       const updated = await applyChatProposal(id);
       patchProposal(id, updated);
+      await sendMessage(proposalAppliedUserMessage(updated));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Could not apply proposal");
     } finally {

@@ -6,6 +6,7 @@ import {
   type PortfolioOperation,
   portfolioOperationSchema,
   previewBeforesMatch,
+  proposalAppliedUserMessage,
   proposalFromToolOutput,
   type ProposalLookup,
   type ProposalPreviewRow,
@@ -79,6 +80,30 @@ describe("portfolio change operations", () => {
         balance: 2500.5,
       }),
     ).toEqual({ op: "update_bank_balance", id: 1, balance: 2500.5 });
+  });
+
+  it("accepts create_asset for a new holding", () => {
+    expect(
+      portfolioOperationSchema.parse({
+        op: "create_asset",
+        investmentAccountId: 3,
+        name: "Solana",
+        symbol: "SOL",
+        symbolType: "cryptocurrency",
+        assetType: "digital_asset",
+        assetClass: "digital_asset",
+        riskLevel: "higher_satellite",
+        amount: 10,
+        unit: "SOL",
+        averageCost: 150,
+        currencyId: 7,
+      }),
+    ).toMatchObject({
+      op: "create_asset",
+      name: "Solana",
+      symbol: "SOL",
+      amount: 10,
+    });
   });
 
   it("rejects unknown operations and extra keys", () => {
@@ -157,6 +182,50 @@ describe("portfolio change operations", () => {
     ] satisfies ProposalPreviewRow[]);
   });
 
+  it("previews a new position against the destination account", async () => {
+    const preview = await buildProposalPreview(
+      [
+        {
+          op: "create_asset",
+          investmentAccountId: 3,
+          name: "Solana",
+          symbol: "SOL",
+          symbolType: "cryptocurrency",
+          assetType: "digital_asset",
+          assetClass: "digital_asset",
+          riskLevel: "higher_satellite",
+          amount: 10,
+          unit: "SOL",
+          averageCost: 150,
+          currencyId: 7,
+        },
+      ],
+      lookup,
+    );
+    expect(preview).toEqual([
+      {
+        op: "create_asset",
+        label: "Add position",
+        target: "Solana (SOL) · Binance",
+        changes: [
+          { field: "account", before: null, after: "Binance" },
+          { field: "class", before: null, after: "Digital" },
+          { field: "type", before: null, after: "Digital asset" },
+          { field: "risk", before: null, after: "Higher Sat." },
+          {
+            field: "priceSource",
+            before: null,
+            after: "Crypto (CoinGecko)",
+          },
+          { field: "amount (SOL)", before: null, after: 10 },
+          { field: "averageCost", before: null, after: 150 },
+          { field: "currentPrice", before: null, after: 150 },
+          { field: "currency", before: null, after: "USD" },
+        ],
+      },
+    ] satisfies ProposalPreviewRow[]);
+  });
+
   it("refuses to preview missing targets", async () => {
     await expect(
       buildProposalPreview(
@@ -211,5 +280,30 @@ describe("portfolio change operations", () => {
     expect(
       proposalReviewUserMessage(3, "revision_requested", "amount is 0.5"),
     ).toContain("amount is 0.5");
+  });
+
+  it("formats an applied receipt the agent can cite", () => {
+    const message = proposalAppliedUserMessage({
+      id: 12,
+      summary: "Add SOL to Binance",
+      preview: [
+        {
+          op: "create_asset",
+          label: "Add position",
+          target: "Solana (SOL) · Binance",
+          changes: [
+            { field: "amount (SOL)", before: null, after: 10 },
+            { field: "averageCost", before: null, after: 150 },
+          ],
+        },
+      ],
+    });
+    expect(message).toContain("approved portfolio change proposal #12");
+    expect(message).toContain("written to the database");
+    expect(message).toContain("Add SOL to Binance");
+    expect(message).toContain(
+      "Add position · Solana (SOL) · Binance: amount (SOL) 10; averageCost 150",
+    );
+    expect(message).toContain("already applied");
   });
 });

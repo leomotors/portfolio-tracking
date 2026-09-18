@@ -1,5 +1,16 @@
 import { z } from "zod";
 
+import {
+  ASSET_CLASSES,
+  ASSET_TYPE_LABEL,
+  ASSET_TYPES,
+  parseCreateAssetFields,
+  RISK_LEVELS,
+  SYMBOL_TYPE_LABEL,
+  SYMBOL_TYPES,
+} from "@/lib/portfolio/asset-fields";
+import { CLASS_LABEL, RISK_LABEL } from "@/lib/portfolio/colors";
+
 const id = z.number().int().positive();
 const nonNeg = z.number().finite().nonnegative();
 const finite = z.number().finite();
@@ -28,6 +39,41 @@ export const portfolioOperationSchema = z.discriminatedUnion("op", [
       op: z.literal("update_asset_average_cost"),
       id,
       averageCost: nonNeg,
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal("create_asset"),
+      investmentAccountId: id.describe(
+        "Destination investment account id from listInvestments",
+      ),
+      name: z.string().trim().min(1).max(200).describe("Holding display name"),
+      symbol: z
+        .string()
+        .trim()
+        .max(64)
+        .nullable()
+        .optional()
+        .describe(
+          "Ticker. Required when symbolType is set. Crypto example: BTC. Hyperliquid vault: HLV:<vaultAddress>",
+        ),
+      symbolType: z
+        .enum(SYMBOL_TYPES)
+        .nullable()
+        .optional()
+        .describe("Price source. Omit for cash, gold, or manual prices."),
+      assetType: z.enum(ASSET_TYPES),
+      assetClass: z.enum(ASSET_CLASSES),
+      riskLevel: z.enum(RISK_LEVELS),
+      amount: nonNeg.describe("Quantity in unit"),
+      unit: z.string().trim().min(1).max(32).describe("e.g. share, SOL, THB"),
+      averageCost: nonNeg.describe(
+        "Average cost per unit in the asset currency",
+      ),
+      currentPrice: nonNeg
+        .optional()
+        .describe("Mark price per unit; defaults to averageCost"),
+      currencyId: id.describe("Asset currency id from listCurrencies"),
     })
     .strict(),
   z
@@ -174,6 +220,7 @@ export const OPERATION_LABELS: Record<PortfolioOperation["op"], string> = {
   update_bank_balance: "Update bank balance",
   update_asset_amount: "Update holding amount",
   update_asset_average_cost: "Update average cost",
+  create_asset: "Add position",
   update_investment_account_cost: "Update account cost basis",
   create_in_account_pnl_event: "Log in-account P/L",
   create_withdrawn_pnl_event: "Log withdrawn P/L",
@@ -300,6 +347,69 @@ async function previewOperation(
           after: operation.averageCost,
         },
       ]);
+    }
+    case "create_asset": {
+      const { op: _op, ...fields } = operation;
+      const parsed = parseCreateAssetFields(fields);
+      const account =
+        (await lookup.investmentAccount(parsed.investmentAccountId)) ??
+        missing("Investment account", parsed.investmentAccountId);
+      const currency =
+        (await lookup.currency(parsed.currencyId)) ??
+        missing("Currency", parsed.currencyId);
+      return row(
+        operation.op,
+        `${assetLabel({ name: parsed.name, symbol: parsed.symbol })} · ${account.name}`,
+        [
+          {
+            field: "account",
+            before: null,
+            after: account.name,
+          },
+          {
+            field: "class",
+            before: null,
+            after: CLASS_LABEL[parsed.assetClass] ?? parsed.assetClass,
+          },
+          {
+            field: "type",
+            before: null,
+            after: ASSET_TYPE_LABEL[parsed.assetType],
+          },
+          {
+            field: "risk",
+            before: null,
+            after: RISK_LABEL[parsed.riskLevel] ?? parsed.riskLevel,
+          },
+          {
+            field: "priceSource",
+            before: null,
+            after: parsed.symbolType
+              ? SYMBOL_TYPE_LABEL[parsed.symbolType]
+              : "manual",
+          },
+          {
+            field: `amount (${parsed.unit})`,
+            before: null,
+            after: parsed.amount,
+          },
+          {
+            field: "averageCost",
+            before: null,
+            after: parsed.averageCost,
+          },
+          {
+            field: "currentPrice",
+            before: null,
+            after: parsed.currentPrice,
+          },
+          {
+            field: "currency",
+            before: null,
+            after: currencyLabel(currency),
+          },
+        ],
+      );
     }
     case "update_investment_account_cost": {
       const account =
@@ -526,4 +636,31 @@ export function proposalReviewUserMessage(
       : `I rejected portfolio change proposal #${proposalId}. Do not apply those operations.`;
   }
   return `I requested changes to portfolio change proposal #${proposalId}: ${trimmed}\nPlease propose a revised change. The previous proposal was not applied.`;
+}
+
+function formatAppliedChange(change: ProposalPreviewRow["changes"][number]) {
+  const after = formatChangeValue(change.after);
+  if (change.before == null) return `${change.field} ${after}`;
+  return `${change.field} ${formatChangeValue(change.before)} → ${after}`;
+}
+
+export function proposalAppliedUserMessage(proposal: {
+  id: number;
+  summary: string;
+  preview: ProposalPreviewRow[];
+}) {
+  const details = proposal.preview
+    .map((row) => {
+      const changes = row.changes.map(formatAppliedChange).join("; ");
+      return `- ${row.label} · ${row.target}: ${changes}`;
+    })
+    .join("\n");
+  return [
+    `I approved portfolio change proposal #${proposal.id}. Those operations were written to the database.`,
+    proposal.summary.trim(),
+    details,
+    "This change is already applied. Name what landed. Do not say it is still pending and do not propose the same operations again.",
+  ]
+    .filter((line) => line.length > 0)
+    .join("\n");
 }

@@ -24,7 +24,13 @@ import {
   normalizeSymbol,
 } from "@/lib/db/price-map";
 import { roundThb, withdrawCostDelta } from "@/lib/portfolio/aggregate";
+import {
+  type CreateAssetFields,
+  parseCreateAssetFields,
+} from "@/lib/portfolio/asset-fields";
 import { rescaleAverageCost } from "@/lib/portfolio/staking";
+
+type DbTx = Parameters<Parameters<typeof db.transaction>[0]>[0];
 
 const assertNonNegative = (n: number, label: string) => {
   if (!Number.isFinite(n) || n < 0) {
@@ -83,7 +89,7 @@ const revalidatePnl = () => {
 };
 
 async function applyDailyCostDelta(
-  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tx: DbTx,
   accountId: number,
   occurredOn: string,
   costDelta: number,
@@ -145,6 +151,73 @@ export async function updateAssetAverageCost(id: number, averageCost: number) {
     .where(eq(assetTable.id, id));
   revalidatePath("/investments");
   revalidatePath("/");
+}
+
+const revalidateHoldings = () => {
+  revalidatePath("/investments");
+  revalidatePath("/allocation");
+  revalidatePath("/crypto");
+  revalidatePath("/settings");
+  revalidatePath("/");
+};
+
+async function refreshInvestmentAccountValue(tx: DbTx, accountId: number) {
+  const holdings = await tx
+    .select({
+      amount: assetTable.amount,
+      currentPrice: assetTable.currentPrice,
+      valueInTHB: currencyTable.valueInTHB,
+    })
+    .from(assetTable)
+    .innerJoin(currencyTable, eq(assetTable.currencyId, currencyTable.id))
+    .where(eq(assetTable.investmentAccountId, accountId));
+  let total = 0;
+  for (const holding of holdings) {
+    total +=
+      parseFloat(holding.amount) *
+      parseFloat(holding.currentPrice) *
+      parseFloat(holding.valueInTHB);
+  }
+  await tx
+    .update(investmentAccountTable)
+    .set({ currentValue: asThb(total) })
+    .where(eq(investmentAccountTable.id, accountId));
+}
+
+export async function createAsset(input: CreateAssetFields) {
+  await requireSession();
+  const parsed = parseCreateAssetFields(input);
+
+  await db.transaction(async (tx) => {
+    const [account] = await tx
+      .select({ id: investmentAccountTable.id })
+      .from(investmentAccountTable)
+      .where(eq(investmentAccountTable.id, parsed.investmentAccountId));
+    if (!account) throw new Error("Investment account not found");
+
+    const [currency] = await tx
+      .select({ id: currencyTable.id })
+      .from(currencyTable)
+      .where(eq(currencyTable.id, parsed.currencyId));
+    if (!currency) throw new Error("Currency not found");
+
+    await tx.insert(assetTable).values({
+      name: parsed.name,
+      symbol: parsed.symbol,
+      investmentAccountId: parsed.investmentAccountId,
+      symbolType: parsed.symbolType,
+      assetType: parsed.assetType,
+      assetClass: parsed.assetClass,
+      riskLevel: parsed.riskLevel,
+      amount: String(parsed.amount),
+      unit: parsed.unit,
+      averageCost: String(parsed.averageCost),
+      currentPrice: String(parsed.currentPrice),
+      currencyId: parsed.currencyId,
+    });
+    await refreshInvestmentAccountValue(tx, parsed.investmentAccountId);
+  });
+  revalidateHoldings();
 }
 
 export async function updateInvestmentAccountCost(

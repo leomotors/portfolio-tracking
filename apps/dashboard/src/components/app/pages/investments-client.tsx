@@ -1,6 +1,6 @@
 "use client";
 
-import { ChevronDown, Coins } from "lucide-react";
+import { ChevronDown, Coins, Plus } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useRef, useState } from "react";
 
@@ -13,6 +13,7 @@ import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
 import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import { AddAssetForm } from "@/components/app/pages/investments-add-asset";
 import { AccountPnlLog } from "@/components/app/pages/investments-pnl";
 import { Sensitive } from "@/components/app/sensitive";
 import { Sparkline } from "@/components/app/sparkline";
@@ -21,6 +22,7 @@ import {
   type Timeframe,
   TimeframeToggle,
 } from "@/components/app/timeframe-toggle";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -389,6 +391,7 @@ function AccountDetail({
   }, [assets, cById]);
 
   const [showDust, setShowDust] = useState(false);
+  const [showAdd, setShowAdd] = useState(false);
   const activePositions = sortedPositions.filter(
     (r) => r.valueThb >= DUST_THRESHOLD,
   );
@@ -557,7 +560,31 @@ function AccountDetail({
               Click a value to edit · stale prices flagged · sorted by value
             </CardDescription>
           </div>
+          <Button
+            type="button"
+            size="sm"
+            variant={showAdd ? "default" : "outline"}
+            className="shrink-0"
+            aria-expanded={showAdd}
+            onClick={() => setShowAdd((v) => !v)}
+          >
+            <Plus size={14} strokeWidth={2.25} aria-hidden />
+            {showAdd ? "Cancel" : "Add position"}
+          </Button>
         </CardHeader>
+        {showAdd && (
+          <div className="px-5 pb-3 pt-3">
+            <AddAssetForm
+              accountId={account.id}
+              accountCost={account.currentCost}
+              currencies={currencies}
+              existingSymbols={assets
+                .map((asset) => asset.symbol)
+                .filter((symbol): symbol is string => Boolean(symbol))}
+              onDone={() => setShowAdd(false)}
+            />
+          </div>
+        )}
         <div className="overflow-x-auto">
           <table className="w-full min-w-[640px] border-collapse text-[13px]">
             <thead>

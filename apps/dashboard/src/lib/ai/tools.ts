@@ -218,7 +218,7 @@ export function createPortfolioTools(context: ToolContext) {
     }),
     listInvestments: tool({
       description:
-        "List investment accounts and asset holdings with amounts, costs, current prices, and THB values.",
+        "List investment accounts and asset holdings with ids, amounts, costs, current prices, and THB values. Use these ids when proposing updates. If a bought ticker is missing, propose create_asset on the account instead of inventing an asset id.",
       inputSchema: z.object({}),
       execute: async () => {
         const [accounts, assets, currencies] = await Promise.all([
@@ -301,7 +301,7 @@ export function createPortfolioTools(context: ToolContext) {
     }),
     proposePortfolioChange: tool({
       description:
-        "Propose a portfolio database change for the user to review. Does not write portfolio rows. The user must approve, reject, or request changes in the chat UI. Look up ids with the read tools first. Batch related edits into one proposal.",
+        "Propose a portfolio database change for the user to review. Does not write portfolio rows. The user must approve, reject, or request changes in the chat UI. Look up ids with the read tools first. Batch related edits into one proposal. Use create_asset when the holding does not already exist; use update_asset_amount on an existing id. For a new-money purchase, also include update_investment_account_cost with the new total. For a rotation, leave account cost alone.",
       inputSchema: proposePortfolioChangeInputSchema,
       execute: async ({ summary, operations }) => {
         try {
