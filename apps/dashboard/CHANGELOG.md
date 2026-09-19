@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased]
+## [0.16.0] - 2026-09-20
 
 - fix: heatmap holdings table sorts Day % by signed change, so descending order lists gains before losses
 - feat: add a position to an investment account from the Positions card, with optional cost-basis bump
