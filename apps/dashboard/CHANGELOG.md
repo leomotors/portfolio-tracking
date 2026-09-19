@@ -2,6 +2,7 @@
 
 ## [Unreleased]
 
+- fix: heatmap holdings table sorts Day % by signed change, so descending order lists gains before losses
 - feat: add a position to an investment account from the Positions card, with optional cost-basis bump
 - feat: AI agent can propose `create_asset` for a holding that does not exist yet
 - feat: approving a proposal sends an applied receipt into the chat so the agent can name what landed

@@ -82,7 +82,7 @@ export function HeatmapClient({
         return dir * a.assetClass.localeCompare(b.assetClass);
       if (sortKey === "value") return dir * (a.value - b.value);
       if (sortKey === "pnl") return dir * (a.pnlDelta - b.pnlDelta);
-      return dir * (Math.abs(a.changePct) - Math.abs(b.changePct));
+      return dir * (a.changePct - b.changePct);
     });
   }, [cells, classFilter, sortDir, sortKey]);
 
@@ -204,8 +204,8 @@ export function HeatmapClient({
           <div>
             <CardTitle>All holdings</CardTitle>
             <CardDescription>
-              {sorted.length} of {cells.length} shown. Sort by magnitude to find
-              moves the PNG hid.
+              {sorted.length} of {cells.length} shown. Sort by Day % to find the
+              day's movers.
             </CardDescription>
           </div>
         </CardHeader>
