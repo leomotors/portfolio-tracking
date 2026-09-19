@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  ACCOUNT_OUTSIDE_BANKS,
+  ACCOUNT_OUTSIDE_REAL_ESTATE,
   accountPnlBreakdown,
+  allocationMembers,
   allTimePnlSeries,
   type AssetRow,
   byAssetClass,
+  byAssetType,
   byCurrency,
+  byCustody,
   byInvestmentAccount,
   byRiskLevel,
   capitalFlowSeries,
@@ -17,6 +22,7 @@ import {
   dayDelta,
   dayMovers,
   inAccountLoggedPnl,
+  type InvestmentAccountRow,
   investmentTotals,
   isCapitalBankAccount,
   savingsFlowSeries,
@@ -57,11 +63,23 @@ const asset = (overrides: Partial<AssetRow>): AssetRow => ({
   symbol: "T",
   investmentAccountId: 1,
   currencyId: 1,
+  assetType: "thai_stock",
   assetClass: "stock",
   riskLevel: "safe_core",
   amount: 1,
   averageCost: 1,
   currentPrice: 1,
+  ...overrides,
+});
+
+const inv = (
+  overrides: Partial<InvestmentAccountRow>,
+): InvestmentAccountRow => ({
+  id: 1,
+  name: "Test",
+  currentCost: 0,
+  currentValue: 0,
+  custody: null,
   ...overrides,
 });
 
@@ -109,6 +127,70 @@ describe("byAssetClass", () => {
     const stock = buckets.find((b) => b.key === "stock");
     expect(cash?.value).toBe(2000);
     expect(stock?.value).toBe(1000);
+  });
+});
+
+describe("byAssetType", () => {
+  it("splits Thai stock from offshore stock", () => {
+    const buckets = byAssetType(
+      [
+        asset({
+          id: 1,
+          assetType: "thai_stock",
+          amount: 10,
+          currentPrice: 100,
+        }),
+        asset({
+          id: 2,
+          assetType: "offshore_stock",
+          amount: 5,
+          currentPrice: 80,
+        }),
+        asset({
+          id: 3,
+          assetType: "thai_stock",
+          amount: 2,
+          currentPrice: 50,
+        }),
+      ],
+      [thb],
+    );
+    expect(buckets.map((b) => b.key)).toEqual(["thai_stock", "offshore_stock"]);
+    expect(buckets[0]!.value).toBe(1100);
+    expect(buckets[1]!.value).toBe(400);
+    expect(buckets[0]!.label).toBe("Thai stock");
+    expect(buckets[1]!.label).toBe("Offshore stock");
+  });
+
+  it("adds bank balances into Thai cash and real estate as its own type", () => {
+    const buckets = byAssetType(
+      [
+        asset({
+          id: 1,
+          assetType: "digital_asset",
+          assetClass: "digital_asset",
+          amount: 1,
+          currentPrice: 100,
+        }),
+      ],
+      [thb],
+      [{ id: 1, currentBalance: 700 }],
+      [
+        {
+          currencyId: 1,
+          currency: "THB",
+          riskLevel: "safe_core",
+          costValue: 1,
+          marketValue: 300,
+        },
+      ],
+    );
+    expect(buckets.map((b) => b.key)).toEqual([
+      "thai_cash",
+      "real_estate",
+      "digital_asset",
+    ]);
+    expect(buckets.map((b) => b.value)).toEqual([700, 300, 100]);
   });
 });
 
@@ -196,12 +278,79 @@ describe("byCurrency", () => {
   });
 });
 
+describe("byCustody", () => {
+  it("orders unclassified then Thai → foreign → self → protocol", () => {
+    const buckets = byCustody([
+      inv({
+        id: 1,
+        name: "Protocol",
+        custody: "protocol_custodial",
+        currentValue: 40,
+      }),
+      inv({
+        id: 2,
+        name: "Wallet",
+        custody: "self_custodial",
+        currentValue: 80,
+      }),
+      inv({
+        id: 3,
+        name: "IBKR",
+        custody: "foreign_custodial",
+        currentValue: 60,
+      }),
+      inv({
+        id: 4,
+        name: "Dime",
+        custody: "thai_custodial",
+        currentValue: 20,
+      }),
+      inv({ id: 5, name: "Unset", custody: null, currentValue: 10 }),
+    ]);
+    expect(buckets.map((b) => b.key)).toEqual([
+      "unclassified",
+      "thai_custodial",
+      "foreign_custodial",
+      "self_custodial",
+      "protocol_custodial",
+    ]);
+    expect(buckets.map((b) => b.value)).toEqual([10, 20, 60, 80, 40]);
+  });
+
+  it("adds bank balances and real estate into Thai custodial", () => {
+    const buckets = byCustody(
+      [
+        inv({
+          id: 1,
+          name: "Wallet",
+          custody: "self_custodial",
+          currentValue: 100,
+        }),
+      ],
+      [{ id: 1, currentBalance: 700 }],
+      [
+        {
+          currencyId: 1,
+          currency: "THB",
+          riskLevel: "safe_core",
+          costValue: 1,
+          marketValue: 300,
+        },
+      ],
+    );
+    const thai = buckets.find((b) => b.key === "thai_custodial");
+    const self = buckets.find((b) => b.key === "self_custodial");
+    expect(thai?.value).toBe(1000);
+    expect(self?.value).toBe(100);
+  });
+});
+
 describe("byInvestmentAccount", () => {
   it("buckets accounts by name, descending by current value", () => {
     const buckets = byInvestmentAccount([
-      { id: 2, name: "Small", currentCost: 1, currentValue: 100 },
-      { id: 1, name: "Large", currentCost: 1, currentValue: 900 },
-      { id: 3, name: "Empty", currentCost: 0, currentValue: 0 },
+      inv({ id: 2, name: "Small", currentCost: 1, currentValue: 100 }),
+      inv({ id: 1, name: "Large", currentCost: 1, currentValue: 900 }),
+      inv({ id: 3, name: "Empty", currentCost: 0, currentValue: 0 }),
     ]);
     expect(buckets.map((b) => b.label)).toEqual(["Large", "Small"]);
     expect(buckets.map((b) => b.key)).toEqual(["1", "2"]);
@@ -211,9 +360,121 @@ describe("byInvestmentAccount", () => {
   it("returns empty array when every account is zero", () => {
     expect(
       byInvestmentAccount([
-        { id: 1, name: "Closed", currentCost: 0, currentValue: 0 },
+        inv({ id: 1, name: "Closed", currentCost: 0, currentValue: 0 }),
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("allocationMembers", () => {
+  const dime = inv({
+    id: 1,
+    name: "Dime",
+    currentCost: 1,
+    currentValue: 1500,
+  });
+  const banks = [{ id: 1, name: "Savings", bank: "SCB", currentBalance: 700 }];
+  const condo = {
+    id: 1,
+    name: "Condo",
+    currencyId: 1,
+    currency: "THB",
+    riskLevel: "safe_core",
+    costValue: 1,
+    marketValue: 300,
+  };
+
+  it("lists Thai vs offshore holdings with the account as sublabel", () => {
+    const members = allocationMembers("type", {
+      assets: [
+        asset({
+          id: 1,
+          name: "PTT",
+          symbol: "PTT",
+          assetType: "thai_stock",
+          amount: 10,
+          currentPrice: 100,
+        }),
+        asset({
+          id: 2,
+          name: "Vanguard",
+          symbol: "VOO",
+          assetType: "offshore_stock",
+          amount: 5,
+          currentPrice: 80,
+        }),
+      ],
+      currencies: [thb],
+      bankAccounts: [],
+      realEstateProperties: [],
+      investmentAccounts: [dime],
+    });
+    expect(members.thai_stock?.map((m) => m.label)).toEqual(["PTT"]);
+    expect(members.thai_stock?.[0]?.sublabel).toBe("Dime");
+    expect(members.thai_stock?.[0]?.value).toBe(1000);
+    expect(members.offshore_stock?.map((m) => m.label)).toEqual(["VOO"]);
+  });
+
+  it("folds banks and properties into cash / Thai cash / Thai custodial", () => {
+    const input = {
+      assets: [
+        asset({
+          id: 1,
+          assetClass: "digital_asset",
+          assetType: "digital_asset",
+          amount: 1,
+          currentPrice: 100,
+        }),
+      ],
+      currencies: [thb],
+      bankAccounts: banks,
+      realEstateProperties: [condo],
+      investmentAccounts: [dime],
+    };
+    expect(allocationMembers("class", input).cash?.[0]).toMatchObject({
+      key: "bank:1",
+      label: "Savings",
+      origin: "bank",
+      value: 700,
+    });
+    expect(allocationMembers("type", input).thai_cash?.[0]?.label).toBe(
+      "Savings",
+    );
+    expect(
+      allocationMembers("class", input).real_estate?.map((m) => m.label),
+    ).toEqual(["Condo"]);
+    const thai = allocationMembers("custody", input).thai_custodial;
+    expect(thai?.map((m) => m.origin)).toEqual(["bank", "real_estate"]);
+  });
+
+  it("puts a residual on an account when stored value disagrees with assets", () => {
+    const members = allocationMembers("account", {
+      assets: [
+        asset({
+          id: 1,
+          name: "PTT",
+          symbol: "PTT",
+          amount: 10,
+          currentPrice: 100,
+        }),
+      ],
+      currencies: [thb],
+      bankAccounts: banks,
+      realEstateProperties: [condo],
+      investmentAccounts: [dime],
+    });
+    expect(members["1"]?.map((m) => m.origin)).toEqual(["asset", "residual"]);
+    expect(members["1"]?.[1]).toMatchObject({
+      label: "Unallocated in account",
+      value: 500,
+      origin: "residual",
+    });
+    expect(members[ACCOUNT_OUTSIDE_BANKS]?.map((m) => m.label)).toEqual([
+      "Savings",
+    ]);
+    expect(members[ACCOUNT_OUTSIDE_REAL_ESTATE]?.map((m) => m.label)).toEqual([
+      "Condo",
+    ]);
   });
 });
 
@@ -432,8 +693,8 @@ describe("dayMovers", () => {
 describe("investmentTotals", () => {
   it("sums values and costs and computes P/L", () => {
     const out = investmentTotals([
-      { id: 1, name: "A", currentCost: 100, currentValue: 150 },
-      { id: 2, name: "B", currentCost: 200, currentValue: 180 },
+      inv({ id: 1, name: "A", currentCost: 100, currentValue: 150 }),
+      inv({ id: 2, name: "B", currentCost: 200, currentValue: 180 }),
     ]);
     expect(out.total).toBe(330);
     expect(out.cost).toBe(300);
@@ -448,12 +709,12 @@ describe("investmentTotals", () => {
 });
 
 describe("accountPnlBreakdown", () => {
-  const account = {
+  const account = inv({
     id: 1,
     name: "Broker",
     currentCost: 10_000,
     currentValue: 12_000,
-  };
+  });
 
   it("treats the gap between account P/L and position P/Ls as realized", () => {
     const out = accountPnlBreakdown(
@@ -496,7 +757,7 @@ describe("accountPnlBreakdown", () => {
 
   it("applies FX to open-position P/L before taking the residual", () => {
     const out = accountPnlBreakdown(
-      { id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 },
+      inv({ id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 }),
       [
         asset({
           id: 1,
@@ -523,7 +784,7 @@ describe("accountPnlBreakdown", () => {
 
   it("reports the THB cost basis of foreign positions as FX exposure", () => {
     const out = accountPnlBreakdown(
-      { id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 },
+      inv({ id: 1, name: "USD", currentCost: 33_420, currentValue: 40_104 }),
       [
         asset({
           id: 1,
@@ -540,7 +801,7 @@ describe("accountPnlBreakdown", () => {
 
   it("counts only the foreign leg when a mixed account holds both", () => {
     const out = accountPnlBreakdown(
-      { id: 1, name: "Mixed", currentCost: 43_420, currentValue: 52_104 },
+      inv({ id: 1, name: "Mixed", currentCost: 43_420, currentValue: 52_104 }),
       [
         asset({ id: 1, amount: 100, averageCost: 100, currentPrice: 120 }),
         asset({
@@ -565,7 +826,7 @@ describe("accountPnlBreakdown", () => {
 
   it("returns a zero percent when account cost is zero", () => {
     const out = accountPnlBreakdown(
-      { id: 1, name: "Empty", currentCost: 0, currentValue: 0 },
+      inv({ id: 1, name: "Empty", currentCost: 0, currentValue: 0 }),
       [],
       [thb],
     );

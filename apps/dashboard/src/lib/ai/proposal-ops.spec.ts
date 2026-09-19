@@ -32,7 +32,7 @@ const lookup: ProposalLookup = {
   },
   async investmentAccount(id) {
     if (id !== 3) return null;
-    return { id: 3, name: "Binance", currentCost: 80_000 };
+    return { id: 3, name: "Binance", currentCost: 80_000, custody: null };
   },
   async pnlEvent(id) {
     if (id !== 4) return null;

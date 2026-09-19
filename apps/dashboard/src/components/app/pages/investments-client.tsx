@@ -2,7 +2,7 @@
 
 import { ChevronDown, Coins, Plus } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useTransition } from "react";
 
 const DUST_THRESHOLD = 0.005;
 
@@ -34,6 +34,7 @@ import {
   updateAssetAmount,
   updateAssetAverageCost,
   updateInvestmentAccountCost,
+  updateInvestmentAccountCustody,
 } from "@/lib/db/actions";
 import {
   type Asset,
@@ -49,9 +50,11 @@ import {
   eventPnlThb,
   sliceTimeframe,
 } from "@/lib/portfolio/aggregate";
+import { CUSTODY_TYPES, type CustodyType } from "@/lib/portfolio/asset-fields";
 import {
   CLASS_COLOR,
   CLASS_LABEL,
+  CUSTODY_LABEL,
   RISK_COLOR,
   RISK_LABEL,
 } from "@/lib/portfolio/colors";
@@ -148,6 +151,7 @@ function AccountListButton({
           ))}
         </div>
       )}
+      {!account.custody && <Chip label="Unclassified" />}
     </button>
   );
 }
@@ -420,6 +424,9 @@ function AccountDetail({
             {account.investmentTypes.length > 0 &&
               ` · ${account.investmentTypes.join(", ").replace(/_/g, " ")}`}
           </div>
+          <div className="mt-2">
+            <AccountCustodySelect account={account} />
+          </div>
         </div>
         <div className="flex flex-col items-end gap-1 text-right">
           <div className="num text-[40px] leading-none font-semibold tracking-[-0.02em]">
@@ -586,7 +593,7 @@ function AccountDetail({
           </div>
         )}
         <div className="overflow-x-auto">
-          <table className="w-full min-w-[640px] border-collapse text-[13px]">
+          <table className="w-full min-w-[760px] border-collapse text-[13px]">
             <thead>
               <tr>
                 <Th>Asset</Th>
@@ -712,7 +719,7 @@ function AccountDetail({
             </div>
             {showDust && (
               <div className="overflow-x-auto border-t border-[var(--hairline-2)]">
-                <table className="w-full min-w-[640px] border-collapse text-[13px]">
+                <table className="w-full min-w-[760px] border-collapse text-[13px]">
                   <tbody>
                     {dustPositions.map(({ p, native, valueThb, costThb }) => {
                       const aPl = valueThb - costThb;
@@ -799,6 +806,35 @@ function AccountDetail({
         )}
       </Card>
     </div>
+  );
+}
+
+function AccountCustodySelect({ account }: { account: InvestmentAccount }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <label className="flex flex-col items-start gap-1">
+      <span className="text-[11px] text-[var(--ink-3)]">Custody</span>
+      <select
+        className="h-8 max-w-[14rem] rounded-md border border-[var(--hairline)] bg-[var(--surface)] px-2 text-[12px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)] disabled:opacity-50"
+        value={account.custody ?? ""}
+        disabled={pending}
+        aria-label={`Custody for ${account.name}`}
+        onChange={(e) => {
+          const raw = e.target.value;
+          const next = raw === "" ? null : (raw as CustodyType);
+          startTransition(async () => {
+            await updateInvestmentAccountCustody(account.id, next);
+          });
+        }}
+      >
+        <option value="">Unclassified</option>
+        {CUSTODY_TYPES.map((value) => (
+          <option key={value} value={value}>
+            {CUSTODY_LABEL[value]}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }
 

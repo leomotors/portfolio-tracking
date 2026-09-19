@@ -176,6 +176,13 @@
       "when": 1789579077684,
       "tag": "0024_lending-monitor",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1789835751807,
+      "tag": "0025_account-custody",
+      "breakpoints": true
     }
   ]
 }

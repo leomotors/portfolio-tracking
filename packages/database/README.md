@@ -48,6 +48,7 @@ erDiagram
         date   opened_at
         date   closed_at
         investment_type[] investment_types
+        custody_type custody
     }
 
     asset {
@@ -211,6 +212,7 @@ A brokerage-like container that holds many `asset` rows.
 | `current_value` | total mark-to-market value in THB. **Recomputed daily by the cron** from each asset's `amount * current_price * currency.value_in_thb`. |
 | `opened_at` / `closed_at` | account lifecycle dates |
 | `investment_types` | array of `investment_type` enum values describing what kinds of holdings live here |
+| `custody` | `thai_custodial`, `foreign_custodial`, `self_custodial`, or `protocol_custodial`. Nullable until set (Unclassified on Allocation). |
 
 #### `asset` — [assets.ts](src/schema/assets.ts)
 A single position inside an investment account.
@@ -358,6 +360,7 @@ Enum types defined in Postgres via `pgEnum`:
 | `asset_type` | `thai_cash`, `thai_fixed_cash`, `foreign_cash`, `thai_stock`, `offshore_stock`, `gold`, `thai_government_bond`, `thai_coperate_bond`, `foreign_government_bond`, `foreign_coperate_bond`, `digital_asset` | `asset.asset_type` |
 | `asset_class_type` | `cash`, `bond`, `stock`, `gold`, `digital_asset` | `asset.asset_class` |
 | `risk_level_type` | `safe_core`, `surface_core`, `lower_satellite`, `mid_satellite`, `higher_satellite` | `asset.risk_level` (core-satellite portfolio bucketing) |
+| `custody_type` | `thai_custodial`, `foreign_custodial`, `self_custodial`, `protocol_custodial` | `investment_account.custody` |
 | `bank_account_type` | `savings`, `e_savings`, `fixed` | `bank_account.account_type` |
 | `credit_card_type` | `visa`, `mastercard`, `american_express`, `jcb`, `unionpay` | `credit_card_account.card_type` |
 | `ai_message_role` | `user`, `assistant`, `system`, `tool` | `ai_message.role` |

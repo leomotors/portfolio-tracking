@@ -7,6 +7,7 @@ import { PRIVACY_MASK } from "@/lib/privacy-mode";
 import { cn } from "@/lib/utils";
 
 interface DonutSegment {
+  key?: string;
   label: string;
   value: number;
   color: string;
@@ -27,6 +28,8 @@ interface DonutProps {
   /** Amounts listed beside the chart that are not slices. */
   outside?: DonutSegment[];
   outsideLabel?: string;
+  selectedKey?: string | null;
+  onSelect?: (key: string) => void;
 }
 
 export function Donut({
@@ -41,6 +44,8 @@ export function Donut({
   stacked = false,
   outside = [],
   outsideLabel = "Not in chart",
+  selectedKey = null,
+  onSelect,
 }: DonutProps) {
   const [hovered, setHovered] = useState<number | null>(null);
 
@@ -59,7 +64,14 @@ export function Donut({
     };
   });
 
-  const active = hovered != null ? segs[hovered] : undefined;
+  const selectedIndex = segs.findIndex((s) => segmentKey(s) === selectedKey);
+  const highlightIndex = hovered ?? (selectedIndex >= 0 ? selectedIndex : null);
+  const active =
+    hovered != null
+      ? segs[hovered]
+      : selectedIndex >= 0
+        ? segs[selectedIndex]
+        : undefined;
   const displayLabel = active ? truncate(active.label, 22) : centerLabel;
   const hoverAmount = active
     ? valueFormatter
@@ -87,7 +99,10 @@ export function Donut({
         viewBox={`0 0 ${size} ${size}`}
         role="img"
         aria-label={`${label}: ${description}`}
-        className="mx-auto max-w-full shrink-0 overflow-visible"
+        className={cn(
+          "mx-auto max-w-full shrink-0 overflow-visible",
+          onSelect && "cursor-pointer",
+        )}
         onMouseLeave={() => setHovered(null)}
       >
         <title>{label}</title>
@@ -100,20 +115,35 @@ export function Donut({
           strokeWidth={thickness}
         />
         {segs.map((s, i) => (
-          <path
-            key={i}
-            d={arcPath(c, r, s.start, s.end)}
-            fill="none"
-            stroke={s.color}
-            strokeWidth={hovered === i ? thickness + 5 : thickness}
-            aria-hidden="true"
-            onMouseEnter={() => setHovered(i)}
-            style={{
-              filter: "drop-shadow(0 1px 0 rgb(0 0 0 / 0.06))",
-              opacity: hovered === null || hovered === i ? 1 : 0.35,
-              transition: "stroke-width 200ms ease, opacity 200ms ease",
-            }}
-          />
+          <g key={segmentKey(s)}>
+            <path
+              d={arcPath(c, r, s.start, s.end)}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={highlightIndex === i ? thickness + 5 : thickness}
+              aria-hidden="true"
+              data-arc="visible"
+              onMouseEnter={onSelect ? undefined : () => setHovered(i)}
+              style={{
+                filter: "drop-shadow(0 1px 0 rgb(0 0 0 / 0.06))",
+                opacity:
+                  highlightIndex === null || highlightIndex === i ? 1 : 0.35,
+                transition: "stroke-width 200ms ease, opacity 200ms ease",
+              }}
+            />
+            {onSelect && (
+              <path
+                d={arcPath(c, r, s.start, s.end)}
+                fill="none"
+                stroke="transparent"
+                strokeWidth={thickness + 14}
+                data-arc="hit"
+                className="cursor-pointer"
+                onMouseEnter={() => setHovered(i)}
+                onClick={() => onSelect(segmentKey(s))}
+              />
+            )}
+          </g>
         ))}
         {displayLabel && (
           <text
@@ -153,15 +183,16 @@ export function Donut({
         )}
         {segs.map((s, i) => (
           <LegendRow
-            key={i}
+            key={segmentKey(s)}
             label={s.label}
             color={s.color}
             stacked={stacked}
             amount={valueFormatter ? valueFormatter(s.value) : undefined}
             trailing={formatPercent(s.frac)}
-            active={hovered === i}
+            active={hovered === i || segmentKey(s) === selectedKey}
             onMouseEnter={() => setHovered(i)}
             onMouseLeave={() => setHovered(null)}
+            onSelect={onSelect ? () => onSelect(segmentKey(s)) : undefined}
           />
         ))}
         {outside.length > 0 && (
@@ -171,7 +202,7 @@ export function Donut({
             </span>
             {outside.map((s, i) => (
               <LegendRow
-                key={`outside-${s.label}-${i}`}
+                key={`outside-${segmentKey(s)}-${i}`}
                 label={s.label}
                 color={s.color}
                 swatch="square"
@@ -179,6 +210,8 @@ export function Donut({
                 amount={
                   valueFormatter ? valueFormatter(s.value) : String(s.value)
                 }
+                active={segmentKey(s) === selectedKey}
+                onSelect={onSelect ? () => onSelect(segmentKey(s)) : undefined}
               />
             ))}
           </div>
@@ -198,6 +231,7 @@ function LegendRow({
   active = false,
   onMouseEnter,
   onMouseLeave,
+  onSelect,
 }: {
   label: string;
   color: string;
@@ -208,16 +242,16 @@ function LegendRow({
   active?: boolean;
   onMouseEnter?: () => void;
   onMouseLeave?: () => void;
+  onSelect?: () => void;
 }) {
-  return (
-    <div
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-      className={cn(
-        "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-[12px] transition-colors duration-150",
-        active && "bg-[var(--surface-2)]",
-      )}
-    >
+  const className = cn(
+    "grid min-w-0 grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-x-2.5 rounded-md px-2 py-1.5 text-left text-[12px] transition-colors duration-150",
+    active && "bg-[var(--surface-2)]",
+    onSelect &&
+      "cursor-pointer hover:bg-[var(--hover)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]",
+  );
+  const body = (
+    <>
       <span
         className={cn(
           "h-2.5 w-2.5 shadow-[inset_0_0_0_1px_rgb(0_0_0_/_0.08)]",
@@ -243,6 +277,29 @@ function LegendRow({
           </span>
         )}
       </span>
+    </>
+  );
+  if (onSelect) {
+    return (
+      <button
+        type="button"
+        aria-pressed={active}
+        onClick={onSelect}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+        className={className}
+      >
+        {body}
+      </button>
+    );
+  }
+  return (
+    <div
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+      className={className}
+    >
+      {body}
     </div>
   );
 }
@@ -315,4 +372,8 @@ function formatPercent(value: number) {
 
 function truncate(value: string, max: number) {
   return value.length > max ? value.slice(0, max - 1) + "…" : value;
+}
+
+function segmentKey(s: { key?: string; label: string }) {
+  return s.key ?? s.label;
 }

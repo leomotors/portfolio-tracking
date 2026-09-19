@@ -1,0 +1,2 @@
+CREATE TYPE "public"."custody_type" AS ENUM('thai_custodial', 'foreign_custodial', 'self_custodial', 'protocol_custodial');--> statement-breakpoint
+ALTER TABLE "investment_account" ADD COLUMN "custody" "custody_type";

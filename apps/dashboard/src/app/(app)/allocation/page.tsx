@@ -9,8 +9,11 @@ import {
   getRealEstateProperties,
 } from "@/lib/db/queries";
 import {
+  allocationMembers,
   byAssetClass,
+  byAssetType,
   byCurrency,
+  byCustody,
   byInvestmentAccount,
   byRiskLevel,
   realEstateTotals,
@@ -26,6 +29,14 @@ export default async function AllocationPage() {
       getInvestmentAccounts(),
     ]);
 
+  const memberInput = {
+    assets,
+    currencies,
+    bankAccounts: bankAccts,
+    realEstateProperties,
+    investmentAccounts: investments,
+  };
+
   return (
     <AllocationClient
       byClass={byAssetClass(
@@ -34,6 +45,7 @@ export default async function AllocationPage() {
         bankAccts,
         realEstateProperties,
       )}
+      byType={byAssetType(assets, currencies, bankAccts, realEstateProperties)}
       byRisk={byRiskLevel(assets, currencies, bankAccts, realEstateProperties)}
       byCurrency={byCurrency(
         assets,
@@ -42,6 +54,15 @@ export default async function AllocationPage() {
         realEstateProperties,
       )}
       byAccount={byInvestmentAccount(investments)}
+      byCustody={byCustody(investments, bankAccts, realEstateProperties)}
+      members={{
+        class: allocationMembers("class", memberInput),
+        type: allocationMembers("type", memberInput),
+        account: allocationMembers("account", memberInput),
+        custody: allocationMembers("custody", memberInput),
+        risk: allocationMembers("risk", memberInput),
+        currency: allocationMembers("currency", memberInput),
+      }}
       bankTotal={bankAccts.reduce(
         (sum, account) => sum + account.currentBalance,
         0,

@@ -5,6 +5,10 @@
 - feat: add a position to an investment account from the Positions card, with optional cost-basis bump
 - feat: AI agent can propose `create_asset` for a holding that does not exist yet
 - feat: approving a proposal sends an applied receipt into the chat so the agent can name what landed
+- feat: Allocation page has a By custody tab (Thai / foreign / self / protocol custodial, plus Unclassified). Protocol custodial is for Ether.fi Safe-style smart-account control
+- feat: Allocation By class tab also charts by asset type (Thai vs offshore stock, cash, and bond sleeves)
+- feat: Allocation pies expand the matching Drilldown bar to list holdings in that slice
+- feat: investment accounts store `custody` (migration `0025_account-custody`); nullable until you set it on the account or via the agent. No heuristic backfill
 
 ## [0.15.0] - 2026-09-14
 

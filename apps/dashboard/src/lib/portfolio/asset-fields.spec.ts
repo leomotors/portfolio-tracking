@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assetClassType,
   assetType,
+  custodyType,
   riskLevelType,
   symbolType,
 } from "@repo/database/schema";
@@ -10,6 +11,7 @@ import {
 import {
   ASSET_CLASSES,
   ASSET_TYPES,
+  CUSTODY_TYPES,
   parseCreateAssetFields,
   RISK_LEVELS,
   SYMBOL_TYPES,
@@ -21,6 +23,7 @@ describe("asset field catalog", () => {
     expect([...ASSET_TYPES]).toEqual([...assetType.enumValues]);
     expect([...RISK_LEVELS]).toEqual([...riskLevelType.enumValues]);
     expect([...SYMBOL_TYPES]).toEqual([...symbolType.enumValues]);
+    expect([...CUSTODY_TYPES]).toEqual([...custodyType.enumValues]);
   });
 
   it("defaults currentPrice to averageCost and clears empty symbol", () => {

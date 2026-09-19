@@ -23,6 +23,7 @@ import {
   updateAssetAverageCost,
   updateBankBalance,
   updateInvestmentAccountCost,
+  updateInvestmentAccountCustody,
   updateRealEstateCurrentValue,
   updateRealEstatePurchaseCost,
   updateStakedApy,
@@ -98,6 +99,7 @@ export const dbProposalLookup: ProposalLookup = {
         id: investmentAccountTable.id,
         name: investmentAccountTable.name,
         currentCost: investmentAccountTable.currentCost,
+        custody: investmentAccountTable.custody,
       })
       .from(investmentAccountTable)
       .where(eq(investmentAccountTable.id, id));
@@ -106,6 +108,7 @@ export const dbProposalLookup: ProposalLookup = {
       id: row.id,
       name: row.name,
       currentCost: toNum(row.currentCost),
+      custody: row.custody,
     };
   },
   async pnlEvent(id) {
@@ -344,6 +347,9 @@ async function dispatchOperation(operation: PortfolioOperation) {
       await createAsset(fields);
       return;
     }
+    case "update_investment_account_custody":
+      await updateInvestmentAccountCustody(operation.id, operation.custody);
+      return;
     case "update_investment_account_cost":
       await updateInvestmentAccountCost(operation.id, operation.currentCost);
       return;

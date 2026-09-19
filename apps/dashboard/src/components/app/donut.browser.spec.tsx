@@ -81,4 +81,23 @@ describe("<Donut>", () => {
     const d = screen.container.querySelector("svg path")!.getAttribute("d")!;
     expect(d.match(/A/g)).toHaveLength(2);
   });
+
+  it("selects a slice from the legend when onSelect is set", async () => {
+    const keys: string[] = [];
+    const screen = await render(
+      <Donut
+        data={[
+          { key: "stock", label: "Stock", value: 60, color: "green" },
+          { key: "gold", label: "Gold", value: 40, color: "gold" },
+        ]}
+        onSelect={(key) => keys.push(key)}
+      />,
+    );
+
+    await screen.getByRole("button", { name: /Stock/ }).click();
+    expect(keys).toEqual(["stock"]);
+    expect(screen.container.querySelectorAll('[data-arc="hit"]')).toHaveLength(
+      2,
+    );
+  });
 });

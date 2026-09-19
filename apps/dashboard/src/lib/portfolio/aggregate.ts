@@ -2,9 +2,15 @@ import {
   CLASS_COLOR,
   CLASS_LABEL,
   CURRENCY_PALETTE,
+  CUSTODY_COLOR,
+  CUSTODY_LABEL,
+  CUSTODY_ORDER,
   RISK_COLOR,
   RISK_LABEL,
   RISK_ORDER,
+  TYPE_COLOR,
+  TYPE_LABEL,
+  UNCLASSIFIED_CUSTODY,
 } from "./colors";
 
 export interface AssetRow {
@@ -13,6 +19,7 @@ export interface AssetRow {
   symbol: string | null;
   investmentAccountId: number;
   currencyId: number;
+  assetType: string;
   assetClass: string;
   riskLevel: string;
   amount: number;
@@ -30,10 +37,14 @@ export interface CurrencyRow {
 
 export interface BankAccountRow {
   id: number;
+  name?: string;
+  bank?: string;
   currentBalance: number;
 }
 
 export interface RealEstatePropertyRow {
+  id?: number;
+  name?: string;
   currencyId: number;
   currency: string;
   riskLevel: string;
@@ -46,6 +57,7 @@ export interface InvestmentAccountRow {
   name: string;
   currentCost: number;
   currentValue: number;
+  custody: string | null;
 }
 
 export interface DailySnapshotPoint {
@@ -120,6 +132,42 @@ export function byAssetClass(
     .sort((a, b) => b.value - a.value);
 }
 
+export function byAssetType(
+  assets: AssetRow[],
+  currencies: CurrencyRow[],
+  bankAccounts: BankAccountRow[] = [],
+  realEstateProperties: RealEstatePropertyRow[] = [],
+): AllocationBucket[] {
+  const fx = fxLookup(currencies);
+  const totals = new Map<string, number>();
+  for (const a of assets) {
+    const v = a.amount * a.currentPrice * fx(a.currencyId);
+    totals.set(a.assetType, (totals.get(a.assetType) ?? 0) + v);
+  }
+  for (const b of bankAccounts) {
+    totals.set("thai_cash", (totals.get("thai_cash") ?? 0) + b.currentBalance);
+  }
+  const realEstateTotal = realEstateProperties.reduce(
+    (sum, property) => sum + property.marketValue,
+    0,
+  );
+  if (realEstateTotal > 0) {
+    totals.set(
+      "real_estate",
+      (totals.get("real_estate") ?? 0) + realEstateTotal,
+    );
+  }
+  return Array.from(totals.entries())
+    .filter(([, value]) => value > 0)
+    .map(([key, value]) => ({
+      key,
+      label: TYPE_LABEL[key] ?? key,
+      value,
+      color: TYPE_COLOR[key] ?? "oklch(0.72 0.10 235)",
+    }))
+    .sort((a, b) => b.value - a.value);
+}
+
 export function byRiskLevel(
   assets: AssetRow[],
   currencies: CurrencyRow[],
@@ -146,6 +194,40 @@ export function byRiskLevel(
     label: RISK_LABEL[k] ?? k,
     value: totals.get(k) ?? 0,
     color: RISK_COLOR[k] ?? "oklch(0.72 0.10 235)",
+  }));
+}
+
+export function byCustody(
+  accounts: InvestmentAccountRow[],
+  bankAccounts: BankAccountRow[] = [],
+  realEstateProperties: RealEstatePropertyRow[] = [],
+): AllocationBucket[] {
+  const totals = new Map<string, number>();
+  for (const account of accounts) {
+    const key = account.custody ?? UNCLASSIFIED_CUSTODY;
+    totals.set(key, (totals.get(key) ?? 0) + account.currentValue);
+  }
+  for (const b of bankAccounts) {
+    totals.set(
+      "thai_custodial",
+      (totals.get("thai_custodial") ?? 0) + b.currentBalance,
+    );
+  }
+  const realEstateTotal = realEstateProperties.reduce(
+    (sum, property) => sum + property.marketValue,
+    0,
+  );
+  if (realEstateTotal > 0) {
+    totals.set(
+      "thai_custodial",
+      (totals.get("thai_custodial") ?? 0) + realEstateTotal,
+    );
+  }
+  return CUSTODY_ORDER.filter((k) => (totals.get(k) ?? 0) > 0).map((k) => ({
+    key: k,
+    label: CUSTODY_LABEL[k] ?? k,
+    value: totals.get(k) ?? 0,
+    color: CUSTODY_COLOR[k] ?? "oklch(0.72 0.10 235)",
   }));
 }
 
@@ -211,6 +293,191 @@ export function byInvestmentAccount(
       ...bucket,
       color: CURRENCY_PALETTE[i % CURRENCY_PALETTE.length]!,
     }));
+}
+
+export const ALLOCATION_RESIDUAL_THRESHOLD = 0.005;
+
+export type AllocationDimension =
+  "class" | "type" | "custody" | "risk" | "currency" | "account";
+
+export const ACCOUNT_OUTSIDE_BANKS = "banks";
+export const ACCOUNT_OUTSIDE_REAL_ESTATE = "real_estate";
+
+export interface AllocationMember {
+  key: string;
+  label: string;
+  sublabel: string | null;
+  value: number;
+  origin: "asset" | "bank" | "real_estate" | "residual" | "account";
+}
+
+export interface AllocationMemberInput {
+  assets: AssetRow[];
+  currencies: CurrencyRow[];
+  bankAccounts: BankAccountRow[];
+  realEstateProperties: RealEstatePropertyRow[];
+  investmentAccounts: InvestmentAccountRow[];
+}
+
+export function allocationMembers(
+  dimension: AllocationDimension,
+  input: AllocationMemberInput,
+): Record<string, AllocationMember[]> {
+  const {
+    assets,
+    currencies,
+    bankAccounts,
+    realEstateProperties,
+    investmentAccounts,
+  } = input;
+  const fx = fxLookup(currencies);
+  const cById = new Map<number, CurrencyRow>();
+  for (const c of currencies) cById.set(c.id, c);
+  const accountName = new Map<number, string>();
+  for (const account of investmentAccounts) {
+    accountName.set(account.id, account.name);
+  }
+
+  const grouped = new Map<string, AllocationMember[]>();
+  const push = (bucket: string | null, member: AllocationMember) => {
+    if (bucket == null || member.value === 0) return;
+    const list = grouped.get(bucket);
+    if (list) list.push(member);
+    else grouped.set(bucket, [member]);
+  };
+
+  for (const a of assets) {
+    if (dimension === "custody") continue;
+    const value = a.amount * a.currentPrice * fx(a.currencyId);
+    const label = a.symbol?.trim() || a.name;
+    const sublabel =
+      dimension === "account"
+        ? (CLASS_LABEL[a.assetClass] ?? a.assetClass)
+        : (accountName.get(a.investmentAccountId) ?? null);
+    push(assetBucketKey(dimension, a, cById), {
+      key: `asset:${a.id}`,
+      label,
+      sublabel,
+      value,
+      origin: "asset",
+    });
+  }
+
+  for (const b of bankAccounts) {
+    push(bankBucketKey(dimension), {
+      key: `bank:${b.id}`,
+      label: b.name?.trim() || `Bank ${b.id}`,
+      sublabel: b.bank?.trim() || "Bank account",
+      value: b.currentBalance,
+      origin: "bank",
+    });
+  }
+
+  realEstateProperties.forEach((property, index) => {
+    push(propertyBucketKey(dimension, property), {
+      key: `property:${property.id ?? index}`,
+      label: property.name?.trim() || "Property",
+      sublabel: "Real estate",
+      value: property.marketValue,
+      origin: "real_estate",
+    });
+  });
+
+  if (dimension === "custody") {
+    for (const account of investmentAccounts) {
+      push(account.custody ?? UNCLASSIFIED_CUSTODY, {
+        key: `account:${account.id}`,
+        label: account.name,
+        sublabel: null,
+        value: account.currentValue,
+        origin: "account",
+      });
+    }
+  }
+
+  if (dimension === "account") {
+    for (const account of investmentAccounts) {
+      const members = grouped.get(String(account.id)) ?? [];
+      const assetSum = members
+        .filter((m) => m.origin === "asset")
+        .reduce((sum, m) => sum + m.value, 0);
+      const residual = account.currentValue - assetSum;
+      if (Math.abs(residual) < ALLOCATION_RESIDUAL_THRESHOLD) continue;
+      push(String(account.id), {
+        key: `residual:acct-${account.id}`,
+        label: "Unallocated in account",
+        sublabel: null,
+        value: residual,
+        origin: "residual",
+      });
+    }
+  }
+
+  const result: Record<string, AllocationMember[]> = {};
+  for (const [key, list] of grouped) {
+    const rest = list
+      .filter((m) => m.origin !== "residual")
+      .sort((a, b) => b.value - a.value);
+    const residual = list.filter((m) => m.origin === "residual");
+    result[key] = [...rest, ...residual];
+  }
+  return result;
+}
+
+function assetBucketKey(
+  dimension: AllocationDimension,
+  asset: AssetRow,
+  cById: Map<number, CurrencyRow>,
+): string | null {
+  switch (dimension) {
+    case "class":
+      return asset.assetClass;
+    case "type":
+      return asset.assetType;
+    case "risk":
+      return asset.riskLevel;
+    case "currency":
+      return cById.get(asset.currencyId)?.symbol ?? null;
+    case "account":
+      return String(asset.investmentAccountId);
+    case "custody":
+      return null;
+  }
+}
+
+function bankBucketKey(dimension: AllocationDimension): string {
+  switch (dimension) {
+    case "class":
+      return "cash";
+    case "type":
+      return "thai_cash";
+    case "custody":
+      return "thai_custodial";
+    case "risk":
+      return "safe_core";
+    case "currency":
+      return "THB";
+    case "account":
+      return ACCOUNT_OUTSIDE_BANKS;
+  }
+}
+
+function propertyBucketKey(
+  dimension: AllocationDimension,
+  property: RealEstatePropertyRow,
+): string {
+  switch (dimension) {
+    case "class":
+    case "type":
+    case "account":
+      return ACCOUNT_OUTSIDE_REAL_ESTATE;
+    case "custody":
+      return "thai_custodial";
+    case "risk":
+      return property.riskLevel;
+    case "currency":
+      return property.currency;
+  }
 }
 
 export interface DailyBalanceRow {

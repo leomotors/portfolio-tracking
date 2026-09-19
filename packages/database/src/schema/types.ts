@@ -51,6 +51,13 @@ export const riskLevelType = pgEnum("risk_level_type", [
   "higher_satellite",
 ]);
 
+export const custodyType = pgEnum("custody_type", [
+  "thai_custodial",
+  "foreign_custodial",
+  "self_custodial",
+  "protocol_custodial",
+]);
+
 export const stakingProviderType = pgEnum("staking_provider_type", [
   "solana_native",
   "hyperliquid",

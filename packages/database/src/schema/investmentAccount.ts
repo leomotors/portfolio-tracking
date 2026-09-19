@@ -8,7 +8,7 @@ import {
   unique,
 } from "drizzle-orm/pg-core";
 
-import { investmentType } from "./types.ts";
+import { custodyType, investmentType } from "./types.ts";
 
 export const investmentAccountTable = pgTable("investment_account", {
   id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -21,6 +21,7 @@ export const investmentAccountTable = pgTable("investment_account", {
   investmentTypes: investmentType("investment_types")
     .array()
     .default(sql`ARRAY[]::investment_type[]`),
+  custody: custodyType("custody"),
 });
 
 export const investmentDailyBalanceTable = pgTable(

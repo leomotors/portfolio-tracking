@@ -38,10 +38,18 @@ export const SYMBOL_TYPES = [
   "hyperliquid_vault",
 ] as const;
 
+export const CUSTODY_TYPES = [
+  "thai_custodial",
+  "foreign_custodial",
+  "self_custodial",
+  "protocol_custodial",
+] as const;
+
 export type AssetClass = (typeof ASSET_CLASSES)[number];
 export type AssetType = (typeof ASSET_TYPES)[number];
 export type RiskLevel = (typeof RISK_LEVELS)[number];
 export type SymbolType = (typeof SYMBOL_TYPES)[number];
+export type CustodyType = (typeof CUSTODY_TYPES)[number];
 
 export const ASSET_TYPES_BY_CLASS: Record<AssetClass, readonly AssetType[]> = {
   cash: ["thai_cash", "thai_fixed_cash", "foreign_cash"],

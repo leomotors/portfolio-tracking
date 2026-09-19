@@ -4,12 +4,13 @@ import {
   ASSET_CLASSES,
   ASSET_TYPE_LABEL,
   ASSET_TYPES,
+  CUSTODY_TYPES,
   parseCreateAssetFields,
   RISK_LEVELS,
   SYMBOL_TYPE_LABEL,
   SYMBOL_TYPES,
 } from "@/lib/portfolio/asset-fields";
-import { CLASS_LABEL, RISK_LABEL } from "@/lib/portfolio/colors";
+import { CLASS_LABEL, CUSTODY_LABEL, RISK_LABEL } from "@/lib/portfolio/colors";
 
 const id = z.number().int().positive();
 const nonNeg = z.number().finite().nonnegative();
@@ -74,6 +75,18 @@ export const portfolioOperationSchema = z.discriminatedUnion("op", [
         .optional()
         .describe("Mark price per unit; defaults to averageCost"),
       currencyId: id.describe("Asset currency id from listCurrencies"),
+    })
+    .strict(),
+  z
+    .object({
+      op: z.literal("update_investment_account_custody"),
+      id,
+      custody: z
+        .enum(CUSTODY_TYPES)
+        .nullable()
+        .describe(
+          "thai_custodial, foreign_custodial, self_custodial, or protocol_custodial. Null clears to unclassified.",
+        ),
     })
     .strict(),
   z
@@ -221,6 +234,7 @@ export const OPERATION_LABELS: Record<PortfolioOperation["op"], string> = {
   update_asset_amount: "Update holding amount",
   update_asset_average_cost: "Update average cost",
   create_asset: "Add position",
+  update_investment_account_custody: "Update account custody",
   update_investment_account_cost: "Update account cost basis",
   create_in_account_pnl_event: "Log in-account P/L",
   create_withdrawn_pnl_event: "Log withdrawn P/L",
@@ -248,9 +262,12 @@ export interface ProposalLookup {
     averageCost: number;
     unit: string;
   } | null>;
-  investmentAccount(
-    id: number,
-  ): Promise<{ id: number; name: string; currentCost: number } | null>;
+  investmentAccount(id: number): Promise<{
+    id: number;
+    name: string;
+    currentCost: number;
+    custody: string | null;
+  } | null>;
   pnlEvent(id: number): Promise<{
     id: number;
     investmentAccountId: number;
@@ -410,6 +427,21 @@ async function previewOperation(
           },
         ],
       );
+    }
+    case "update_investment_account_custody": {
+      const account =
+        (await lookup.investmentAccount(operation.id)) ??
+        missing("Investment account", operation.id);
+      return row(operation.op, account.name, [
+        {
+          field: "custody",
+          before:
+            CUSTODY_LABEL[account.custody ?? "unclassified"] ?? "Unclassified",
+          after:
+            CUSTODY_LABEL[operation.custody ?? "unclassified"] ??
+            "Unclassified",
+        },
+      ]);
     }
     case "update_investment_account_cost": {
       const account =

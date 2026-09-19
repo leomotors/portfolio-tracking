@@ -26,6 +26,8 @@ import {
 import { roundThb, withdrawCostDelta } from "@/lib/portfolio/aggregate";
 import {
   type CreateAssetFields,
+  CUSTODY_TYPES,
+  type CustodyType,
   parseCreateAssetFields,
 } from "@/lib/portfolio/asset-fields";
 import { rescaleAverageCost } from "@/lib/portfolio/staking";
@@ -218,6 +220,26 @@ export async function createAsset(input: CreateAssetFields) {
     await refreshInvestmentAccountValue(tx, parsed.investmentAccountId);
   });
   revalidateHoldings();
+}
+
+export async function updateInvestmentAccountCustody(
+  id: number,
+  custody: CustodyType | null,
+) {
+  await requireSession();
+  if (
+    custody != null &&
+    !(CUSTODY_TYPES as readonly string[]).includes(custody)
+  ) {
+    throw new Error("Invalid custody");
+  }
+  await db
+    .update(investmentAccountTable)
+    .set({ custody })
+    .where(eq(investmentAccountTable.id, id));
+  revalidatePath("/investments");
+  revalidatePath("/allocation");
+  revalidatePath("/");
 }
 
 export async function updateInvestmentAccountCost(

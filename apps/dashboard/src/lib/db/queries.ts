@@ -203,6 +203,7 @@ export async function getInvestmentAccounts(): Promise<InvestmentAccount[]> {
     openedAt: r.openedAt,
     closedAt: r.closedAt,
     investmentTypes: (r.investmentTypes ?? []) as string[],
+    custody: r.custody,
   }));
 }
 
