@@ -2,8 +2,9 @@
 
 0.1.0 is not noted here
 
-## [0.17.1] - 2026-09-20
+## [0.18.0] - 2026-09-20
 
+- feat: Discord daily summary posts two bento PNGs (net worth, movers + lending) instead of the long text list. Title, version, estimation, and warning lines stay in the message. Each PNG is a separate webhook post so Discord does not crop them into a grid.
 - fix: negative Ether.fi Cash leftover no longer flags the run as a warning. Discord still marks the leftover line; `logger.warn` stays for cron-job issues (misconfiguration, data mismatch, API errors).
 
 ## [0.17.0] - 2026-09-17

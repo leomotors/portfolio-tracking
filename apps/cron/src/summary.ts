@@ -14,6 +14,7 @@ import {
 import { formatDate, getYesterday } from "@/lib/date";
 import {
   type AssetSnapshot,
+  type DayPerformer,
   findTopAndWorstPerformers,
   loadHeldAssetSnapshots,
 } from "@/lib/dayPerformers";
@@ -33,8 +34,22 @@ export type PreviousDailySnapshot = {
 export type SummaryResult = {
   /** Space + circle emojis, or empty */
   circleSuffix: string;
-  /** Body lines (no leading ##) */
-  body: string;
+  bank: number;
+  investCost: number;
+  investValue: number;
+  realEstate: number;
+  netWorth: number;
+  takenPnl: number;
+  bankDelta: number | null;
+  investCostDelta: number | null;
+  investValueDelta: number | null;
+  realEstateDelta: number | null;
+  netWorthDelta: number | null;
+  allTimePnl: number;
+  allTimePnlDelta: number | null;
+  hasTakenPnl: boolean;
+  hasRealEstate: boolean;
+  performers: { top: DayPerformer; worst: DayPerformer } | null;
 };
 
 const f = Intl.NumberFormat("en-US");
@@ -43,11 +58,6 @@ function formatSignedThbDelta(delta: number): string {
   if (Object.is(delta, 0) || Math.abs(delta) < 1e-6) {
     return "";
   }
-  const sign = delta >= 0 ? "+" : "-";
-  return ` (${sign}${f.format(Math.abs(delta))} THB)`;
-}
-
-function formatPerformerThb(delta: number): string {
   const sign = delta >= 0 ? "+" : "-";
   return ` (${sign}${f.format(Math.abs(delta))} THB)`;
 }
@@ -83,9 +93,9 @@ export function pnlLines(
   return `All-time P/L: ${f.format(allTime)} THB${previous ? formatSignedThbDelta(delta) : ""}`;
 }
 
-async function loadDayPerformerLines(
+async function loadDayPerformers(
   previousAssets: AssetSnapshot[],
-): Promise<string> {
+): Promise<{ top: DayPerformer; worst: DayPerformer } | null> {
   const previousById = new Map(
     previousAssets.map((asset) => [
       asset.id,
@@ -93,18 +103,9 @@ async function loadDayPerformerLines(
     ]),
   );
 
-  const performers = findTopAndWorstPerformers(
+  return findTopAndWorstPerformers(
     await loadHeldAssetSnapshots(),
     previousById,
-  );
-
-  if (!performers) {
-    return "";
-  }
-
-  return (
-    `\nTop Performer: ${performers.top.name}${formatPerformerThb(performers.top.pnlDelta)}` +
-    `\nWorst Performer: ${performers.worst.name}${formatPerformerThb(performers.worst.pnlDelta)}`
   );
 }
 
@@ -263,57 +264,66 @@ export async function buildSummary(
   }, 0);
 
   const takenPnl = await loadTakenPnlThb(null);
-  const pnlLine = pnlLines(
-    { openPnl: totalValue - totalCost, cost: totalCost, taken: takenPnl },
-    previous
-      ? {
-          openPnl: previous.totalValue - previous.totalCost,
-          taken: previous.takenPnl,
-        }
-      : null,
-  );
+  const openPnl = totalValue - totalCost;
+  const allTimePnl = openPnl + takenPnl;
+  const hasTakenPnl =
+    takenPnl !== 0 || (previous != null && previous.takenPnl !== 0);
+  const allTimePnlDelta = previous
+    ? allTimePnl -
+      (previous.totalValue - previous.totalCost + previous.takenPnl)
+    : null;
 
   const currentNetWorth = totalBalance + totalValue + totalRealEstate;
-  const performerLines = await loadDayPerformerLines(previousAssets);
-
-  let circleSuffix = "";
-  let body: string;
+  const performers = await loadDayPerformers(previousAssets);
+  const hasRealEstate = await hasActiveRealEstate();
 
   if (!previous) {
-    body =
-      `Total Bank Balance: ${f.format(totalBalance)} THB` +
-      `\nTotal Investment Cost: ${f.format(totalCost)} THB` +
-      `\nTotal Investment Value: ${f.format(totalValue)} THB` +
-      `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB` +
-      `\n${pnlLine}` +
-      performerLines +
-      `\n**Total Net Worth: ${f.format(currentNetWorth)} THB**` +
-      `\n_No prior daily snapshot for day-over-day comparison._`;
-  } else {
-    const prevNw =
-      previous.totalBank + previous.totalValue + previous.totalRealEstate;
-    const netDeltaThb = currentNetWorth - prevNw;
-    const percentDiffNetWorth =
-      prevNw === 0 ? null : (netDeltaThb / prevNw) * 100;
-
-    circleSuffix = circleEmojiSuffix(netDeltaThb, percentDiffNetWorth);
-
-    const dBank = totalBalance - previous.totalBank;
-    const dCost = totalCost - previous.totalCost;
-    const dValue = totalValue - previous.totalValue;
-    const dRealEstate = totalRealEstate - previous.totalRealEstate;
-
-    body =
-      `Total Bank Balance: ${f.format(totalBalance)} THB${formatSignedThbDelta(dBank)}` +
-      `\nTotal Investment Cost: ${f.format(totalCost)} THB${formatSignedThbDelta(dCost)}` +
-      `\nTotal Investment Value: ${f.format(totalValue)} THB${formatSignedThbDelta(dValue)}` +
-      `\nTotal Real Estate Value: ${f.format(totalRealEstate)} THB${formatSignedThbDelta(dRealEstate)}` +
-      `\n${pnlLine}` +
-      performerLines +
-      `\n**Total Net Worth: ${f.format(currentNetWorth)} THB${formatSignedThbDelta(netDeltaThb)}**`;
+    return {
+      circleSuffix: "",
+      bank: totalBalance,
+      investCost: totalCost,
+      investValue: totalValue,
+      realEstate: totalRealEstate,
+      netWorth: currentNetWorth,
+      takenPnl,
+      bankDelta: null,
+      investCostDelta: null,
+      investValueDelta: null,
+      realEstateDelta: null,
+      netWorthDelta: null,
+      allTimePnl,
+      allTimePnlDelta,
+      hasTakenPnl,
+      hasRealEstate,
+      performers,
+    };
   }
 
-  return { circleSuffix, body };
+  const prevNw =
+    previous.totalBank + previous.totalValue + previous.totalRealEstate;
+  const netDeltaThb = currentNetWorth - prevNw;
+  const percentDiffNetWorth =
+    prevNw === 0 ? null : (netDeltaThb / prevNw) * 100;
+
+  return {
+    circleSuffix: circleEmojiSuffix(netDeltaThb, percentDiffNetWorth),
+    bank: totalBalance,
+    investCost: totalCost,
+    investValue: totalValue,
+    realEstate: totalRealEstate,
+    netWorth: currentNetWorth,
+    takenPnl,
+    bankDelta: totalBalance - previous.totalBank,
+    investCostDelta: totalCost - previous.totalCost,
+    investValueDelta: totalValue - previous.totalValue,
+    realEstateDelta: totalRealEstate - previous.totalRealEstate,
+    netWorthDelta: netDeltaThb,
+    allTimePnl,
+    allTimePnlDelta,
+    hasTakenPnl,
+    hasRealEstate,
+    performers,
+  };
 }
 
 export async function getSummary(

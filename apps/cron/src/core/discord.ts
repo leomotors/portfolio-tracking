@@ -19,7 +19,7 @@ export async function sendMessage(
   formData.append(
     "payload_json",
     JSON.stringify({
-      content,
+      ...(content ? { content } : {}),
       attachments: attachments.map((file, id) => ({
         id,
         filename: file.filename,

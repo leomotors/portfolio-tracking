@@ -1,7 +1,7 @@
 import { db } from "@repo/database/client";
 import { buildHeatmapCells, colorScaleMax } from "@repo/heatmap";
 
-import { type DiscordAttachment, sendMessage } from "./core/discord.js";
+import { sendMessage } from "./core/discord.js";
 import { environment } from "./core/environment.js";
 import { logger } from "./core/logger.js";
 import { calculateBalance } from "./functions/calculateBalance/index.js";
@@ -10,11 +10,12 @@ import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { lendingHealthStep } from "./functions/lendingHealth/index.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
 import { stakingSyncStep } from "./functions/stakingSync/index.js";
+import { renderBentoPngs } from "./lib/bentoPng.js";
 import { formatDate, getYesterday } from "./lib/date.js";
 import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
+import { buildDailyDiscordPosts } from "./lib/discordPosts.js";
 import { saveHeatmapDaily } from "./lib/heatmapDaily.js";
 import { renderHeatmapPngFromCells } from "./lib/heatmapPng.js";
-import { formatLendingDiscordLines } from "./lib/lendingHealth.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
 if (environment.DRY_RUN) {
@@ -69,34 +70,41 @@ try {
   );
 }
 
-const attachments: DiscordAttachment[] = [
-  {
-    filename: "run.log",
-    contentType: "text/plain",
-    data: logger.getMessages().join("\n"),
-  },
-];
-if (heatmapPng) {
-  attachments.push({
-    filename: "heatmap.png",
-    contentType: "image/png",
-    data: heatmapPng,
-  });
+let networthPng: Buffer | null = null;
+let moversPng: Buffer | null = null;
+try {
+  const bento = await renderBentoPngs(summary, lendingHealth);
+  networthPng = bento.networth;
+  moversPng = bento.movers;
+} catch (error) {
+  logger.error(
+    `Failed to render bento PNG: ${error instanceof Error ? error.message : String(error)}`,
+  );
 }
 
-const lendingLines = formatLendingDiscordLines(lendingHealth);
+const lines = [
+  `## Portfolio Daily Cron: Run Completed${summary.circleSuffix}`,
+  `App Version: ${APP_VERSION} ${environment.DRY_RUN ? "**(Dry Run: Data is not saved)**" : ""}`,
+];
+if (logger.hasEstimation) {
+  lines.push("📐 Estimations were made on some asset/currency price.");
+}
+if (logger.hasWarning) {
+  lines.push("### ⚠️ Warnings were found during the run.");
+}
+if (logger.hasError) {
+  lines.push("## ❗ Errors were found during the run.");
+}
 
-await sendMessage(
-  `## Portfolio Daily Cron: Run Completed${summary.circleSuffix}
-App Version: ${APP_VERSION} ${environment.DRY_RUN ? "**(Dry Run: Data is not saved)**" : ""}
-${summary.body}${lendingLines ? `\n${lendingLines}` : ""}${
-    logger.hasEstimation
-      ? "\n📐 Estimations were made on some asset/currency price."
-      : ""
-  }${
-    logger.hasWarning ? "\n### ⚠️ Warnings were found during the run." : ""
-  }${logger.hasError ? "\n## ❗ Errors were found during the run." : ""}`,
-  attachments,
-);
+const posts = buildDailyDiscordPosts({
+  caption: lines.join("\n"),
+  networth: networthPng,
+  movers: moversPng,
+  heatmap: heatmapPng,
+  log: logger.getMessages().join("\n"),
+});
+for (const post of posts) {
+  await sendMessage(post.content, post.attachments);
+}
 
 await db.$client.end();

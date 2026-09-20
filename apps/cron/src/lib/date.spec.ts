@@ -1,6 +1,12 @@
 import { expect, test } from "vitest";
 
-import { formatDate, getYesterday, orPreviousWorkDay } from "./date.js";
+import {
+  formatAsOfLabel,
+  formatAsOfTime,
+  formatDate,
+  getYesterday,
+  orPreviousWorkDay,
+} from "./date.js";
 
 test("formatDate", () => {
   expect(formatDate(new Date("2021-01-01"))).toBe("2021-01-01");
@@ -25,4 +31,16 @@ test("orPreviousWorkDay", () => {
   const sunday = new Date("2025-12-07"); // Sunday
   expect(formatDate(orPreviousWorkDay(sunday))).toBe("2025-12-05");
   expect(sunday.getDate()).toBe(7); // original date should not be modified
+});
+
+test("formatAsOfLabel is ICT weekday date", () => {
+  expect(formatAsOfLabel(new Date("2026-09-20T13:05:00+07:00"))).toBe(
+    "SUN 20 SEP 2026",
+  );
+});
+
+test("formatAsOfTime is ICT clock", () => {
+  expect(formatAsOfTime(new Date("2026-09-20T13:05:00+07:00"))).toBe(
+    "AS OF 13:05 ICT",
+  );
 });
