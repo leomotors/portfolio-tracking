@@ -81,7 +81,7 @@ async function checkMonitor(
       logger.log(`  Leftover: ${usd.format(snapshot.leftoverUsd)}`);
 
       if (isUnderDebt(snapshot.leftoverUsd)) {
-        logger.warn(
+        logger.log(
           `⚠️ ${monitor.name} leftover is negative (${usd.format(snapshot.leftoverUsd)}) — cash no longer covers the borrow`,
         );
       }

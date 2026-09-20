@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.17.1] - 2026-09-20
+
+- fix: negative Ether.fi Cash leftover no longer flags the run as a warning. Discord still marks the leftover line; `logger.warn` stays for cron-job issues (misconfiguration, data mismatch, API errors).
+
 ## [0.17.0] - 2026-09-17
 
 - feat: Ether.fi Liquid can read share balances from an Aave v4 LendGateway (`shareSource: "aave_v4"` plus `lendGateway` in `sync_config`) instead of ERC-20 `balanceOf`. Accountant `getRate()` (WBTC mapping) and CoinGecko prices are unchanged.
