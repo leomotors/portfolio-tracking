@@ -52,22 +52,29 @@ async function fetchNavItemsForRange(
   endNavDate: string,
   subscriptionKey: string,
 ): Promise<NavItem[]> {
+  const query = {
+    proj_id: projectId,
+    start_nav_date: startNavDate,
+    end_nav_date: endNavDate,
+    fund_class_name: symbol,
+  };
+  const path = `/fund/daily-info/nav?${new URLSearchParams(query).toString()}`;
+
   const { data, error, response } = await secFundClient.GET(
     "/fund/daily-info/nav",
     {
       params: {
-        query: {
-          proj_id: projectId,
-          start_nav_date: startNavDate,
-          end_nav_date: endNavDate,
-          fund_class_name: symbol,
-        },
+        query,
       },
       headers: {
         "Ocp-Apim-Subscription-Key": subscriptionKey,
         "Cache-Control": "no-cache",
       },
     },
+  );
+
+  logger.debug(
+    `SEC ${path}\nstatus ${response.status}\n${data != null ? JSON.stringify(data, null, 2) : "null"}`,
   );
 
   if (response.status !== 200) {

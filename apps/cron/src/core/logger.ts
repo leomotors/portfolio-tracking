@@ -28,6 +28,10 @@ export class Logger {
     this.messages = [];
   }
 
+  public debug(message: string) {
+    console.log(message);
+  }
+
   public log(message: string) {
     this.messages.push(message);
     console.log(message);

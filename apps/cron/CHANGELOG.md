@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.19.0] - 2026-09-22
+
+- feat: `logger.debug` prints to the console only (not Discord `run.log`). Each SEC fund NAV request logs path + query, status, and JSON body so empty or partial 4AM pages can be inspected without flooding Discord.
+
 ## [0.18.0] - 2026-09-20
 
 - feat: Discord daily summary posts two bento PNGs (net worth, movers + lending) instead of the long text list. Title, version, estimation, and warning lines stay in the message. Each PNG is a separate webhook post so Discord does not crop them into a grid.
