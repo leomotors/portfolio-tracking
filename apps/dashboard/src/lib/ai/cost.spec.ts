@@ -9,16 +9,22 @@ import {
 describe("AI cost accounting", () => {
   it("estimates model token cost in micro USD", () => {
     expect(
-      estimateModelCostMicroUsd("gpt-5.6-luna", {
+      estimateModelCostMicroUsd("gpt-6-luna", {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       }),
-    ).toBe(1_400_000);
+    ).toBe(600_000);
   });
 
-  it("uses current standard list prices for Sol, Sonnet 5, and Fable 5.1 cache", () => {
+  it("uses current standard list prices for Sol, Opus 5.5, Sonnet 5, and Fable 5.1 cache", () => {
     expect(
-      estimateModelCostMicroUsd("gpt-5.6-sol", {
+      estimateModelCostMicroUsd("gpt-6-sol", {
+        inputTokens: 1_000_000,
+        outputTokens: 1_000_000,
+      }),
+    ).toBe(12_000_000);
+    expect(
+      estimateModelCostMicroUsd("claude-opus-5-5", {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       }),
@@ -40,12 +46,12 @@ describe("AI cost accounting", () => {
 
   it("uses cached input rates when cache read tokens are present", () => {
     expect(
-      estimateModelCostMicroUsd("gpt-5.6-luna", {
+      estimateModelCostMicroUsd("gpt-6-luna", {
         inputTokens: 1_000_000,
         outputTokens: 0,
         cachedInputTokens: 500_000,
       }),
-    ).toBe(110_000);
+    ).toBe(55_000);
   });
 
   it("tracks provider search tool invocation costs", () => {

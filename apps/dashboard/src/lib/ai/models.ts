@@ -26,12 +26,12 @@ export interface AiModelConfig {
 
 export const AI_MODELS = [
   {
-    id: "gpt-5.6-luna",
+    id: "gpt-6-luna",
     provider: "openai",
-    label: "GPT-5.6 Luna",
-    inputUsdPerMillion: 0.2,
-    cachedInputUsdPerMillion: 0.02,
-    outputUsdPerMillion: 1.2,
+    label: "GPT-6 Luna",
+    inputUsdPerMillion: 0.1,
+    cachedInputUsdPerMillion: 0.01,
+    outputUsdPerMillion: 0.5,
   },
   {
     id: "gpt-5.6-terra",
@@ -42,12 +42,12 @@ export const AI_MODELS = [
     outputUsdPerMillion: 12,
   },
   {
-    id: "gpt-5.6-sol",
+    id: "gpt-6-sol",
     provider: "openai",
-    label: "GPT-5.6 Sol",
-    inputUsdPerMillion: 4,
-    cachedInputUsdPerMillion: 0.4,
-    outputUsdPerMillion: 20,
+    label: "GPT-6 Sol",
+    inputUsdPerMillion: 2,
+    cachedInputUsdPerMillion: 0.2,
+    outputUsdPerMillion: 10,
   },
   {
     id: "gpt-6-astra",
@@ -74,12 +74,12 @@ export const AI_MODELS = [
     outputUsdPerMillion: 10,
   },
   {
-    id: "claude-opus-5",
+    id: "claude-opus-5-5",
     provider: "anthropic",
-    label: "Claude Opus 5",
-    inputUsdPerMillion: 5,
-    cachedInputUsdPerMillion: 0.5,
-    outputUsdPerMillion: 25,
+    label: "Claude Opus 5.5",
+    inputUsdPerMillion: 4,
+    cachedInputUsdPerMillion: 0.2,
+    outputUsdPerMillion: 20,
   },
   {
     id: "claude-fable-5-1",
@@ -134,6 +134,22 @@ export const RETIRED_AI_MODELS = [
     outputUsdPerMillion: 30,
   },
   {
+    id: "gpt-5.6-luna",
+    provider: "openai",
+    label: "GPT-5.6 Luna",
+    inputUsdPerMillion: 0.2,
+    cachedInputUsdPerMillion: 0.02,
+    outputUsdPerMillion: 1.2,
+  },
+  {
+    id: "gpt-5.6-sol",
+    provider: "openai",
+    label: "GPT-5.6 Sol",
+    inputUsdPerMillion: 4,
+    cachedInputUsdPerMillion: 0.4,
+    outputUsdPerMillion: 20,
+  },
+  {
     id: "claude-sonnet-4-6",
     provider: "anthropic",
     label: "Claude Sonnet 4.6",
@@ -153,6 +169,14 @@ export const RETIRED_AI_MODELS = [
     id: "claude-opus-4-8",
     provider: "anthropic",
     label: "Claude Opus 4.8",
+    inputUsdPerMillion: 5,
+    cachedInputUsdPerMillion: 0.5,
+    outputUsdPerMillion: 25,
+  },
+  {
+    id: "claude-opus-5",
+    provider: "anthropic",
+    label: "Claude Opus 5",
     inputUsdPerMillion: 5,
     cachedInputUsdPerMillion: 0.5,
     outputUsdPerMillion: 25,
@@ -180,7 +204,7 @@ const ALL_KNOWN_MODELS = [...AI_MODELS, ...RETIRED_AI_MODELS] as const;
 export type AiModelId = (typeof AI_MODELS)[number]["id"];
 
 export const DEFAULT_AI_PROVIDER: AiProvider = "openai";
-export const DEFAULT_AI_MODEL: AiModelId = "gpt-5.6-luna";
+export const DEFAULT_AI_MODEL: AiModelId = "gpt-6-luna";
 
 export const TOOL_PRICING_MICRO_USD = {
   openaiWebSearch: 10_000,

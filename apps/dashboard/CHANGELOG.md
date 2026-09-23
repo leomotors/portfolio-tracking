@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased]
+
+- chore: replace GPT-5.6 Luna/Sol and Claude Opus 5 with GPT-6 Luna (default)/Sol and Claude Opus 5.5; keep prior ids on existing threads
+
 ## [0.16.0] - 2026-09-20
 
 - fix: heatmap holdings table sorts Day % by signed change, so descending order lists gains before losses

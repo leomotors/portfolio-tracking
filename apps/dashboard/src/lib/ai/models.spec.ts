@@ -24,7 +24,7 @@ describe("AI model registry", () => {
   });
 
   it("normalizes invalid model selections to provider defaults", () => {
-    expect(normalizeModelSelection("anthropic", "gpt-5.6-luna")).toEqual({
+    expect(normalizeModelSelection("anthropic", "gpt-6-luna")).toEqual({
       provider: "anthropic",
       model: "claude-haiku-4-5",
     });
@@ -44,17 +44,35 @@ describe("AI model registry", () => {
     expect(isRetiredModel("claude-opus-4-8")).toBe(true);
     expect(isRetiredModel("grok-4.5")).toBe(true);
     expect(isRetiredModel("claude-fable-5-1")).toBe(false);
-    expect(isRetiredModel("claude-opus-5")).toBe(false);
+    expect(isRetiredModel("gpt-5.6-luna")).toBe(true);
+    expect(isRetiredModel("gpt-5.6-sol")).toBe(true);
+    expect(isRetiredModel("claude-opus-5")).toBe(true);
+    expect(isRetiredModel("gpt-6-luna")).toBe(false);
+    expect(isRetiredModel("claude-opus-5-5")).toBe(false);
+    expect(availableModelOptions().some((m) => m.id === "gpt-6-luna")).toBe(
+      true,
+    );
+    expect(availableModelOptions().some((m) => m.id === "gpt-6-sol")).toBe(
+      true,
+    );
     expect(availableModelOptions().some((m) => m.id === "gpt-6-astra")).toBe(
       true,
     );
-    expect(availableModelOptions().some((m) => m.id === "claude-opus-5")).toBe(
-      true,
-    );
+    expect(
+      availableModelOptions().some((m) => m.id === "claude-opus-5-5"),
+    ).toBe(true);
     expect(availableModelOptions().some((m) => m.id === "grok-4.6")).toBe(true);
   });
 
   it("rejects retired models for new selections", () => {
+    expect(normalizeModelSelection("openai", "gpt-5.6-luna")).toEqual({
+      provider: "openai",
+      model: "gpt-6-luna",
+    });
+    expect(normalizeModelSelection("anthropic", "claude-opus-5")).toEqual({
+      provider: "anthropic",
+      model: "claude-haiku-4-5",
+    });
     expect(normalizeModelSelection("anthropic", "claude-opus-4-8")).toEqual({
       provider: "anthropic",
       model: "claude-haiku-4-5",
@@ -66,6 +84,20 @@ describe("AI model registry", () => {
   });
 
   it("keeps retired models when continuing an existing conversation", () => {
+    expect(
+      normalizeModelSelection("openai", "gpt-5.6-sol", { allowRetired: true }),
+    ).toEqual({
+      provider: "openai",
+      model: "gpt-5.6-sol",
+    });
+    expect(
+      normalizeModelSelection("anthropic", "claude-opus-5", {
+        allowRetired: true,
+      }),
+    ).toEqual({
+      provider: "anthropic",
+      model: "claude-opus-5",
+    });
     expect(
       normalizeModelSelection("anthropic", "claude-opus-4-8", {
         allowRetired: true,
