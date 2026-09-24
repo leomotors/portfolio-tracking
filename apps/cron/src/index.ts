@@ -10,11 +10,15 @@ import { fillMissingData } from "./functions/daily/fillMissingData.js";
 import { lendingHealthStep } from "./functions/lendingHealth/index.js";
 import { priceUpdateStep } from "./functions/priceUpdate/index.js";
 import { stakingSyncStep } from "./functions/stakingSync/index.js";
-import { renderBentoPngs } from "./lib/bentoPng.js";
+import {
+  renderBentoPngs,
+  toBentoMovers,
+  toBentoNetworth,
+} from "./lib/bentoPng.js";
+import { saveDailyReport } from "./lib/dailyReport.js";
 import { formatDate, getYesterday } from "./lib/date.js";
 import { loadHeldAssetSnapshots } from "./lib/dayPerformers.js";
 import { buildDailyDiscordPosts } from "./lib/discordPosts.js";
-import { saveHeatmapDaily } from "./lib/heatmapDaily.js";
 import { renderHeatmapPngFromCells } from "./lib/heatmapPng.js";
 import { getSummary, loadPreviousDailySnapshot } from "./summary.js";
 
@@ -57,7 +61,15 @@ const heatmapCells = buildHeatmapCells(
 );
 const heatmapScaleMax = colorScaleMax(heatmapCells);
 const heatmapDate = formatDate(getYesterday(new Date()));
-await saveHeatmapDaily(heatmapDate, heatmapCells, heatmapScaleMax);
+const networthData = toBentoNetworth(summary);
+const moversData = toBentoMovers(summary, lendingHealth);
+await saveDailyReport({
+  date: heatmapDate,
+  cells: heatmapCells,
+  colorScaleMax: heatmapScaleMax,
+  networth: networthData,
+  movers: moversData,
+});
 
 let heatmapPng: Buffer | null = null;
 try {

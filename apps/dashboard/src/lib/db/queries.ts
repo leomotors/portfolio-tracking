@@ -10,8 +10,10 @@ import {
   coingeckoSymbolTable,
   creditCardAccountTable,
   currencyTable,
+  type DailyReportMovers,
+  type DailyReportNetworth,
+  dailyReportTable,
   fcdAccountTable,
-  heatmapDailyTable,
   investmentAccountTable,
   investmentDailyBalanceTable,
   personalLoanAccountTable,
@@ -651,14 +653,16 @@ export async function getUnmappedThaiFundSymbols(): Promise<string[]> {
   ].sort((a, b) => a.localeCompare(b));
 }
 
-export interface HeatmapDailySnapshot {
+export interface DailyReportSnapshot {
   date: string;
   cells: HeatmapCell[];
   colorScaleMax: number;
+  networth: DailyReportNetworth | null;
+  movers: DailyReportMovers | null;
   generatedAt: Date;
 }
 
-function isMissingHeatmapTable(error: unknown): boolean {
+function isMissingDailyReportTable(error: unknown): boolean {
   if (typeof error !== "object" || error === null) return false;
   const code = "code" in error ? String(error.code) : "";
   const message = "message" in error ? String(error.message) : "";
@@ -670,37 +674,39 @@ function isMissingHeatmapTable(error: unknown): boolean {
 }
 
 /** Newest first. Empty when the table has not been migrated yet. */
-export async function listHeatmapDates(): Promise<string[]> {
+export async function listDailyReportDates(): Promise<string[]> {
   try {
     const rows = await db
-      .select({ date: heatmapDailyTable.date })
-      .from(heatmapDailyTable)
-      .orderBy(desc(heatmapDailyTable.date));
+      .select({ date: dailyReportTable.date })
+      .from(dailyReportTable)
+      .orderBy(desc(dailyReportTable.date));
     return rows.map((row) => row.date);
   } catch (error) {
-    if (isMissingHeatmapTable(error)) return [];
+    if (isMissingDailyReportTable(error)) return [];
     throw error;
   }
 }
 
-export async function getHeatmapByDate(
+export async function getDailyReportByDate(
   date: string,
-): Promise<HeatmapDailySnapshot | null> {
+): Promise<DailyReportSnapshot | null> {
   try {
     const [row] = await db
       .select()
-      .from(heatmapDailyTable)
-      .where(eq(heatmapDailyTable.date, date))
+      .from(dailyReportTable)
+      .where(eq(dailyReportTable.date, date))
       .limit(1);
     if (!row) return null;
     return {
       date: row.date,
       cells: row.cells ?? [],
       colorScaleMax: toNum(row.colorScaleMax),
+      networth: row.networth ?? null,
+      movers: row.movers ?? null,
       generatedAt: row.generatedAt,
     };
   } catch (error) {
-    if (isMissingHeatmapTable(error)) return null;
+    if (isMissingDailyReportTable(error)) return null;
     throw error;
   }
 }

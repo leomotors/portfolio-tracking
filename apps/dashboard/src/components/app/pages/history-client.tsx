@@ -1,8 +1,6 @@
 "use client";
 
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import {
@@ -12,6 +10,8 @@ import {
   layoutHeatmap,
 } from "@repo/heatmap";
 
+import { DailyMovers } from "@/components/app/daily-movers";
+import { DailyNetworth } from "@/components/app/daily-networth";
 import { HeatmapTreemap } from "@/components/app/heatmap-treemap";
 import { PageHeader } from "@/components/app/page-header";
 import { Sensitive } from "@/components/app/sensitive";
@@ -23,21 +23,21 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { type HeatmapDailySnapshot } from "@/lib/db/queries";
+import { type DailyReportSnapshot } from "@/lib/db/queries";
 import { CLASS_LABEL } from "@/lib/portfolio/colors";
 import { thb } from "@/lib/portfolio/format";
 import { cn } from "@/lib/utils";
 
 type SortKey = "label" | "class" | "value" | "pnl" | "pct";
 
-interface HeatmapClientProps {
+interface HistoryClientProps {
   dates: string[];
   selectedDate: string | null;
-  snapshot: HeatmapDailySnapshot | null;
+  snapshot: DailyReportSnapshot | null;
 }
 
-function heatmapHref(date: string) {
-  return `/heatmap?date=${date}`;
+function historyHref(date: string) {
+  return `/history?date=${date}`;
 }
 
 function formatLongDate(date: string) {
@@ -49,11 +49,11 @@ function formatLongDate(date: string) {
   });
 }
 
-export function HeatmapClient({
+export function HistoryClient({
   dates,
   selectedDate,
   snapshot,
-}: HeatmapClientProps) {
+}: HistoryClientProps) {
   const [classFilter, setClassFilter] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("pct");
@@ -109,17 +109,17 @@ export function HeatmapClient({
     return (
       <div className="flex flex-col gap-5">
         <PageHeader
-          kicker="Heatmap"
-          title="Day gain / loss"
-          sub="Each cron run stores the same cell data used for the Discord PNG. History starts after the first successful persist."
+          kicker="History"
+          title="Daily cron"
+          sub="Each run stores the same three cards posted to Discord. History starts after the first successful persist."
         />
         <Card>
           <CardContent className="py-10">
             <p className="m-0 max-w-[56ch] text-[14px] leading-6 text-[var(--ink-2)]">
-              No heatmap rows yet. After{" "}
+              No daily reports yet. After{" "}
               <span className="font-mono text-[13px]">heatmap_daily</span> is
-              migrated and the daily cron completes, days will show up here with
-              zoom and a full holding list.
+              migrated and the daily cron completes, days will show net worth,
+              movers, and the heatmap here.
             </p>
           </CardContent>
         </Card>
@@ -127,142 +127,159 @@ export function HeatmapClient({
     );
   }
 
+  const dateNav = (
+    <DateNav
+      dates={dates}
+      selectedDate={selectedDate}
+      olderDate={olderDate}
+      newerDate={newerDate}
+    />
+  );
+
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         kicker={formatLongDate(selectedDate)}
-        title="Day gain / loss"
-        sub="Same layout as the Discord PNG. Scroll to zoom, drag to pan, hover or use the table for every holding."
-        right={
-          <DateNav
-            dates={dates}
-            selectedDate={selectedDate}
-            olderDate={olderDate}
-            newerDate={newerDate}
-          />
-        }
+        title="Daily cron"
+        sub="The same three cards posted to Discord. Older days may only have the heatmap."
+        right={dateNav}
       />
 
-      <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[13px] text-[var(--ink-2)]">
-        <span>
-          {cells.length} holding{cells.length === 1 ? "" : "s"}
-        </span>
-        <span>
-          Value{" "}
-          <Sensitive className="num text-[var(--ink)]">
-            {thb(totalValue)}
-          </Sensitive>
-        </span>
-        <span
-          className={cn(
-            "num font-medium",
-            totalPnl >= 0
-              ? "text-[var(--accent-pos)]"
-              : "text-[var(--accent-neg)]",
-          )}
-        >
-          <Sensitive>{thb(totalPnl, { sign: true })}</Sensitive>
-        </span>
-      </div>
+      {snapshot.networth ? (
+        <DailyNetworth data={snapshot.networth} />
+      ) : (
+        <p className="m-0 text-[13px] text-[var(--ink-3)]">
+          Net worth and movers were not stored for this day. They start after
+          the next cron run.
+        </p>
+      )}
 
-      <div className="flex flex-wrap gap-1.5">
-        <FilterChip
-          active={classFilter == null}
-          onClick={() => setClassFilter(null)}
-        >
-          All classes
-        </FilterChip>
-        {classes.map((key) => (
-          <FilterChip
-            key={key}
-            active={classFilter === key}
-            onClick={() =>
-              setClassFilter((current) => (current === key ? null : key))
-            }
-          >
-            {CLASS_LABEL[key] ?? heatmapClassLabel(key)}
-          </FilterChip>
-        ))}
-      </div>
+      {snapshot.movers ? <DailyMovers data={snapshot.movers} /> : null}
 
-      <Card className="overflow-hidden bg-[#0d1117] p-0">
-        <HeatmapTreemap
-          rects={rects}
-          title="Day Gain / Loss Heatmap"
-          classFilter={classFilter}
-          selectedId={selectedId}
-          onSelect={(cell) =>
-            setSelectedId((id) =>
-              cell && cell.id === id ? null : (cell?.id ?? null),
-            )
-          }
-        />
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div>
-            <CardTitle>All holdings</CardTitle>
-            <CardDescription>
-              {sorted.length} of {cells.length} shown. Sort by Day % to find the
-              day's movers.
-            </CardDescription>
+      {cells.length > 0 && (
+        <>
+          <div className="flex flex-wrap items-baseline gap-x-5 gap-y-1 text-[13px] text-[var(--ink-2)]">
+            <span>
+              {cells.length} holding{cells.length === 1 ? "" : "s"}
+            </span>
+            <span>
+              Value{" "}
+              <Sensitive className="num text-[var(--ink)]">
+                {thb(totalValue)}
+              </Sensitive>
+            </span>
+            <span
+              className={cn(
+                "num font-medium",
+                totalPnl >= 0
+                  ? "text-[var(--accent-pos)]"
+                  : "text-[var(--accent-neg)]",
+              )}
+            >
+              <Sensitive>{thb(totalPnl, { sign: true })}</Sensitive>
+            </span>
           </div>
-        </CardHeader>
-        <CardContent className="overflow-x-auto px-0 pb-0">
-          <table className="w-full min-w-[36rem] border-collapse text-left text-[13px]">
-            <thead>
-              <tr className="border-b border-[var(--hairline)] text-[11px] font-medium text-[var(--ink-3)]">
-                <SortHeader
-                  label="Holding"
-                  active={sortKey === "label"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("label")}
-                />
-                <SortHeader
-                  label="Class"
-                  active={sortKey === "class"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("class")}
-                />
-                <SortHeader
-                  label="Value"
-                  active={sortKey === "value"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("value")}
-                  numeric
-                />
-                <SortHeader
-                  label="Day P/L"
-                  active={sortKey === "pnl"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("pnl")}
-                  numeric
-                />
-                <SortHeader
-                  label="Day %"
-                  active={sortKey === "pct"}
-                  dir={sortDir}
-                  onClick={() => toggleSort("pct")}
-                  numeric
-                />
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map((cell) => (
-                <HeatmapRow
-                  key={cell.id}
-                  cell={cell}
-                  selected={cell.id === selectedId}
-                  onSelect={() =>
-                    setSelectedId((id) => (id === cell.id ? null : cell.id))
-                  }
-                />
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+
+          <div className="flex flex-wrap gap-1.5">
+            <FilterChip
+              active={classFilter == null}
+              onClick={() => setClassFilter(null)}
+            >
+              All classes
+            </FilterChip>
+            {classes.map((key) => (
+              <FilterChip
+                key={key}
+                active={classFilter === key}
+                onClick={() =>
+                  setClassFilter((current) => (current === key ? null : key))
+                }
+              >
+                {CLASS_LABEL[key] ?? heatmapClassLabel(key)}
+              </FilterChip>
+            ))}
+          </div>
+
+          <Card className="overflow-hidden bg-[#0d1117] p-0">
+            <HeatmapTreemap
+              rects={rects}
+              title="Day Gain / Loss Heatmap"
+              classFilter={classFilter}
+              selectedId={selectedId}
+              onSelect={(cell) =>
+                setSelectedId((id) =>
+                  cell && cell.id === id ? null : (cell?.id ?? null),
+                )
+              }
+            />
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <div>
+                <CardTitle>All holdings</CardTitle>
+                <CardDescription>
+                  {sorted.length} of {cells.length} shown. Sort by Day % to find
+                  the day&apos;s movers.
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="overflow-x-auto px-0 pb-0">
+              <table className="w-full min-w-[36rem] border-collapse text-left text-[13px]">
+                <thead>
+                  <tr className="border-b border-[var(--hairline)] text-[11px] font-medium text-[var(--ink-3)]">
+                    <SortHeader
+                      label="Holding"
+                      active={sortKey === "label"}
+                      dir={sortDir}
+                      onClick={() => toggleSort("label")}
+                    />
+                    <SortHeader
+                      label="Class"
+                      active={sortKey === "class"}
+                      dir={sortDir}
+                      onClick={() => toggleSort("class")}
+                    />
+                    <SortHeader
+                      label="Value"
+                      active={sortKey === "value"}
+                      dir={sortDir}
+                      onClick={() => toggleSort("value")}
+                      numeric
+                    />
+                    <SortHeader
+                      label="Day P/L"
+                      active={sortKey === "pnl"}
+                      dir={sortDir}
+                      onClick={() => toggleSort("pnl")}
+                      numeric
+                    />
+                    <SortHeader
+                      label="Day %"
+                      active={sortKey === "pct"}
+                      dir={sortDir}
+                      onClick={() => toggleSort("pct")}
+                      numeric
+                    />
+                  </tr>
+                </thead>
+                <tbody>
+                  {sorted.map((cell) => (
+                    <HeatmapRow
+                      key={cell.id}
+                      cell={cell}
+                      selected={cell.id === selectedId}
+                      onSelect={() =>
+                        setSelectedId((id) => (id === cell.id ? null : cell.id))
+                      }
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </CardContent>
+          </Card>
+        </>
+      )}
     </div>
   );
 }
@@ -278,7 +295,6 @@ function DateNav({
   olderDate: string | null | undefined;
   newerDate: string | null | undefined;
 }) {
-  const router = useRouter();
   return (
     <div className="flex flex-wrap items-center gap-2">
       <Button
@@ -288,10 +304,10 @@ function DateNav({
         disabled={olderDate == null}
       >
         {olderDate ? (
-          <Link href={heatmapHref(olderDate)} aria-label="Older heatmap">
+          <a href={historyHref(olderDate)} aria-label="Older report">
             <ChevronLeft size={14} strokeWidth={2} />
             Older
-          </Link>
+          </a>
         ) : (
           <span>
             <ChevronLeft size={14} strokeWidth={2} />
@@ -299,15 +315,15 @@ function DateNav({
           </span>
         )}
       </Button>
-      <label className="sr-only" htmlFor="heatmap-date">
-        Heatmap date
+      <label className="sr-only" htmlFor="history-date">
+        Report date
       </label>
       <select
-        id="heatmap-date"
+        id="history-date"
         className="h-8 rounded-md border border-[var(--hairline)] bg-[var(--surface)] px-2 text-[12px] text-[var(--ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent-pri)]"
         value={selectedDate}
         onChange={(event) => {
-          router.push(heatmapHref(event.target.value));
+          window.location.assign(historyHref(event.target.value));
         }}
       >
         {dates.map((date) => (
@@ -323,10 +339,10 @@ function DateNav({
         disabled={newerDate == null}
       >
         {newerDate ? (
-          <Link href={heatmapHref(newerDate)} aria-label="Newer heatmap">
+          <a href={historyHref(newerDate)} aria-label="Newer report">
             Newer
             <ChevronRight size={14} strokeWidth={2} />
-          </Link>
+          </a>
         ) : (
           <span>
             Newer

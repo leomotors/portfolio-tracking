@@ -403,7 +403,8 @@ Note: `coperate_bond` is a typo of `corporate_bond` preserved across the schema 
 After those steps, [summary.ts](../../apps/cron/src/summary.ts) computes
 day-over-day deltas using yesterday's snapshot (or, if missing, the latest date
 that exists in **both** daily balance tables). Discord gets one summary
-(totals, optional lending leftover lines, heatmap, `run.log`).
+(net-worth and movers PNGs, heatmap, `run.log`). The same JSON is stored on
+`heatmap_daily` for the dashboard History page.
 
 ## How the dashboard writes this database
 

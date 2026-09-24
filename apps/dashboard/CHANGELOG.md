@@ -1,7 +1,8 @@
 # Changelog
 
-## [Unreleased]
+## [0.17.0] - 2026-09-24
 
+- feat: History page (`/history`, sidebar rename from Heatmap) replays the daily cron's net-worth, movers/lending, and heatmap cards from `heatmap_daily`. `/heatmap` redirects and keeps the date query. Older days without summaries still show the heatmap.
 - chore: replace GPT-5.6 Luna/Sol and Claude Opus 5 with GPT-6 Luna (default)/Sol and Claude Opus 5.5; keep prior ids on existing threads
 
 ## [0.16.0] - 2026-09-20

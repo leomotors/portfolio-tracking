@@ -183,6 +183,13 @@
       "when": 1789835751807,
       "tag": "0025_account-custody",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1790145948623,
+      "tag": "0026_daily-report-summaries",
+      "breakpoints": true
     }
   ]
 }

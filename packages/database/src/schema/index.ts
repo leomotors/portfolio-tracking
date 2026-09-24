@@ -3,7 +3,7 @@ export * from "./assets.ts";
 export * from "./bankAccount.ts";
 export * from "./coingecko.ts";
 export * from "./currency.ts";
-export * from "./heatmap.ts";
+export * from "./dailyReport.ts";
 export * from "./investmentAccount.ts";
 export * from "./lending.ts";
 export * from "./loanAccount.ts";

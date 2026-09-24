@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [0.20.0] - 2026-09-24
+
+- feat: persist net-worth and movers/lending payloads on `heatmap_daily` with the heatmap cells so the dashboard can replay all three Discord cards. First run for a date wins (`onConflictDoNothing`); older heatmap-only rows stay heatmap-only. Insert is skipped on dry-run and still soft-fails if the table is not migrated.
+
 ## [0.19.0] - 2026-09-22
 
 - feat: `logger.debug` prints to the console only (not Discord `run.log`). Each SEC fund NAV request logs path + query, status, and JSON body so empty or partial 4AM pages can be inspected without flooding Discord.
