@@ -34,14 +34,6 @@ export const AI_MODELS = [
     outputUsdPerMillion: 0.5,
   },
   {
-    id: "gpt-5.6-terra",
-    provider: "openai",
-    label: "GPT-5.6 Terra",
-    inputUsdPerMillion: 2,
-    cachedInputUsdPerMillion: 0.2,
-    outputUsdPerMillion: 12,
-  },
-  {
     id: "gpt-6-sol",
     provider: "openai",
     label: "GPT-6 Sol",
@@ -140,6 +132,14 @@ export const RETIRED_AI_MODELS = [
     inputUsdPerMillion: 0.2,
     cachedInputUsdPerMillion: 0.02,
     outputUsdPerMillion: 1.2,
+  },
+  {
+    id: "gpt-5.6-terra",
+    provider: "openai",
+    label: "GPT-5.6 Terra",
+    inputUsdPerMillion: 2,
+    cachedInputUsdPerMillion: 0.2,
+    outputUsdPerMillion: 12,
   },
   {
     id: "gpt-5.6-sol",

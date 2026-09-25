@@ -46,6 +46,7 @@ describe("AI model registry", () => {
     expect(isRetiredModel("claude-fable-5-1")).toBe(false);
     expect(isRetiredModel("gpt-5.6-luna")).toBe(true);
     expect(isRetiredModel("gpt-5.6-sol")).toBe(true);
+    expect(isRetiredModel("gpt-5.6-terra")).toBe(true);
     expect(isRetiredModel("claude-opus-5")).toBe(true);
     expect(isRetiredModel("gpt-6-luna")).toBe(false);
     expect(isRetiredModel("claude-opus-5-5")).toBe(false);

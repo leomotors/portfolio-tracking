@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.17.1] - 2026-09-25
+
+- chore: retire GPT-5.6 Terra from the AI chat model picker; existing threads keep using it
+
 ## [0.17.0] - 2026-09-24
 
 - feat: History page (`/history`, sidebar rename from Heatmap) replays the daily cron's net-worth, movers/lending, and heatmap cards from `heatmap_daily`. `/heatmap` redirects and keeps the date query. Older days without summaries still show the heatmap.
