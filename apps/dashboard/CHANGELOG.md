@@ -1,5 +1,10 @@
 # Changelog
 
+## [Unreleased] - minor
+
+- feat: investments and crypto pages shorten EVM/Solana addresses in account numbers and `HLV:` vault symbols; hover shows the full address with a copy button
+- fix: multi-line account numbers render one entry per line instead of running together
+
 ## [0.17.1] - 2026-09-25
 
 - chore: retire GPT-5.6 Terra from the AI chat model picker; existing threads keep using it

@@ -3,6 +3,7 @@
 import { AlertTriangle } from "lucide-react";
 import { useMemo } from "react";
 
+import { AssetSymbol } from "@/components/app/address";
 import { Chip } from "@/components/app/chip";
 import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
@@ -270,7 +271,7 @@ export function CryptoClient({
                       <Td>
                         <div className="flex flex-col gap-1">
                           <span className="num text-[12px] font-semibold">
-                            {asset.symbol ?? "—"}
+                            <AssetSymbol symbol={asset.symbol} />
                           </span>
                           <span className="text-[12px] text-[var(--ink-3)]">
                             {asset.name}

@@ -6,6 +6,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 
 const DUST_THRESHOLD = 0.005;
 
+import { AccountNo, AssetSymbol } from "@/components/app/address";
 import { AreaChart } from "@/components/app/area-chart";
 import { ChartMetricSelector } from "@/components/app/chart-metric-selector";
 import { Chip } from "@/components/app/chip";
@@ -127,9 +128,10 @@ function AccountListButton({
       <div className="flex items-start justify-between gap-2.5">
         <div>
           <div className="text-[13px] font-semibold">{account.name}</div>
-          <div className="num text-[11px] text-[var(--ink-3)]">
-            {account.accountNo}
-          </div>
+          <AccountNo
+            value={account.accountNo}
+            className="num text-[11px] text-[var(--ink-3)]"
+          />
         </div>
         <Sparkline
           data={spark}
@@ -412,7 +414,10 @@ function AccountDetail({
       >
         <div>
           <div className="num inline-flex rounded-full border border-[var(--hairline)] bg-[var(--surface-2)] px-2 py-0.5 text-[11px] text-[var(--ink-3)]">
-            {account.accountNo}
+            <AccountNo
+              value={account.accountNo}
+              className="flex-row flex-wrap gap-x-3"
+            />
           </div>
           <h2 className="m-0 mt-1 text-[24px] font-semibold tracking-[-0.02em]">
             {account.name}
@@ -615,7 +620,7 @@ function AccountDetail({
                     <Td>
                       <div className="flex flex-col items-start">
                         <span className="num text-[12px] font-semibold">
-                          {p.symbol ?? "—"}
+                          <AssetSymbol symbol={p.symbol} />
                         </span>
                         <span className="text-[12px] text-[var(--ink-3)]">
                           {p.name}
@@ -729,7 +734,7 @@ function AccountDetail({
                           <Td>
                             <div className="flex flex-col items-start">
                               <span className="num text-[12px] font-semibold">
-                                {p.symbol ?? "—"}
+                                <AssetSymbol symbol={p.symbol} />
                               </span>
                               <span className="text-[12px] text-[var(--ink-3)]">
                                 {p.name}
