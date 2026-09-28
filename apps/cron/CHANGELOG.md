@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [Unreleased] - patch
+
+- fix: price updates only write to assets of the fetcher's `symbol_type`. A ticker shared by a stock and a token was overwritten by whichever fetcher finished last
+
 ## [0.20.0] - 2026-09-24
 
 - feat: persist net-worth and movers/lending payloads on `heatmap_daily` with the heatmap cells so the dashboard can replay all three Discord cards. First run for a date wins (`onConflictDoNothing`); older heatmap-only rows stay heatmap-only. Insert is skipped on dry-run and still soft-fails if the table is not migrated.

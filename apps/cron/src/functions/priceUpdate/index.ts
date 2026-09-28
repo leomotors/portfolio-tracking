@@ -1,4 +1,4 @@
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, isNull } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
 import {
@@ -18,12 +18,17 @@ import {
 import { fetchFundPrices } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
 import { fetchYahooStockPrices } from "@/data/yahoo";
+import {
+  coingeckoPriceTarget,
+  type PriceTarget,
+  yahooPriceTarget,
+} from "@/lib/priceTarget";
 
 type StockUpdateConfig = {
   name: string;
   symbols: string[];
   fetcher: (symbols: string[]) => Promise<ScrapeResult[]>;
-  symbolMapper: (symbol: string) => string;
+  toAsset: (symbol: string) => PriceTarget;
 };
 
 export async function priceUpdateStep() {
@@ -55,25 +60,25 @@ export async function priceUpdateStep() {
       name: "Thai + US Stocks via Yahoo Finance",
       symbols: yahooSymbols,
       fetcher: fetchYahooStockPrices,
-      symbolMapper: (s) => s.replace(".BK", ""),
+      toAsset: yahooPriceTarget,
     },
     {
       name: "Thai Mutual Funds via SEC Fund API",
       symbols: thaiFundSymbols,
       fetcher: fetchFundPrices,
-      symbolMapper: (s) => s,
+      toAsset: (symbol) => ({ symbol, symbolType: "thai_mutual_fund" }),
     },
     {
       name: "USD/THB rate via Bitkub USDC",
       symbols: ["USDCTHB"],
       fetcher: fetchBitkubUsdcThb,
-      symbolMapper: (s) => s,
+      toAsset: (symbol) => ({ symbol, symbolType: null }),
     },
     {
       name: "Cryptocurrencies + MTS-GOLD via CoinGecko",
       symbols: [...cryptoSymbols, "MTS-GOLD-OZ", "MTS-GOLD-KG"],
       fetcher: fetchCoinGeckoPrices,
-      symbolMapper: (s) => s,
+      toAsset: coingeckoPriceTarget,
     },
   ];
 
@@ -137,7 +142,7 @@ async function updateHyperliquidVaultPrices() {
     name: "Hyperliquid vault equity",
     symbols: assets.map((a) => a.symbol),
     fetcher: () => fetchHyperliquidVaultPrices(assets),
-    symbolMapper: (s) => s,
+    toAsset: (symbol) => ({ symbol, symbolType: "hyperliquid_vault" }),
   });
 }
 
@@ -160,10 +165,18 @@ async function updateStockPrices(config: StockUpdateConfig) {
 
   if (!environment.DRY_RUN) {
     for (const r of result) {
+      const { symbol, symbolType } = config.toAsset(r.symbol);
       await db
         .update(assetTable)
         .set({ currentPrice: String(r.price) })
-        .where(eq(assetTable.symbol, config.symbolMapper(r.symbol)));
+        .where(
+          and(
+            eq(assetTable.symbol, symbol),
+            symbolType == null
+              ? isNull(assetTable.symbolType)
+              : eq(assetTable.symbolType, symbolType),
+          ),
+        );
     }
   }
 
