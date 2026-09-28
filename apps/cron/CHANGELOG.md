@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [Unreleased] - patch
+## [0.20.1] - 2026-09-28
 
 - fix: price updates only write to assets of the fetcher's `symbol_type`. A ticker shared by a stock and a token was overwritten by whichever fetcher finished last
 

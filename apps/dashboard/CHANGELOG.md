@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - minor
+## [0.18.0] - 2026-09-28
 
 - feat: investments and crypto pages shorten EVM/Solana addresses in account numbers and `HLV:` vault symbols; hover shows the full address with a copy button
 - fix: multi-line account numbers render one entry per line instead of running together
