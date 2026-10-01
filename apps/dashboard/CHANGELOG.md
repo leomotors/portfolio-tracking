@@ -1,5 +1,9 @@
 # Changelog
 
+## [Unreleased] - patch
+
+- fix: AI agent logs realized P/L (in-account or withdrawn) in the same proposal whenever a sell reduces a holding
+
 ## [0.18.0] - 2026-09-28
 
 - feat: investments and crypto pages shorten EVM/Solana addresses in account numbers and `HLV:` vault symbols; hover shows the full address with a copy button

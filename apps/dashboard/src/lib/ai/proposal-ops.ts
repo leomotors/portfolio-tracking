@@ -19,6 +19,9 @@ const occurredOn = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Date must be YYYY-MM-DD");
 const note = z.string().trim().max(500).optional();
+const realizedPnl = finite.describe(
+  "Realized P/L in currencyId: proceeds − sold quantity × averageCost. Negative for a loss.",
+);
 
 export const portfolioOperationSchema = z.discriminatedUnion("op", [
   z
@@ -102,7 +105,7 @@ export const portfolioOperationSchema = z.discriminatedUnion("op", [
       accountId: id,
       occurredOn,
       currencyId: id,
-      pnl: finite,
+      pnl: realizedPnl,
       note,
       undocumented: z.boolean().optional(),
     })
@@ -113,7 +116,7 @@ export const portfolioOperationSchema = z.discriminatedUnion("op", [
       accountId: id,
       occurredOn,
       currencyId: id,
-      pnl: finite,
+      pnl: realizedPnl,
       withdrawAmount: z.number().finite().positive(),
       note,
     })

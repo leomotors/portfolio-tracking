@@ -310,7 +310,7 @@ export function createPortfolioTools(context: ToolContext) {
     }),
     proposePortfolioChange: tool({
       description:
-        "Propose a portfolio database change for the user to review. Does not write portfolio rows. The user must approve, reject, or request changes in the chat UI. Look up ids with the read tools first. Batch related edits into one proposal. Use create_asset when the holding does not already exist; use update_asset_amount on an existing id. For a new-money purchase, also include update_investment_account_cost with the new total. For a rotation, leave account cost alone. Custody is per investment account: use update_investment_account_custody.",
+        "Propose a portfolio database change for the user to review. Does not write portfolio rows. The user must approve, reject, or request changes in the chat UI. Look up ids with the read tools first. Batch related edits into one proposal. Use create_asset when the holding does not already exist; use update_asset_amount on an existing id. For a new-money purchase, also include update_investment_account_cost with the new total. For a rotation, leave account cost alone. Any sell must also include a P/L event: create_in_account_pnl_event if the proceeds stay in the account, create_withdrawn_pnl_event if cash leaves it. Custody is per investment account: use update_investment_account_custody.",
       inputSchema: proposePortfolioChangeInputSchema,
       execute: async ({ summary, operations }) => {
         try {
