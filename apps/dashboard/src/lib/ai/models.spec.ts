@@ -48,12 +48,15 @@ describe("AI model registry", () => {
     expect(isRetiredModel("gpt-5.6-sol")).toBe(true);
     expect(isRetiredModel("gpt-5.6-terra")).toBe(true);
     expect(isRetiredModel("claude-opus-5")).toBe(true);
+    expect(isRetiredModel("gpt-6-sol")).toBe(true);
+    expect(isRetiredModel("claude-sonnet-5")).toBe(true);
+    expect(isRetiredModel("grok-4.6")).toBe(true);
     expect(isRetiredModel("gpt-6-luna")).toBe(false);
     expect(isRetiredModel("claude-opus-5-5")).toBe(false);
     expect(availableModelOptions().some((m) => m.id === "gpt-6-luna")).toBe(
       true,
     );
-    expect(availableModelOptions().some((m) => m.id === "gpt-6-sol")).toBe(
+    expect(availableModelOptions().some((m) => m.id === "gpt-6.1-sol")).toBe(
       true,
     );
     expect(availableModelOptions().some((m) => m.id === "gpt-6-astra")).toBe(
@@ -62,7 +65,7 @@ describe("AI model registry", () => {
     expect(
       availableModelOptions().some((m) => m.id === "claude-opus-5-5"),
     ).toBe(true);
-    expect(availableModelOptions().some((m) => m.id === "grok-4.6")).toBe(true);
+    expect(availableModelOptions().some((m) => m.id === "grok-4.7")).toBe(true);
   });
 
   it("rejects retired models for new selections", () => {

@@ -3,6 +3,7 @@
 ## [Unreleased] - patch
 
 - fix: AI agent logs realized P/L (in-account or withdrawn) in the same proposal whenever a sell reduces a holding
+- chore: replace GPT-6 Sol, Claude Sonnet 5, and Grok 4.6 with GPT-6.1 Sol, Claude Sonnet 5.5, and Grok 4.7; keep prior ids on existing threads
 
 ## [0.18.0] - 2026-09-28
 

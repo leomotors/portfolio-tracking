@@ -16,9 +16,9 @@ describe("AI cost accounting", () => {
     ).toBe(600_000);
   });
 
-  it("uses current standard list prices for Sol, Opus 5.5, Sonnet 5, and Fable 5.1 cache", () => {
+  it("uses current standard list prices for Sol, Opus 5.5, Sonnet 5.5, and Fable 5.1 cache", () => {
     expect(
-      estimateModelCostMicroUsd("gpt-6-sol", {
+      estimateModelCostMicroUsd("gpt-6.1-sol", {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       }),
@@ -30,7 +30,7 @@ describe("AI cost accounting", () => {
       }),
     ).toBe(24_000_000);
     expect(
-      estimateModelCostMicroUsd("claude-sonnet-5", {
+      estimateModelCostMicroUsd("claude-sonnet-5-5", {
         inputTokens: 1_000_000,
         outputTokens: 1_000_000,
       }),
