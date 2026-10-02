@@ -1,5 +1,11 @@
 # Changelog
 
+## [Unreleased] - patch
+
+- fix: AI chat caches the prompt prefix on Claude models, so later steps and turns bill cached input instead of full price
+- fix: AI agent only gets web/X search tools whose provider key is configured, instead of tools that answer "unavailable"
+- chore: clearer AI tool descriptions for the two web search tools and the account history tools
+
 ## [0.18.1] - 2026-10-01
 
 - fix: AI agent logs realized P/L (in-account or withdrawn) in the same proposal whenever a sell reduces a holding

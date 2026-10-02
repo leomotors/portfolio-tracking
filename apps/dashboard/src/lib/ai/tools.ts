@@ -133,7 +133,7 @@ async function runSearchTool({
   return output;
 }
 
-export function createPortfolioTools(context: ToolContext) {
+export function createPortfolioTools(context: ToolContext): ToolSet {
   return {
     getPortfolioOverview: tool({
       description:
@@ -253,7 +253,7 @@ export function createPortfolioTools(context: ToolContext) {
     }),
     getInvestmentHistory: tool({
       description:
-        "Get read-only daily cost and value history for one investment account.",
+        "Get read-only daily cost and value history for one investment account (accountId from listInvestments). Returns every recorded day, oldest first, so prefer getPortfolioOverview or listInvestments for current values.",
       inputSchema: z.object({
         accountId: z.number().int().positive(),
       }),
@@ -266,7 +266,8 @@ export function createPortfolioTools(context: ToolContext) {
       execute: async () => toJson(await getBankAccounts()),
     }),
     getBankHistory: tool({
-      description: "Get read-only daily balance history for one bank account.",
+      description:
+        "Get read-only daily balance history for one bank account (accountId from listBankAccounts). Returns every recorded day, oldest first, so prefer listBankAccounts for current balances.",
       inputSchema: z.object({
         accountId: z.number().int().positive(),
       }),
@@ -339,74 +340,72 @@ export function createPortfolioTools(context: ToolContext) {
         }
       },
     }),
-    searchWeb: tool({
-      description:
-        "Search the live web for current market, company, economic, or financial context. Returns a cited summary.",
-      inputSchema: z.object({
-        query: z.string().min(2).max(500),
-      }),
-      execute: async ({ query }) => {
-        if (!process.env.OPENAI_API_KEY) {
-          return { answer: "OpenAI web search is unavailable.", sources: [] };
+    ...(process.env.OPENAI_API_KEY
+      ? {
+          searchWeb: tool({
+            description:
+              "Search the live web (OpenAI web search) for current market, company, economic, or financial context. Returns a cited summary in `answer` with up to 8 `sources`. Use this as the primary web search; it does not search X/Twitter.",
+            inputSchema: z.object({
+              query: z.string().min(2).max(500),
+            }),
+            execute: async ({ query }) =>
+              runSearchTool({
+                context,
+                toolName: "searchWeb",
+                provider: "openai",
+                model: "gpt-6-luna",
+                prompt: query,
+                searchTools: {
+                  web_search: openai.tools.webSearch({
+                    searchContextSize: "medium",
+                  }),
+                },
+                toolCostMicroUsd: estimateToolCostMicroUsd("searchWeb"),
+              }),
+          }),
         }
-        return runSearchTool({
-          context,
-          toolName: "searchWeb",
-          provider: "openai",
-          model: "gpt-6-luna",
-          prompt: query,
-          searchTools: {
-            web_search: openai.tools.webSearch({ searchContextSize: "medium" }),
-          },
-          toolCostMicroUsd: estimateToolCostMicroUsd("searchWeb"),
-        });
-      },
-    }),
-    searchGrokWeb: tool({
-      description:
-        "Search the live web using Grok/xAI for an alternate current-context source with citations.",
-      inputSchema: z.object({
-        query: z.string().min(2).max(500),
-      }),
-      execute: async ({ query }) => {
-        if (!process.env.XAI_API_KEY) {
-          return { answer: "xAI web search is unavailable.", sources: [] };
+      : {}),
+    ...(process.env.XAI_API_KEY
+      ? {
+          searchGrokWeb: tool({
+            description:
+              "Search the live web through Grok/xAI. Returns a cited summary in `answer` with up to 8 `sources`. Use it to cross-check searchWeb or when searchWeb is unavailable or returns nothing useful; for posts and sentiment on X/Twitter use searchX instead.",
+            inputSchema: z.object({
+              query: z.string().min(2).max(500),
+            }),
+            execute: async ({ query }) =>
+              runSearchTool({
+                context,
+                toolName: "searchGrokWeb",
+                provider: "xai",
+                model: "grok-4.3",
+                prompt: query,
+                searchTools: {
+                  web_search: xai.tools.webSearch(),
+                },
+                toolCostMicroUsd: estimateToolCostMicroUsd("searchGrokWeb"),
+              }),
+          }),
+          searchX: tool({
+            description:
+              "Search X/Twitter through xAI for realtime social discussion, sentiment, posts, profiles, or threads.",
+            inputSchema: z.object({
+              query: z.string().min(2).max(500),
+            }),
+            execute: async ({ query }) =>
+              runSearchTool({
+                context,
+                toolName: "searchX",
+                provider: "xai",
+                model: "grok-4.3",
+                prompt: query,
+                searchTools: {
+                  x_search: xai.tools.xSearch(),
+                },
+                toolCostMicroUsd: estimateToolCostMicroUsd("searchX"),
+              }),
+          }),
         }
-        return runSearchTool({
-          context,
-          toolName: "searchGrokWeb",
-          provider: "xai",
-          model: "grok-4.3",
-          prompt: query,
-          searchTools: {
-            web_search: xai.tools.webSearch(),
-          },
-          toolCostMicroUsd: estimateToolCostMicroUsd("searchGrokWeb"),
-        });
-      },
-    }),
-    searchX: tool({
-      description:
-        "Search X/Twitter through xAI for realtime social discussion, sentiment, posts, profiles, or threads.",
-      inputSchema: z.object({
-        query: z.string().min(2).max(500),
-      }),
-      execute: async ({ query }) => {
-        if (!process.env.XAI_API_KEY) {
-          return { answer: "xAI X search is unavailable.", sources: [] };
-        }
-        return runSearchTool({
-          context,
-          toolName: "searchX",
-          provider: "xai",
-          model: "grok-4.3",
-          prompt: query,
-          searchTools: {
-            x_search: xai.tools.xSearch(),
-          },
-          toolCostMicroUsd: estimateToolCostMicroUsd("searchX"),
-        });
-      },
-    }),
-  } satisfies ToolSet;
+      : {}),
+  };
 }

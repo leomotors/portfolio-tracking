@@ -220,7 +220,9 @@ export async function POST(request: NextRequest) {
     providerOptions:
       selection.provider === "openai"
         ? { openai: { store: false, parallelToolCalls: true } }
-        : undefined,
+        : selection.provider === "anthropic"
+          ? { anthropic: { cacheControl: { type: "ephemeral" } } }
+          : undefined,
     onFinish: async (event) => {
       const usage = usageToRecord(event.totalUsage);
       const mainCost = estimateModelCostMicroUsd(
