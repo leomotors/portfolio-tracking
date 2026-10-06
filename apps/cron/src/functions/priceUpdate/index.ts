@@ -1,4 +1,4 @@
-import { and, eq, gt, isNull } from "drizzle-orm";
+import { and, eq, gt, isNull, lte, or } from "drizzle-orm";
 
 import { db } from "@repo/database/client";
 import {
@@ -16,7 +16,7 @@ import {
   fetchHyperliquidVaultPrices,
   walletFromAccountNo,
 } from "@/data/hyperliquidVault";
-import { fetchFundPrices } from "@/data/sec-fund";
+import { fetchFundPrices, secFundIssues } from "@/data/sec-fund";
 import { type ScrapeResult } from "@/data/types";
 import { fetchYahooStockPrices } from "@/data/yahoo";
 import {
@@ -30,6 +30,8 @@ type StockUpdateConfig = {
   symbols: string[];
   fetcher: (symbols: string[]) => Promise<ScrapeResult[]>;
   toAsset: (symbol: string) => PriceTarget;
+  /** Store result.date as price_date and never overwrite a newer one */
+  trackPriceDate?: { onKeptNewer: (symbol: string) => void };
 };
 
 export async function priceUpdateStep() {
@@ -72,6 +74,9 @@ export async function priceUpdateStep() {
       symbols: thaiFundSymbols,
       fetcher: fetchFundPrices,
       toAsset: (symbol) => ({ symbol, symbolType: "thai_mutual_fund" }),
+      trackPriceDate: {
+        onKeptNewer: (symbol) => secFundIssues.keptNewer.push(symbol),
+      },
     },
     {
       name: "USD/THB rate via Bitkub USDC",
@@ -177,17 +182,37 @@ async function updateStockPrices(config: StockUpdateConfig) {
   if (!environment.DRY_RUN) {
     for (const r of result) {
       const { symbol, symbolType } = config.toAsset(r.symbol);
-      await db
+      const priceDate =
+        config.trackPriceDate && r.date ? r.date.slice(0, 10) : null;
+
+      const updated = await db
         .update(assetTable)
-        .set({ currentPrice: String(r.price) })
+        .set({
+          currentPrice: String(r.price),
+          ...(priceDate && { priceDate }),
+        })
         .where(
           and(
             eq(assetTable.symbol, symbol),
             symbolType == null
               ? isNull(assetTable.symbolType)
               : eq(assetTable.symbolType, symbolType),
+            priceDate
+              ? or(
+                  isNull(assetTable.priceDate),
+                  lte(assetTable.priceDate, priceDate),
+                )
+              : undefined,
           ),
+        )
+        .returning({ id: assetTable.id });
+
+      if (priceDate && updated.length === 0) {
+        logger.log(
+          `${symbol}: got price for ${priceDate}, older than stored price_date; kept stored price`,
         );
+        config.trackPriceDate?.onKeptNewer(symbol);
+      }
     }
   }
 

@@ -1,4 +1,5 @@
 import {
+  date,
   decimal,
   integer,
   pgTable,
@@ -30,6 +31,8 @@ export const assetTable = pgTable("asset", {
   unit: text().notNull(),
   averageCost: decimal("average_cost").notNull().default("1"),
   currentPrice: decimal("current_price").notNull().default("1"),
+  // Source's as-of date (e.g. SEC NAV date), unlike the write-time priceUpdatedAt
+  priceDate: date("price_date"),
   currencyId: integer("currency_id")
     .references(() => currencyTable.id)
     .notNull(),

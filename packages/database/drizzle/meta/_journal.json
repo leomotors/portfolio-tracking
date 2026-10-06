@@ -190,6 +190,13 @@
       "when": 1790145948623,
       "tag": "0026_daily-report-summaries",
       "breakpoints": true
+    },
+    {
+      "idx": 27,
+      "version": "7",
+      "when": 1791301287185,
+      "tag": "0027_asset-price-date",
+      "breakpoints": true
     }
   ]
 }

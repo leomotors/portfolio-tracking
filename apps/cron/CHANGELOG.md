@@ -5,6 +5,8 @@
 ## [Unreleased] - minor
 
 - feat: price `TH-GOLD-965` assets (Thai 96.5% gold, THB per baht-weight) from the Gold Traders Association bar buy price on classic.goldtraders.or.th. Falls back to a Tether Gold × USDC/THB estimate when the scrape fails or is more than 3% off that estimate
+- feat: SEC fund prices store their NAV date in `asset.price_date` and never overwrite a newer stored NAV with an older one. Requires migration `0027_asset-price-date`
+- feat: SEC fund requests that fail with 204/429/5xx or a network error get one retry pass after 5s. SEC outcomes (recovered on retry, kept newer stored NAV, failed) get their own caption line instead of the generic warning; only a fund still failing after the retry raises a warning
 
 ## [0.20.1] - 2026-09-28
 

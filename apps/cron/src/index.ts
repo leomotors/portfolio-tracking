@@ -4,6 +4,7 @@ import { buildHeatmapCells, colorScaleMax } from "@repo/heatmap";
 import { sendMessage } from "./core/discord.js";
 import { environment } from "./core/environment.js";
 import { logger } from "./core/logger.js";
+import { secFundSummaryLine } from "./data/sec-fund.js";
 import { calculateBalance } from "./functions/calculateBalance/index.js";
 import { dailyBalance } from "./functions/daily/dailyBalance.js";
 import { fillMissingData } from "./functions/daily/fillMissingData.js";
@@ -100,6 +101,10 @@ const lines = [
 ];
 if (logger.hasEstimation) {
   lines.push("📐 Estimations were made on some asset/currency price.");
+}
+const secFundLine = secFundSummaryLine();
+if (secFundLine) {
+  lines.push(secFundLine);
 }
 if (logger.hasWarning) {
   lines.push("### ⚠️ Warnings were found during the run.");

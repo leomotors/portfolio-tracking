@@ -17,6 +17,14 @@ export const secFundClient = createClient<SECV2.Paths>({
 });
 
 const RANGE_DAYS = 7;
+const RETRY_DELAY_MS = 5000;
+
+// 204 with a 7-day window means no data only in theory; in practice it's transient
+class SecTransientError extends Error {}
+
+function isTransientStatus(status: number) {
+  return status === 204 || status === 429 || status >= 500;
+}
 
 function pickLatestNavForClass(
   items: NavItem[],
@@ -77,6 +85,12 @@ async function fetchNavItemsForRange(
     `SEC ${path}\nstatus ${response.status}\n${data != null ? JSON.stringify(data, null, 2) : "null"}`,
   );
 
+  if (isTransientStatus(response.status)) {
+    throw new SecTransientError(
+      `SEC fund NAV v2: transient status ${response.status}, error: ${error}`,
+    );
+  }
+
   if (response.status !== 200) {
     throw new Error(
       `SEC fund NAV v2: unexpected status ${response.status}, error: ${error}`,
@@ -93,10 +107,32 @@ async function fetchNavItemsForRange(
   return data?.items ?? [];
 }
 
+const RETRY = Symbol("retry");
+
+/** Per-run SEC outcomes for the Discord caption line, kept out of the warning flags */
+export const secFundIssues = {
+  recovered: [] as string[],
+  keptNewer: [] as string[],
+  failed: [] as string[],
+};
+
+export function secFundSummaryLine(): string | null {
+  const parts = [
+    { symbols: secFundIssues.recovered, label: "recovered on retry" },
+    { symbols: secFundIssues.keptNewer, label: "kept newer stored NAV" },
+    { symbols: secFundIssues.failed, label: "failed" },
+  ]
+    .filter((p) => p.symbols.length > 0)
+    .map((p) => `${p.symbols.length} ${p.label}`);
+
+  return parts.length > 0 ? `🏦 SEC fund API: ${parts.join(" · ")}` : null;
+}
+
 export async function getSymbolPrice(
   projectId: string,
   symbol: string,
-): Promise<ScrapeResult | null> {
+  canRetry = false,
+): Promise<ScrapeResult | typeof RETRY | null> {
   const subscriptionKey = environment.SEC_OCP_APIM_SUBSCRIPTION_KEY;
   if (!subscriptionKey) {
     logger.error(
@@ -136,9 +172,20 @@ export async function getSymbolPrice(
     );
     return null;
   } catch (err) {
-    logger.error(
-      `⚠️ SEC fund NAV v2 failed for ${symbol} (project ${projectId}): ${err}`,
-    );
+    // fetch() itself throws TypeError on network failures
+    const transient =
+      err instanceof SecTransientError || err instanceof TypeError;
+    if (transient && canRetry) {
+      logger.debug(`SEC fund NAV v2 will retry ${symbol}: ${err}`);
+      return RETRY;
+    }
+    const message = `⚠️ SEC fund NAV v2 failed for ${symbol} (project ${projectId}): ${err}`;
+    // The stored price is kept, so a flaky API is a warning, not an error
+    if (transient) {
+      logger.warn(message);
+    } else {
+      logger.error(message);
+    }
     return null;
   }
 }
@@ -155,6 +202,7 @@ export async function loadSecProjectIdMap(): Promise<Record<string, string>> {
 
 export async function fetchFundPrices(symbols: string[]) {
   const results: ScrapeResult[] = [];
+  const retrySymbols: string[] = [];
 
   const symbolMapping = await loadSecProjectIdMap();
 
@@ -166,12 +214,31 @@ export async function fetchFundPrices(symbols: string[]) {
       continue;
     }
 
-    const result = await getSymbolPrice(projectId, symbol);
+    const result = await getSymbolPrice(projectId, symbol, true);
 
-    if (result) {
+    if (result === RETRY) {
+      retrySymbols.push(symbol);
+    } else if (result) {
       results.push(result);
     }
   }
+
+  // One bounded pass so a flaky SEC response costs at most ~5s, not a backoff chain
+  if (retrySymbols.length > 0) {
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAY_MS));
+
+    for (const symbol of retrySymbols) {
+      const result = await getSymbolPrice(symbolMapping[symbol]!, symbol);
+      if (result && result !== RETRY) {
+        logger.log(`SEC fund NAV v2: ${symbol} succeeded on retry`);
+        secFundIssues.recovered.push(symbol);
+        results.push(result);
+      }
+    }
+  }
+
+  const fetched = new Set(results.map((r) => r.symbol));
+  secFundIssues.failed.push(...symbols.filter((s) => !fetched.has(s)));
 
   return results;
 }
