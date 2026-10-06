@@ -11,6 +11,7 @@ import { environment } from "@/core/environment";
 import { logger } from "@/core/logger";
 import { fetchBitkubUsdcThb } from "@/data/bitkub";
 import { fetchCoinGeckoPrices } from "@/data/coingecko";
+import { fetchThaiGoldPrices, THAI_GOLD_965_SYMBOL } from "@/data/goldtraders";
 import {
   fetchHyperliquidVaultPrices,
   walletFromAccountNo,
@@ -55,6 +56,10 @@ export async function priceUpdateStep() {
     .map((s) => s.symbol!)
     .filter((s) => s != null);
 
+  const hasThaiGold = symbols.some(
+    (s) => s.symbolType == null && s.symbol === THAI_GOLD_965_SYMBOL,
+  );
+
   const configs: StockUpdateConfig[] = [
     {
       name: "Thai + US Stocks via Yahoo Finance",
@@ -79,6 +84,12 @@ export async function priceUpdateStep() {
       symbols: [...cryptoSymbols, "MTS-GOLD-OZ", "MTS-GOLD-KG"],
       fetcher: fetchCoinGeckoPrices,
       toAsset: coingeckoPriceTarget,
+    },
+    {
+      name: "Thai 96.5% gold via Gold Traders Association",
+      symbols: hasThaiGold ? [THAI_GOLD_965_SYMBOL] : [],
+      fetcher: fetchThaiGoldPrices,
+      toAsset: (symbol) => ({ symbol, symbolType: null }),
     },
   ];
 

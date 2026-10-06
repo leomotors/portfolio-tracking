@@ -236,6 +236,10 @@ A single position inside an investment account.
 
 The price-update step in `apps/cron` filters by `amount > 0` so untraded/empty positions are skipped.
 
+Untyped gold symbols the cron prices: `MTS-GOLD-OZ` / `MTS-GOLD-KG` (USD, from
+Tether Gold) and `TH-GOLD-965` (THB per baht-weight, the Gold Traders
+Association bar buy price, falling back to a Tether Gold × USDC/THB estimate).
+
 #### `coingecko_symbol` — [coingecko.ts](src/schema/coingecko.ts)
 Maps `asset.symbol` to a CoinGecko coin id. Unique on `symbol`. The cron
 loads this table each price run for `symbol_type = cryptocurrency` assets.

@@ -58,26 +58,7 @@ export async function fetchCoinGeckoPrices(
   ];
   if (coinIds.length === 0) return [];
 
-  const url = new URL("https://api.coingecko.com/api/v3/simple/price");
-  url.searchParams.set("ids", coinIds.join(","));
-  url.searchParams.set("vs_currencies", "usd");
-
-  const res = await fetch(url, {
-    headers: {
-      Accept: "application/json",
-      ...(environment.COINGECKO_API_KEY
-        ? { "x-cg-demo-api-key": environment.COINGECKO_API_KEY }
-        : {}),
-    },
-  });
-
-  if (!res.ok) {
-    throw new Error(
-      `Failed to fetch CoinGecko prices: ${res.statusText} ${await res.text()}`,
-    );
-  }
-
-  const data = apiResultSchema.parse(await res.json());
+  const data = await fetchUsdPrices(coinIds);
   const date = new Date().toISOString();
   const results: ScrapeResult[] = [];
 
@@ -108,4 +89,33 @@ export async function fetchCoinGeckoPrices(
   }
 
   return results;
+}
+
+export async function fetchTetherGoldUsd(): Promise<number> {
+  const xaut = (await fetchUsdPrices([TETHER_GOLD_ID]))[TETHER_GOLD_ID];
+  if (!xaut) throw new Error("CoinGecko returned no price for: tether-gold");
+  return xaut.usd;
+}
+
+async function fetchUsdPrices(coinIds: string[]) {
+  const url = new URL("https://api.coingecko.com/api/v3/simple/price");
+  url.searchParams.set("ids", coinIds.join(","));
+  url.searchParams.set("vs_currencies", "usd");
+
+  const res = await fetch(url, {
+    headers: {
+      Accept: "application/json",
+      ...(environment.COINGECKO_API_KEY
+        ? { "x-cg-demo-api-key": environment.COINGECKO_API_KEY }
+        : {}),
+    },
+  });
+
+  if (!res.ok) {
+    throw new Error(
+      `Failed to fetch CoinGecko prices: ${res.statusText} ${await res.text()}`,
+    );
+  }
+
+  return apiResultSchema.parse(await res.json());
 }

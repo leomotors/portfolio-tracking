@@ -2,6 +2,10 @@
 
 0.1.0 is not noted here
 
+## [Unreleased] - minor
+
+- feat: price `TH-GOLD-965` assets (Thai 96.5% gold, THB per baht-weight) from the Gold Traders Association bar buy price on classic.goldtraders.or.th. Falls back to a Tether Gold × USDC/THB estimate when the scrape fails or is more than 3% off that estimate
+
 ## [0.20.1] - 2026-09-28
 
 - fix: price updates only write to assets of the fetcher's `symbol_type`. A ticker shared by a stock and a token was overwritten by whichever fetcher finished last
