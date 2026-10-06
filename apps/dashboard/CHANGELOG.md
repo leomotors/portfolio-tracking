@@ -1,6 +1,6 @@
 # Changelog
 
-## [Unreleased] - patch
+## [0.18.2] - 2026-10-06
 
 - fix: AI chat caches the prompt prefix on Claude models, so later steps and turns bill cached input instead of full price
 - fix: AI agent only gets web/X search tools whose provider key is configured, instead of tools that answer "unavailable"

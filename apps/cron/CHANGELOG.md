@@ -2,7 +2,7 @@
 
 0.1.0 is not noted here
 
-## [Unreleased] - minor
+## [0.21.0] - 2026-10-06
 
 - feat: price `TH-GOLD-965` assets (Thai 96.5% gold, THB per baht-weight) from the Gold Traders Association bar buy price on classic.goldtraders.or.th. Falls back to a Tether Gold × USDC/THB estimate when the scrape fails or is more than 3% off that estimate
 - feat: SEC fund prices store their NAV date in `asset.price_date` and never overwrite a newer stored NAV with an older one. Requires migration `0027_asset-price-date`
