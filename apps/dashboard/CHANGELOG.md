@@ -1,5 +1,9 @@
 # Changelog
 
+## [0.19.0] - 2026-10-09
+
+- feat: crypto page shows one staking card per product (e.g. liquidBTC held from two wallets) with summed totals, time-weighted APY over the combined history, and a "By account" breakdown for per-wallet edits
+
 ## [0.18.2] - 2026-10-06
 
 - fix: AI chat caches the prompt prefix on Claude models, so later steps and turns bill cached input instead of full price

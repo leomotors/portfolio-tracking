@@ -1,16 +1,17 @@
 "use client";
 
-import { AlertTriangle } from "lucide-react";
 import { useMemo } from "react";
 
 import { AssetSymbol } from "@/components/app/address";
 import { Chip } from "@/components/app/chip";
 import { Delta } from "@/components/app/delta";
 import { Donut } from "@/components/app/donut";
-import { EditableNumber } from "@/components/app/editable-number";
 import { PageHeader } from "@/components/app/page-header";
+import {
+  buildStakedGroupStat,
+  StakedGroupCard,
+} from "@/components/app/pages/crypto-staked-card";
 import { Sensitive } from "@/components/app/sensitive";
-import { Sparkline } from "@/components/app/sparkline";
 import { Stale } from "@/components/app/stale";
 import {
   Card,
@@ -20,12 +21,6 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import {
-  updateStakedApy,
-  updateStakedCurrent,
-  updateStakedDeposited,
-  updateStakedReceipt,
-} from "@/lib/db/actions";
-import {
   type Asset,
   type InvestmentAccount,
   type StakedDailyPoint,
@@ -33,12 +28,10 @@ import {
 } from "@/lib/db/queries";
 import { type CurrencyRow } from "@/lib/portfolio/aggregate";
 import { CURRENCY_PALETTE } from "@/lib/portfolio/colors";
-import { num, pct, thb } from "@/lib/portfolio/format";
+import { fmtAmount, num, pct, thb } from "@/lib/portfolio/format";
 import {
-  effectiveApy,
+  groupStakedPositions,
   STAKING_PROVIDER_LABEL,
-  STAKING_SOURCE_LABEL,
-  timeWeightedApy,
 } from "@/lib/portfolio/staking";
 import { cn } from "@/lib/utils";
 
@@ -49,11 +42,6 @@ interface CryptoClientProps {
   currencies: CurrencyRow[];
   accounts: InvestmentAccount[];
 }
-
-const amountDecimals = (v: number) => (v !== 0 && Math.abs(v) < 1 ? 6 : 4);
-
-const fmtAmount = (v: number, unit: string) =>
-  `${num(v, amountDecimals(v))} ${unit}`;
 
 export function CryptoClient({
   staked,
@@ -116,26 +104,16 @@ export function CryptoClient({
     return byId;
   }, [stakedDaily]);
 
-  const stakedStats = staked.map((p) => {
-    const value =
-      p.currentPrice == null
-        ? null
-        : p.currentUnderlying * p.currentPrice * fx(p.currencyId);
-    const earned = p.currentUnderlying - p.depositedUnderlying;
-    const earnedThb =
-      p.currentPrice == null
-        ? null
-        : earned * p.currentPrice * fx(p.currencyId);
-    // Time-weighted APY from daily snapshots (immune to deposits/withdrawals);
-    // falls back to the simple approximation until enough history exists.
-    const twr = timeWeightedApy(dailyByPosition.get(p.id) ?? []);
-    const apy =
-      twr ??
-      effectiveApy(p.depositedUnderlying, p.currentUnderlying, p.stakedSince);
-    const apyMethod: "twr" | "simple" | null =
-      twr != null ? "twr" : apy != null ? "simple" : null;
-    return { position: p, value, earned, earnedThb, apy, apyMethod };
-  });
+  const stakedStats = groupStakedPositions(staked).map((members) =>
+    buildStakedGroupStat(
+      members,
+      dailyByPosition,
+      fx,
+      (accountId) =>
+        (accountId == null ? undefined : accountNameById.get(accountId)) ??
+        "Unlinked",
+    ),
+  );
 
   const stakedValueThb = stakedStats.reduce((s, r) => s + (r.value ?? 0), 0);
   const earnedThbTotal = stakedStats.reduce(
@@ -169,18 +147,12 @@ export function CryptoClient({
       }));
   }, [cryptoAssets]);
 
-  const earnedSeries = (positionId: number) =>
-    stakedDaily
-      .filter((d) => d.stakedPositionId === positionId)
-      .slice(-90)
-      .map((d) => ({ value: d.currentUnderlying - d.depositedUnderlying }));
-
   return (
     <div className="flex flex-col gap-5">
       <PageHeader
         kicker="Crypto"
         title="Staking & holdings"
-        sub={`${staked.length} staked positions · ${cryptoAssets.length} crypto assets`}
+        sub={`${stakedStats.length} staked positions · ${cryptoAssets.length} crypto assets`}
       />
 
       <Card>
@@ -230,11 +202,7 @@ export function CryptoClient({
       ) : (
         <div className="grid items-start gap-3 md:grid-cols-2">
           {stakedStats.map((r) => (
-            <StakedPositionCard
-              key={r.position.id}
-              stat={r}
-              spark={earnedSeries(r.position.id)}
-            />
+            <StakedGroupCard key={r.members[0]!.position.id} stat={r} />
           ))}
         </div>
       )}
@@ -354,198 +322,6 @@ export function CryptoClient({
         </Card>
       </div>
     </div>
-  );
-}
-
-interface StakedStat {
-  position: StakedPosition;
-  value: number | null;
-  earned: number;
-  earnedThb: number | null;
-  apy: number | null;
-  apyMethod: "twr" | "simple" | null;
-}
-
-function StakedPositionCard({
-  stat,
-  spark,
-}: {
-  stat: StakedStat;
-  spark: { value: number }[];
-}) {
-  const { position, value, earned, earnedThb, apy, apyMethod } = stat;
-  const unit = position.underlyingSymbol;
-  const earnedPct =
-    position.depositedUnderlying > 0
-      ? earned / position.depositedUnderlying
-      : null;
-
-  return (
-    <Card>
-      <CardContent className="flex flex-col gap-4">
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div className="flex flex-col gap-1.5">
-            <div className="text-[14px] font-semibold">{position.name}</div>
-            <div className="flex flex-wrap gap-1">
-              <Chip
-                label={
-                  STAKING_PROVIDER_LABEL[position.provider] ?? position.provider
-                }
-              />
-              <Chip label={unit} />
-            </div>
-            {position.receiptAmount != null && (
-              <div className="num text-[12px] text-[var(--ink-3)]">
-                Holding:{" "}
-                <EditableNumber
-                  value={position.receiptAmount}
-                  prefix=""
-                  suffix={` ${position.receiptSymbol ?? "shares"}`}
-                  decimals={8}
-                  onSave={(v) => updateStakedReceipt(position.id, v)}
-                  ariaLabel={`Edit receipt balance for ${position.name}`}
-                />
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col items-end gap-0.5 text-right">
-            <span className="num text-[20px] font-semibold tracking-[-0.01em]">
-              {value == null ? "—" : <Sensitive>{thb(value)}</Sensitive>}
-            </span>
-            {spark.length > 1 && (
-              <Sparkline
-                data={spark}
-                width={90}
-                height={22}
-                accent={earned >= 0 ? "var(--accent-pos)" : "var(--accent-neg)"}
-              />
-            )}
-          </div>
-        </div>
-
-        <div className="grid grid-cols-2 gap-x-7 gap-y-3">
-          <div className="flex flex-col gap-1">
-            <div className="text-[12px] text-[var(--ink-3)]">Deposited</div>
-            <div className="num text-[15px] font-medium">
-              <EditableNumber
-                value={position.depositedUnderlying}
-                prefix=""
-                suffix={` ${unit}`}
-                decimals={amountDecimals(position.depositedUnderlying)}
-                onSave={(v) => updateStakedDeposited(position.id, v)}
-                ariaLabel={`Edit deposited amount for ${position.name}`}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[12px] text-[var(--ink-3)]">Current</div>
-            <div className="num text-[15px] font-medium">
-              <EditableNumber
-                value={position.currentUnderlying}
-                prefix=""
-                suffix={` ${unit}`}
-                decimals={amountDecimals(position.currentUnderlying)}
-                onSave={(v) => updateStakedCurrent(position.id, v)}
-                ariaLabel={`Edit current amount for ${position.name}`}
-              />
-            </div>
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[12px] text-[var(--ink-3)]">Earned</div>
-            <div
-              className={cn(
-                "num text-[15px] font-medium",
-                earned >= 0
-                  ? "text-[var(--accent-pos)]"
-                  : "text-[var(--accent-neg)]",
-              )}
-            >
-              <Sensitive>{fmtAmount(earned, unit)}</Sensitive>
-              {earnedPct != null && (
-                <span className="ml-1.5 text-[11px] opacity-85">
-                  {pct(earnedPct)}
-                </span>
-              )}
-            </div>
-            {earnedThb != null && (
-              <div className="num text-[11px] text-[var(--ink-3)]">
-                <Sensitive>{thb(earnedThb)}</Sensitive>
-              </div>
-            )}
-          </div>
-          <div className="flex flex-col gap-1">
-            <div className="text-[12px] text-[var(--ink-3)]">Effective APY</div>
-            <div className="num text-[15px] font-medium">
-              {apy == null ? "—" : pct(apy)}
-            </div>
-            {apyMethod === "twr" ? (
-              <div className="text-[11px] text-[var(--ink-3)]">
-                time-weighted
-              </div>
-            ) : (
-              position.stakedSince && (
-                <div className="text-[11px] text-[var(--ink-3)]">
-                  since{" "}
-                  {new Date(
-                    position.stakedSince + "T00:00:00",
-                  ).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "short",
-                  })}
-                </div>
-              )
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 border-t border-[var(--hairline-2)] pt-3 text-[11px] text-[var(--ink-3)]">
-          <Chip
-            label={
-              position.syncSource == null
-                ? "never synced"
-                : (STAKING_SOURCE_LABEL[position.syncSource] ??
-                  position.syncSource)
-            }
-            color={
-              position.syncSource === "chain" ? "var(--accent-pos)" : undefined
-            }
-          />
-          <span className="inline-flex items-center">
-            <span>
-              synced{" "}
-              {position.syncedAt
-                ? new Date(position.syncedAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                  })
-                : "never"}
-            </span>
-            <Stale date={position.syncedAt} />
-          </span>
-          <span className="inline-flex items-center gap-1">
-            proj. APY
-            <EditableNumber
-              value={(position.projectedApy ?? 0) * 100}
-              prefix=""
-              suffix="%"
-              decimals={2}
-              sensitive={false}
-              onSave={(v) => updateStakedApy(position.id, v / 100)}
-              ariaLabel={`Edit projected APY for ${position.name}`}
-            />
-          </span>
-          {position.syncError && (
-            <span
-              title={position.syncError}
-              className="inline-flex items-center gap-1 text-[var(--accent-neg)]"
-            >
-              <AlertTriangle size={11} strokeWidth={2.5} />
-              sync error
-            </span>
-          )}
-        </div>
-      </CardContent>
-    </Card>
   );
 }
 

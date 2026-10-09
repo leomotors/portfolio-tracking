@@ -84,3 +84,10 @@ export function num(value: number | null | undefined, decimals = 2) {
     maximumFractionDigits: decimals,
   });
 }
+
+/** Token amounts: 6 decimals below 1 (e.g. 0.123456 BTC), else 4. */
+export const amountDecimals = (v: number) =>
+  v !== 0 && Math.abs(v) < 1 ? 6 : 4;
+
+export const fmtAmount = (v: number, unit: string) =>
+  `${num(v, amountDecimals(v))} ${unit}`;

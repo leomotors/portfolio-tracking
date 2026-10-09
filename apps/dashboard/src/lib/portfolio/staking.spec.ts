@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 
 import {
   effectiveApy,
+  groupStakedPositions,
   rescaleAverageCost,
   type StakingDailySample,
+  sumStakingDaily,
   timeWeightedApy,
 } from "./staking";
 
@@ -125,5 +127,102 @@ describe("rescaleAverageCost", () => {
   it("returns null for non-positive amounts", () => {
     expect(rescaleAverageCost(0, 2000, 2)).toBeNull();
     expect(rescaleAverageCost(2, 2000, 0)).toBeNull();
+  });
+});
+
+describe("groupStakedPositions", () => {
+  const position = (
+    id: number,
+    provider: string,
+    underlyingSymbol: string,
+    receiptSymbol: string | null,
+  ) => ({ id, provider, underlyingSymbol, receiptSymbol });
+
+  it("groups one product held from several wallets, keeping first-seen order", () => {
+    const groups = groupStakedPositions([
+      position(41, "etherfi_liquid", "WBTC", "liquidBTC"),
+      position(87, "solana_native", "SOL", null),
+      position(19, "etherfi_liquid", "ETH", "liquidETH"),
+      position(66, "etherfi_liquid", "WBTC", "liquidBTC"),
+    ]);
+    expect(groups.map((g) => g.map((p) => p.id))).toEqual([
+      [41, 66],
+      [87],
+      [19],
+    ]);
+  });
+
+  it("keeps different providers of the same token apart", () => {
+    const groups = groupStakedPositions([
+      position(52, "solana_native", "SOL", null),
+      position(38, "manual", "SOL", null),
+    ]);
+    expect(groups).toHaveLength(2);
+  });
+});
+
+describe("sumStakingDaily", () => {
+  const sample = (
+    date: string,
+    currentUnderlying: number,
+    depositedUnderlying: number,
+  ): StakingDailySample => ({ date, currentUnderlying, depositedUnderlying });
+
+  function expectSeries(
+    actual: StakingDailySample[],
+    expected: StakingDailySample[],
+  ) {
+    expect(actual.map((s) => s.date)).toEqual(expected.map((s) => s.date));
+    actual.forEach((s, i) => {
+      expect(s.currentUnderlying).toBeCloseTo(
+        expected[i]!.currentUnderlying,
+        12,
+      );
+      expect(s.depositedUnderlying).toBeCloseTo(
+        expected[i]!.depositedUnderlying,
+        12,
+      );
+    });
+  }
+
+  it("returns a single series unchanged", () => {
+    const series = [
+      sample("2025-05-01", 1.01, 1),
+      sample("2025-05-02", 1.02, 1),
+    ];
+    expect(sumStakingDaily([series])).toEqual(series);
+  });
+
+  it("stays continuous when a position is split into a new wallet", () => {
+    const original = [
+      sample("2025-05-01", 2, 1.8),
+      sample("2025-05-02", 2.1, 1.8),
+      sample("2025-05-03", 1.4, 1.2),
+    ];
+    const split = [sample("2025-05-03", 0.7, 0.6)];
+    expectSeries(sumStakingDaily([original, split]), [
+      sample("2025-05-01", 2, 1.8),
+      sample("2025-05-02", 2.1, 1.8),
+      sample("2025-05-03", 2.1, 1.8),
+    ]);
+  });
+
+  it("carries a member's last sample over a missing day", () => {
+    const a = [sample("2025-05-01", 1, 1), sample("2025-05-03", 1.2, 1)];
+    const b = [
+      sample("2025-05-01", 2, 2),
+      sample("2025-05-02", 2.1, 2),
+      sample("2025-05-03", 2.2, 2),
+    ];
+    expectSeries(sumStakingDaily([a, b]), [
+      sample("2025-05-01", 3, 3),
+      sample("2025-05-02", 3.1, 3),
+      sample("2025-05-03", 3.4, 3),
+    ]);
+  });
+
+  it("returns an empty series without samples", () => {
+    expect(sumStakingDaily([])).toEqual([]);
+    expect(sumStakingDaily([[], []])).toEqual([]);
   });
 });

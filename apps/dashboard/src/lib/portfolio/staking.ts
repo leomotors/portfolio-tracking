@@ -79,6 +79,66 @@ export function rescaleAverageCost(
   return (oldAmount * oldAverageCost) / newAmount;
 }
 
+export interface StakingGroupKeyFields {
+  provider: string;
+  underlyingSymbol: string;
+  receiptSymbol: string | null;
+}
+
+/**
+ * Group positions in the same product (e.g. one vault held from two wallets).
+ * The cron needs one row per wallet; the crypto page shows one card per group.
+ * Keeps first-seen order.
+ */
+export function groupStakedPositions<T extends StakingGroupKeyFields>(
+  positions: T[],
+): T[][] {
+  const groups = new Map<string, T[]>();
+  for (const p of positions) {
+    const key = [p.provider, p.underlyingSymbol, p.receiptSymbol ?? ""].join(
+      ":",
+    );
+    const group = groups.get(key);
+    if (group) group.push(p);
+    else groups.set(key, [p]);
+  }
+  return [...groups.values()];
+}
+
+/**
+ * Sum each member's daily snapshots into one series by date. A member
+ * missing a day carries its last sample forward, so a skipped snapshot
+ * doesn't read as a withdrawal. Each input must be sorted by date ascending.
+ */
+export function sumStakingDaily(
+  series: StakingDailySample[][],
+): StakingDailySample[] {
+  const dates = [
+    ...new Set(series.flatMap((s) => s.map((p) => p.date))),
+  ].sort();
+  const cursors = series.map(() => 0);
+  const latest: (StakingDailySample | undefined)[] = series.map(
+    () => undefined,
+  );
+
+  return dates.map((date) => {
+    let currentUnderlying = 0;
+    let depositedUnderlying = 0;
+    series.forEach((samples, i) => {
+      while (
+        cursors[i]! < samples.length &&
+        samples[cursors[i]!]!.date <= date
+      ) {
+        latest[i] = samples[cursors[i]!];
+        cursors[i]!++;
+      }
+      currentUnderlying += latest[i]?.currentUnderlying ?? 0;
+      depositedUnderlying += latest[i]?.depositedUnderlying ?? 0;
+    });
+    return { date, currentUnderlying, depositedUnderlying };
+  });
+}
+
 export const STAKING_PROVIDER_LABEL: Record<string, string> = {
   solana_native: "Solana native",
   hyperliquid: "Hyperliquid",
